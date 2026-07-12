@@ -1,0 +1,119 @@
+import 'dart:async';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../core/constants/v_map.dart';
+import '../core/protocol/virtuino_update.dart';
+import 'app_state.dart';
+import 'providers.dart';
+
+/// Applies incoming Arduino updates to [AppState] and exposes
+/// intention-revealing write methods so the rest of the app never touches
+/// raw V-indices directly.
+///
+/// Writes are applied to local state optimistically (before the Arduino's
+/// own echo arrives) so sliders and toggles feel responsive; the eventual
+/// echo is a harmless overwrite with the same value.
+class AppStateNotifier extends Notifier<AppState> {
+  StreamSubscription<VirtuinoUpdate>? _subscription;
+
+  @override
+  AppState build() {
+    final protocol = ref.watch(protocolProvider);
+    _subscription = protocol.updates.listen(_onUpdate);
+    ref.onDispose(() => _subscription?.cancel());
+    return AppState.initial();
+  }
+
+  void _onUpdate(VirtuinoUpdate update) {
+    switch (update) {
+      case VirtuinoVUpdate(:final index, :final value):
+        if (index >= 0 && index < state.v.length) {
+          state = state.copyWithV(index, value);
+        }
+      case VirtuinoTUpdate(:final index, :final text):
+        state = state.copyWithT(index, text);
+    }
+  }
+
+  void _writeAndApply(int index, double value) {
+    ref.read(protocolProvider).writeV(index, value);
+    state = state.copyWithV(index, value);
+  }
+
+  void _writeBatchAndApply(Map<int, double> values) {
+    ref.read(protocolProvider).writeBatch(values);
+    var next = state;
+    for (final entry in values.entries) {
+      next = next.copyWithV(entry.key, entry.value);
+    }
+    state = next;
+  }
+
+  void setScreen(AppScreen screen) =>
+      _writeAndApply(VIndex.activeScreen, screen.vValue.toDouble());
+
+  void selectMainMode(MainSelectorMode mode) =>
+      _writeAndApply(VIndex.mainSelector, mode.vValue.toDouble());
+
+  void setVolume(int volume) =>
+      _writeAndApply(VIndex.volume, volume.toDouble());
+
+  void advanceChannelGroup(int direction) =>
+      _writeAndApply(VIndex.channelGroupOrder, direction.toDouble());
+
+  void changeScene(int direction) =>
+      _writeAndApply(VIndex.sceneChangeOrder, direction.toDouble());
+
+  /// Sets the 3 visible channel colors (R/G/B, 0-255) in a single batched
+  /// write.
+  void setChannelColors({
+    required double channel1,
+    required double channel2,
+    required double channel3,
+  }) => _writeBatchAndApply({
+    VIndex.channel1Value: channel1,
+    VIndex.channel2Value: channel2,
+    VIndex.channel3Value: channel3,
+  });
+
+  void setTransitionModes({
+    required TransitionMode channel1,
+    required TransitionMode channel2,
+    required TransitionMode channel3,
+  }) => _writeBatchAndApply({
+    VIndex.transitionModeChannel1: channel1.vValue.toDouble(),
+    VIndex.transitionModeChannel2: channel2.vValue.toDouble(),
+    VIndex.transitionModeChannel3: channel3.vValue.toDouble(),
+  });
+
+  void setPlaying(bool playing) =>
+      _writeAndApply(VIndex.playStop, playing ? 1 : 0);
+
+  void setPaused(bool paused) =>
+      _writeAndApply(VIndex.pause, paused ? 1 : 0);
+
+  void setSongNumber(int song) =>
+      _writeAndApply(VIndex.songNumber, song.toDouble());
+
+  void setActiveScenesCount(int count) =>
+      _writeAndApply(VIndex.activeScenesCount, count.toDouble());
+
+  void setActiveChannelsCount(int count) =>
+      _writeAndApply(VIndex.activeChannelsCount, count.toDouble());
+
+  void setPeriodDuration(int periodOffset, double seconds) =>
+      _writeAndApply(VIndex.periodDuration(periodOffset), seconds);
+
+  void requestInitialSnapshot() {
+    ref.read(protocolProvider).requestAll([
+      VIndex.activeScreen,
+      VIndex.mainSelector,
+      VIndex.activeScene,
+      VIndex.volume,
+      VIndex.channel1Value,
+      VIndex.channel2Value,
+      VIndex.channel3Value,
+    ]);
+  }
+}

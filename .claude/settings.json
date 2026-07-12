@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/xavie/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_blue_classic-0.1.1/android/src/main/kotlin/**)",
+      "Read(//c/Users/xavie/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_blue_classic-0.1.1/android/src/main/kotlin/dev/lenhart/flutter_blue_classic/**)",
+      "PowerShell($adb = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\"; & $adb -s RFCMB0312TW shell input keyevent KEYCODE_WAKEUP; Start-Sleep -Milliseconds 500; & $adb -s RFCMB0312TW shell screencap -p /sdcard/ardmx4_splash3.png; & $adb -s RFCMB0312TW pull /sdcard/ardmx4_splash3.png \"$env:TEMP\\\\ardmx4_splash3.png\")",
+      "PowerShell($adb = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\"; & $adb -s RFCMB0312TW shell input swipe 540 1800 540 400 300; Start-Sleep -Milliseconds 800; & $adb -s RFCMB0312TW shell screencap -p /sdcard/ardmx4_splash4.png; & $adb -s RFCMB0312TW pull /sdcard/ardmx4_splash4.png \"$env:TEMP\\\\ardmx4_splash4.png\")",
+      "PowerShell($adb = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\"; & $adb -s RFCMB0312TW shell input tap 500 1340; Start-Sleep -Seconds 2)",
+      "PowerShell($adb = \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\"; & $adb -s RFCMB0312TW shell screencap -p /sdcard/ardmx4_connecting.png; & $adb -s RFCMB0312TW pull /sdcard/ardmx4_connecting.png \"$env:TEMP\\\\ardmx4_connecting.png\")",
+      "PowerShell(dart format lib/features/splash/splash_screen.dart)",
+      "PowerShell(& \"C:\\\\Flutter\\\\bin\\\\dart.exe\" format lib/features/splash/splash_screen.dart)",
+      "PowerShell(flutter pub get 2>&1)",
+      "PowerShell(Remove-Item \"c:\\\\Flutter_projectes\\\\ardmx4_app\\\\assets\\\\ARDMX4_Logo.png\" -Confirm:$false)"
+    ]
+  }
+}

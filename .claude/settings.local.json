@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(git -C \"c:\\\\Flutter_projectes\\\\ardmx4_app\" status 2>&1)",
+      "PowerShell(git -C \"c:\\\\Flutter_projectes\\\\ardmx4_app\" log --oneline -20 2>&1)",
+      "PowerShell(flutter --version)",
+      "WebFetch(domain:pub.dev)",
+      "PowerShell(flutter pub add flutter_blue_classic permission_handler flutter_riverpod shared_preferences)",
+      "PowerShell(flutter analyze lib/core 2>&1)",
+      "PowerShell(flutter test test/protocol/virtuino_frame_codec_test.dart 2>&1)",
+      "PowerShell(flutter analyze lib 2>&1)"
+    ]
+  }
+}
