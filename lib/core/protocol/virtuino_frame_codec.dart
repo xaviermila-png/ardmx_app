@@ -61,6 +61,9 @@ class VirtuinoFrameCodec {
     return updates;
   }
 
+  /// Indices >= this are the Arduino's special-cased text pins.
+  static const _textPinStart = 61;
+
   VirtuinoUpdate? _parseFrame(String body) {
     final match = _framePattern.firstMatch(body);
     if (match == null) return null;
@@ -69,6 +72,17 @@ class VirtuinoFrameCodec {
     final index = int.tryParse(match.group(2)!);
     final rawValue = match.group(3)!;
     if (index == null) return null;
+
+    // The Arduino sketch's onReceived/onRequested only ever check
+    // `variableType=='V'` — text pins 61-63 are NOT sent with a literal
+    // `T` prefix, they are `V61`/`V62`/`V63` (indices past the 60-slot V[]
+    // array bound), special-cased to return text1/text2/text3 instead of a
+    // number. So `!V62=...$` carrying non-numeric text (e.g. the firmware
+    // version) is the real wire format, not `!T62=...$` — the `T` kind is
+    // kept here only defensively in case it's ever legitimately used.
+    if (kind == 'V' && index >= _textPinStart) {
+      return VirtuinoTUpdate(index, rawValue);
+    }
 
     if (kind == 'V') {
       final value = double.tryParse(rawValue);

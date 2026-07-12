@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart' show AppLifecycleListener, debugPrint;
+import 'package:flutter/widgets.dart' show debugPrint;
 import 'package:flutter_blue_classic/flutter_blue_classic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,7 +26,6 @@ class BluetoothConnectionService extends Notifier<BluetoothConnectionState> {
 
   BluetoothConnection? _connection;
   StreamSubscription<List<int>>? _inputSubscription;
-  AppLifecycleListener? _lifecycleListener;
 
   /// Broadcast stream of raw bytes received from the connected device.
   /// Outlives any individual connection — [VirtuinoProtocol] is built on
@@ -36,30 +35,17 @@ class BluetoothConnectionService extends Notifier<BluetoothConnectionState> {
 
   @override
   BluetoothConnectionState build() {
-    // Leaving the app in any way (Home button, task switcher, swiping it
-    // away) must force a clean disconnect — otherwise the socket stays
-    // open on the Android side while the Arduino has no way to notice and
-    // release it, and the HC-05 module has been observed needing a full
-    // power cycle before it accepts a new connection again.
-    _lifecycleListener = AppLifecycleListener(
-      onPause: _disconnectOnAppLeave,
-      onDetach: _disconnectOnAppLeave,
-    );
+    // Leaving the app foreground (Home button, task switcher, Recents) does
+    // NOT disconnect — only an explicit user action does (Splash's
+    // "Sortir"/back-button). An earlier auto-disconnect-on-pause behavior
+    // was removed at the user's request: they want the connection to
+    // survive simply switching apps or checking notifications.
     ref.onDispose(() {
       _inputSubscription?.cancel();
       _connection?.dispose();
       _incomingBytesController.close();
-      _lifecycleListener?.dispose();
     });
     return BluetoothConnectionState.initial;
-  }
-
-  void _disconnectOnAppLeave() {
-    if (state.status != BluetoothConnectionStatus.connected) return;
-    debugPrint(
-      'BluetoothConnectionService: app left foreground, disconnecting',
-    );
-    disconnect();
   }
 
   Future<List<BluetoothDevice>> pairedDevices() async {

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/bluetooth/bluetooth_connection_state.dart';
 import '../core/constants/v_map.dart';
 import '../core/protocol/virtuino_update.dart';
 import 'app_state.dart';
@@ -22,6 +23,23 @@ class AppStateNotifier extends Notifier<AppState> {
     final protocol = ref.watch(protocolProvider);
     _subscription = protocol.updates.listen(_onUpdate);
     ref.onDispose(() => _subscription?.cancel());
+
+    // Text pins (e.g. T62, the firmware version) only reply when explicitly
+    // asked — pull a snapshot right after every fresh connection.
+    ref.listen(bluetoothConnectionServiceProvider, (previous, next) {
+      final wasConnected =
+          previous?.status == BluetoothConnectionStatus.connected;
+      final isConnected = next.status == BluetoothConnectionStatus.connected;
+      if (!wasConnected && isConnected) {
+        requestInitialSnapshot();
+      }
+      if (wasConnected && !isConnected) {
+        // The firmware version belongs to whichever device we were just
+        // talking to — stale once disconnected, so don't keep showing it.
+        state = AppState(v: state.v, t61: state.t61, t63: state.t63);
+      }
+    });
+
     return AppState.initial();
   }
 
@@ -106,7 +124,8 @@ class AppStateNotifier extends Notifier<AppState> {
       _writeAndApply(VIndex.periodDuration(periodOffset), seconds);
 
   void requestInitialSnapshot() {
-    ref.read(protocolProvider).requestAll([
+    final protocol = ref.read(protocolProvider);
+    protocol.requestAll([
       VIndex.activeScreen,
       VIndex.mainSelector,
       VIndex.activeScene,
@@ -115,5 +134,6 @@ class AppStateNotifier extends Notifier<AppState> {
       VIndex.channel2Value,
       VIndex.channel3Value,
     ]);
+    protocol.requestT(TIndex.firmwareVersion);
   }
 }

@@ -10,7 +10,16 @@
       "PowerShell(dart format lib/features/splash/splash_screen.dart)",
       "PowerShell(& \"C:\\\\Flutter\\\\bin\\\\dart.exe\" format lib/features/splash/splash_screen.dart)",
       "PowerShell(flutter pub get 2>&1)",
-      "PowerShell(Remove-Item \"c:\\\\Flutter_projectes\\\\ardmx4_app\\\\assets\\\\ARDMX4_Logo.png\" -Confirm:$false)"
+      "PowerShell(Remove-Item \"c:\\\\Flutter_projectes\\\\ardmx4_app\\\\assets\\\\ARDMX4_Logo.png\" -Confirm:$false)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); gh auth login --hostname github.com --git-protocol https --web 2>&1)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); gh auth status 2>&1)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); gh repo create ardmx4_app --private --source=. --remote=origin --push 2>&1)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); gh repo view xaviermila-png/ardmx4_app --json name,description,isPrivate,pushedAt,createdAt,diskUsage,url 2>&1)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); gh repo edit xaviermila-png/ARDMX4_APP --visibility private --accept-visibility-change-consequences 2>&1; gh repo view xaviermila-png/ARDMX4_APP --json isPrivate 2>&1)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); git remote add origin https://github.com/xaviermila-png/ARDMX4_APP.git; git branch -M main; git push -u origin main 2>&1)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); git status; Write-Output \"---\"; gh repo view xaviermila-png/ARDMX4_APP --json pushedAt,diskUsage,isPrivate,url 2>&1)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); flutter run -d RFCMB0312TW 2>&1)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); git add -A; git status --short)"
     ]
   }
 }

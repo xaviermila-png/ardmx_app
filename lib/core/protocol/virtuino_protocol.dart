@@ -51,6 +51,18 @@ class VirtuinoProtocol {
 
   void requestV(int index) => send('!V$index=?\$');
 
+  /// Text pins (T61-T63) are not pushed proactively by the Arduino the way
+  /// V-values are — they only reply once explicitly asked with `?`, so
+  /// anything reading them (e.g. the T62 firmware version) must call this.
+  ///
+  /// Despite the "T" naming (matching the Virtuino app-side convention),
+  /// the Arduino sketch's onRequested only ever checks `variableType=='V'`
+  /// — text pins are requested as `!V61=?$`/`!V62=?$`/`!V63=?$`, indices
+  /// past the 60-slot V[] array bound that the sketch special-cases to
+  /// return text instead of a number. A literal `!T62=?$` is silently
+  /// ignored by the Arduino (confirmed on real hardware).
+  void requestT(int index) => send('!V$index=?\$');
+
   void requestAll(List<int> indices) {
     if (indices.isEmpty) return;
     send(indices.map((i) => '!V$i=?\$').join());

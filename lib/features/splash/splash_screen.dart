@@ -107,6 +107,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void _goToMenu() =>
       Navigator.of(context).pushReplacementNamed(AppRoutes.mainMenu);
 
+  static const _appVersion = 'V4.50';
+
+  Widget _buildCredits() {
+    final serverVersion = ref.watch(appStateProvider.select((s) => s.t62));
+    const style = TextStyle(fontSize: 11, color: Colors.grey);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('CC BY-NC-SA Xavier Mila 2026', style: style),
+        const Text('Versió app: $_appVersion', style: style),
+        Text('Versió server: ${serverVersion ?? '—'}', style: style),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final connection = ref.watch(bluetoothConnectionServiceProvider);
@@ -123,11 +138,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       child: Scaffold(
       appBar: AppBar(
         title: const Text('ARDMX4'),
+        automaticallyImplyLeading: false,
         actions: const [ConnectionBadge(), SizedBox(width: 8)],
       ),
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: Padding(
+      body: Stack(
+        children: [
+          Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
           child: DefaultTextStyle.merge(
             style: const TextStyle(fontSize: 16),
@@ -285,8 +303,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               ),
             ],
           ),
+            ),
           ),
-        ),
+          ),
+          Positioned(
+            left: 12,
+            bottom: 16,
+            child: _buildCredits(),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _exit,

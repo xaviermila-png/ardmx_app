@@ -76,6 +76,21 @@ void main() {
       expect((recovered.single as VirtuinoVUpdate).index, 2);
     });
 
+    test(
+      'treats V-prefixed frames at text-pin indices (61-63) as text, '
+      'not numbers — the Arduino sketch only ever uses the V prefix, never '
+      'a literal T, even for the text pins',
+      () {
+        final codec = VirtuinoFrameCodec();
+        final updates = codec.addChunk('!V62=V4.15\$');
+
+        expect(updates, hasLength(1));
+        final update = updates.single as VirtuinoTUpdate;
+        expect(update.index, 62);
+        expect(update.text, 'V4.15');
+      },
+    );
+
     test('decodes bytes via addBytes using ASCII codes', () {
       final codec = VirtuinoFrameCodec();
       final updates = codec.addBytes('!V11=3\$'.codeUnits);

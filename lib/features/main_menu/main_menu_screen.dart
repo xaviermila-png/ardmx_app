@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/bluetooth/bluetooth_connection_state.dart';
 import '../../core/constants/v_map.dart';
+import '../../routing/app_router.dart';
 import '../../state/providers.dart';
 import '../../widgets/app_scaffold.dart';
 import 'widgets/config_submenu.dart';
@@ -13,6 +12,16 @@ import 'widgets/volume_slider.dart';
 class MainMenuScreen extends ConsumerWidget {
   const MainMenuScreen({super.key});
 
+  /// Returns to the connection (Splash) screen without touching the
+  /// Bluetooth link — leaving it connected. The only actions that actually
+  /// disconnect are Splash's own back-button/"Sortir", never simply
+  /// navigating away from Main Menu.
+  void _goToConnectionScreen(BuildContext context) {
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.splash, (route) => false);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mainSelector = ref.watch(
@@ -21,24 +30,23 @@ class MainMenuScreen extends ConsumerWidget {
 
     return PopScope(
       canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        // Main Menu is always the base of the nav stack (Splash is
-        // replaced, not pushed, when connecting), so a back-button press
-        // here always means the user is about to exit the app. Force a
-        // clean disconnect first and *wait* for it — relying only on the
-        // app-lifecycle pause/detach hook was observed to not reliably
-        // disconnect in time when exiting via the back button.
-        if (ref.read(bluetoothConnectionServiceProvider).status ==
-            BluetoothConnectionStatus.connected) {
-          await ref
-              .read(bluetoothConnectionServiceProvider.notifier)
-              .disconnect();
-        }
-        SystemNavigator.pop();
+      onPopInvokedWithResult: (didPop, result) {
+        // Main Menu is the base of the nav stack, so a back-button press
+        // here would otherwise exit the app. Instead it just goes back to
+        // the connection screen, same as the bottom-left button — leaving
+        // the app via Home/Recents is left to Android's normal behavior
+        // and never disconnects either.
+        if (!didPop) _goToConnectionScreen(context);
       },
       child: AppScaffold(
         title: 'Menú Principal',
+        automaticallyImplyLeading: false,
+        floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _goToConnectionScreen(context),
+          tooltip: 'Tornar a la pantalla de connexió',
+          child: const Icon(Icons.arrow_back),
+        ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
