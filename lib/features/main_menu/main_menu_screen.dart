@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/constants/v_map.dart';
 import '../../routing/app_router.dart';
-import '../../state/providers.dart';
 import '../../widgets/app_scaffold.dart';
-import 'widgets/config_submenu.dart';
+import 'widgets/cycle_progress_bar.dart';
 import 'widgets/dial_selector.dart';
 import 'widgets/volume_slider.dart';
 
-class MainMenuScreen extends ConsumerWidget {
+class MainMenuScreen extends StatelessWidget {
   const MainMenuScreen({super.key});
 
   /// Returns to the connection (Splash) screen without touching the
@@ -23,11 +20,7 @@ class MainMenuScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final mainSelector = ref.watch(
-      appStateProvider.select((s) => s.mainSelector),
-    );
-
+  Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -39,7 +32,7 @@ class MainMenuScreen extends ConsumerWidget {
         if (!didPop) _goToConnectionScreen(context);
       },
       child: AppScaffold(
-        title: 'Menú Principal',
+        title: 'Menú Principal ARDMX4',
         automaticallyImplyLeading: false,
         floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
         floatingActionButton: FloatingActionButton(
@@ -47,16 +40,23 @@ class MainMenuScreen extends ConsumerWidget {
           tooltip: 'Tornar a la pantalla de connexió',
           child: const Icon(Icons.arrow_back),
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+        // The whole block (progress bar + dial grid + volume) is
+        // bottom-justified — the Spacer goes first so empty space collects
+        // above it. The progress bar sits right above the button grid with
+        // just a small gap, not pinned to the very top of the screen.
+        body: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
           child: Column(
             children: [
+              const Spacer(flex: 4),
+              const CycleProgressBar(),
+              const SizedBox(height: 20),
+              const Divider(color: Colors.black, thickness: 1, height: 1),
+              const SizedBox(height: 20),
               const DialSelector(),
               const SizedBox(height: 24),
               const VolumeSlider(),
-              const SizedBox(height: 24),
-              if (mainSelector == MainSelectorMode.configuration.vValue)
-                const ConfigSubmenu(),
+              const Spacer(flex: 1),
             ],
           ),
         ),

@@ -2,39 +2,56 @@ import 'package:flutter/material.dart';
 
 import '../../../routing/app_router.dart';
 
-/// Shown only while the dial is on [MainSelectorMode.configuration].
+/// Shown only while the dial is on [MainSelectorMode.configuration] — a
+/// third grid row using the same square sizing as the scene buttons above
+/// it, so the whole 7(+4)-button layout reads as one consistent grid.
 /// Navigating to any of these pushes the corresponding route, whose
 /// [ScreenMirrorObserver] side effect writes V[50] for the app.
 class ConfigSubmenu extends StatelessWidget {
-  const ConfigSubmenu({super.key});
+  const ConfigSubmenu({
+    super.key,
+    required this.squareSize,
+    required this.spacing,
+  });
+
+  final double squareSize;
+  final double spacing;
+
+  static const _items = [
+    ('Escenes', AppRoutes.sceneChannels),
+    ('Cicle', AppRoutes.cycleProgramming),
+    ('Paràmetres', AppRoutes.parameters),
+    ('Crèdits', AppRoutes.credits),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      alignment: WrapAlignment.center,
+    return Row(
       children: [
-        ElevatedButton(
-          onPressed: () =>
-              Navigator.of(context).pushNamed(AppRoutes.sceneChannels),
-          child: const Text('Escenes'),
-        ),
-        ElevatedButton(
-          onPressed: () =>
-              Navigator.of(context).pushNamed(AppRoutes.cycleProgramming),
-          child: const Text('Cicle'),
-        ),
-        ElevatedButton(
-          onPressed: () =>
-              Navigator.of(context).pushNamed(AppRoutes.parameters),
-          child: const Text('Paràmetres'),
-        ),
-        ElevatedButton(
-          onPressed: () =>
-              Navigator.of(context).pushNamed(AppRoutes.credits),
-          child: const Text('Crèdits'),
-        ),
+        for (var i = 0; i < _items.length; i++) ...[
+          if (i > 0) SizedBox(width: spacing),
+          SizedBox(
+            width: squareSize,
+            height: squareSize,
+            child: ElevatedButton(
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(_items[i].$2),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(
+                _items[i].$1,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
