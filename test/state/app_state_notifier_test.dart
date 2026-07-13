@@ -61,9 +61,9 @@ void main() {
         .setChannelColors(channel1: 255, channel2: 128, channel3: 0);
 
     expect(sent, hasLength(1));
-    expect(sent.single, contains('V1=255'));
-    expect(sent.single, contains('V2=128'));
-    expect(sent.single, contains('V3=0'));
+    expect(sent.single, contains('V01=255'));
+    expect(sent.single, contains('V02=128'));
+    expect(sent.single, contains('V03=0'));
     expect(container.read(appStateProvider).channel1Value, 255);
     expect(container.read(appStateProvider).channel2Value, 128);
     expect(container.read(appStateProvider).channel3Value, 0);

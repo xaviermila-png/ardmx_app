@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import 'virtuino_frame_codec.dart';
 import 'virtuino_update.dart';
 
@@ -33,11 +35,15 @@ class VirtuinoProtocol {
 
   void _onBytes(List<int> bytes) {
     for (final update in _codec.addBytes(bytes)) {
+      debugPrint('Virtuino <- $update');
       _updatesController.add(update);
     }
   }
 
-  void send(String raw) => output(raw);
+  void send(String raw) {
+    debugPrint('Virtuino -> $raw');
+    output(raw);
+  }
 
   void writeV(int index, num value) => send(_encodeV(index, value));
 
@@ -49,7 +55,7 @@ class VirtuinoProtocol {
     send(values.entries.map((e) => _encodeV(e.key, e.value)).join());
   }
 
-  void requestV(int index) => send('!V$index=?\$');
+  void requestV(int index) => send('!V${_pad(index)}=?\$');
 
   /// Text pins (T61-T63) are not pushed proactively by the Arduino the way
   /// V-values are — they only reply once explicitly asked with `?`, so
@@ -61,15 +67,26 @@ class VirtuinoProtocol {
   /// past the 60-slot V[] array bound that the sketch special-cases to
   /// return text instead of a number. A literal `!T62=?$` is silently
   /// ignored by the Arduino (confirmed on real hardware).
-  void requestT(int index) => send('!V$index=?\$');
+  void requestT(int index) => send('!V${_pad(index)}=?\$');
 
   void requestAll(List<int> indices) {
     if (indices.isEmpty) return;
-    send(indices.map((i) => '!V$i=?\$').join());
+    send(indices.map((i) => '!V${_pad(i)}=?\$').join());
   }
 
+  /// Zero-pads single-digit indices to 2 digits (`9` -> `09`). Confirmed on
+  /// real hardware: single-digit `!V9=?$`-style requests (and this may
+  /// affect writes too) are silently never answered — every 2-digit index
+  /// tested (V10, V11, V16, V31-33, V50, V62) replies reliably, every
+  /// 1-digit one (V0-V9) never does. Root cause is presumably a fixed-width
+  /// assumption somewhere in the (unmodifiable) VirtuinoCM library's
+  /// command parser; padding is a transparent, low-risk workaround since
+  /// leading zeros don't change the parsed integer value on the Arduino
+  /// side.
+  String _pad(int index) => index.toString().padLeft(2, '0');
+
   String _encodeV(int index, num value) =>
-      '!V$index=${_formatValue(value)}\$';
+      '!V${_pad(index)}=${_formatValue(value)}\$';
 
   String _formatValue(num value) {
     if (value == value.roundToDouble()) {

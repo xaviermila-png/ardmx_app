@@ -18,6 +18,20 @@ import 'providers.dart';
 class AppStateNotifier extends Notifier<AppState> {
   StreamSubscription<VirtuinoUpdate>? _subscription;
 
+  // The wire protocol has no request/response correlation (see class doc on
+  // VirtuinoProtocol) — every incoming frame is applied as a broadcast
+  // update regardless of which request (if any) it answers. That means a
+  // poll request sent just *before* a local write can have its reply arrive
+  // just *after* it, carrying the pre-write value and visibly clobbering
+  // our fresh optimistic one for a frame (confirmed on hardware: dragging a
+  // channel slider would flash back to the old value for a few hundred ms
+  // before the next poll cycle corrected it). Track our own recent writes
+  // and ignore a contradicting echo for a short window, long enough to
+  // absorb one stale in-flight poll reply without blocking real updates
+  // (e.g. a scene's own live color animation) for long.
+  static const _echoGuard = Duration(milliseconds: 600);
+  final Map<int, ({double value, DateTime at})> _recentWrites = {};
+
   @override
   AppState build() {
     final protocol = ref.watch(protocolProvider);
@@ -47,6 +61,12 @@ class AppStateNotifier extends Notifier<AppState> {
     switch (update) {
       case VirtuinoVUpdate(:final index, :final value):
         if (index >= 0 && index < state.v.length) {
+          final recent = _recentWrites[index];
+          if (recent != null &&
+              value != recent.value &&
+              DateTime.now().difference(recent.at) < _echoGuard) {
+            break;
+          }
           state = state.copyWithV(index, value);
         }
       case VirtuinoTUpdate(:final index, :final text):
@@ -56,13 +76,16 @@ class AppStateNotifier extends Notifier<AppState> {
 
   void _writeAndApply(int index, double value) {
     ref.read(protocolProvider).writeV(index, value);
+    _recentWrites[index] = (value: value, at: DateTime.now());
     state = state.copyWithV(index, value);
   }
 
   void _writeBatchAndApply(Map<int, double> values) {
     ref.read(protocolProvider).writeBatch(values);
+    final now = DateTime.now();
     var next = state;
     for (final entry in values.entries) {
+      _recentWrites[entry.key] = (value: entry.value, at: now);
       next = next.copyWithV(entry.key, entry.value);
     }
     state = next;
