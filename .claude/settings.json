@@ -26,7 +26,8 @@
       "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; git add -A; git status --short)",
       "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; git commit -F \"C:\\\\Users\\\\xavie\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Flutter-projectes-ardmx4-app\\\\bf2bb7c7-3e15-4d29-8be1-a7193f1bcd37\\\\scratchpad\\\\commit_msg2.txt\")",
       "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; git push)",
-      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; git status)"
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; git status)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; git commit -F \"C:\\\\Users\\\\xavie\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Flutter-projectes-ardmx4-app\\\\bf2bb7c7-3e15-4d29-8be1-a7193f1bcd37\\\\scratchpad\\\\commit_msg3.txt\")"
     ]
   }
 }

@@ -38,7 +38,12 @@ class _SceneChannelsScreenState extends ConsumerState<SceneChannelsScreen> {
     // repeatedly (not just once) matches CycleProgressBar's proven-working
     // pattern: a single one-shot request can be lost to a transient race
     // and never retried, leaving the screen stuck showing nothing.
-    _poll();
+    //
+    // The first call is deferred a frame because _poll() calls
+    // ModalRoute.of(context), which can't resolve an inherited widget until
+    // this State's dependencies are attached — calling it synchronously
+    // inside initState throws.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _poll());
     _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
   }
 
@@ -49,6 +54,15 @@ class _SceneChannelsScreenState extends ConsumerState<SceneChannelsScreen> {
   }
 
   void _poll() {
+    // This screen's State stays mounted (Timer and all) even while another
+    // route — namely the RGB Wheel — is pushed on top of it, since Flutter
+    // only disposes it on pop, not while merely covered. Without this guard
+    // both screens' pollers would write "!Vxx=?$" requests to the same
+    // Bluetooth stream at once and interleave into corrupted frames, which
+    // is exactly what caused garbage channel numbers on the RGB Wheel
+    // screen. Only the topmost route should actually poll.
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+
     // Root cause of the earlier "nothing shows up" bug was NOT UART
     // timing/batching — it was that single-digit V-indices (V0-V9) never
     // get a reply from the Arduino/VirtuinoCM library unless zero-padded to
