@@ -111,8 +111,8 @@ class _ModeColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
       decoration: BoxDecoration(
         border: Border.all(color: color.withValues(alpha: 0.6), width: 2),
         borderRadius: BorderRadius.circular(12),

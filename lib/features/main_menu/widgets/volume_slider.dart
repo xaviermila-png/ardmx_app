@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../state/providers.dart';
+import '../../../widgets/rounded_square_thumb_shape.dart';
 
 /// Debounced volume control (V[16], 0-30). Keeps an ephemeral local value
 /// for immediate visual feedback while dragging, sends the real write only
@@ -51,14 +52,29 @@ class _VolumeSliderState extends ConsumerState<VolumeSlider> {
 
     return Column(
       children: [
-        Text('Volum: ${value.round()}'),
-        Slider(
-          value: value,
-          min: 0,
-          max: 30,
-          divisions: 30,
-          onChanged: _onChanged,
-          onChangeEnd: _onChangeEnd,
+        const Text(
+          'Volum',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        SliderTheme(
+          data: SliderThemeData(
+            trackHeight: 10,
+            thumbShape: RoundedSquareThumbShape(
+              size: 40,
+              cornerRadius: 10,
+              channelNumber: value.round(),
+              textFontSize: 18,
+              rotateText: false,
+            ),
+          ),
+          child: Slider(
+            value: value,
+            min: 0,
+            max: 30,
+            divisions: 30,
+            onChanged: _onChanged,
+            onChangeEnd: _onChangeEnd,
+          ),
         ),
       ],
     );

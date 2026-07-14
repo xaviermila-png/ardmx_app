@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../state/providers.dart';
-import 'rounded_square_thumb_shape.dart';
+import '../../../widgets/rounded_square_thumb_shape.dart';
 
 /// The 3 R/G/B vertical sliders (V1-V3, 0-255), inverted (max at top,
 /// matching a physical DMX fader). Same debounce pattern as
@@ -102,7 +102,7 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
 
   Widget _slider(int slot, double value, int? channelNumber, Color color) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 2),
+      margin: const EdgeInsets.symmetric(horizontal: 8),
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         border: Border.all(color: color.withValues(alpha: 0.6), width: 2),

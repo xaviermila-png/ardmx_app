@@ -38,6 +38,11 @@ class ConfigSubmenu extends StatelessWidget {
                   Navigator.of(context).pushNamed(_items[i].$2),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
+                // Lighter pastel lilac than Configuració's own
+                // (Colors.deepPurple.shade200) — these are its children, so
+                // a weaker tint of the same hue reads as a visual family.
+                backgroundColor: Colors.deepPurple.shade100,
+                foregroundColor: Colors.deepPurple.shade900,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),

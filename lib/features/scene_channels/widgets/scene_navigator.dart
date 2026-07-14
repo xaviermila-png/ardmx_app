@@ -18,7 +18,7 @@ class SceneNavigator extends ConsumerWidget {
 
     return Container(
       color: Colors.green.shade900,
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
         children: [
           NavArrowButton(

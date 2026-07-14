@@ -21,10 +21,10 @@ class SceneChannelsScreen extends ConsumerStatefulWidget {
 }
 
 class _SceneChannelsScreenState extends ConsumerState<SceneChannelsScreen> {
-  // 400ms keeps the round trip (7-index batch over 9600 baud SPP, ~150-250ms
-  // in practice) comfortably ahead of the next poll while noticeably
-  // shortening the visible lag after changing scene/channel group compared
-  // to the original 1s interval.
+  // 400ms keeps the round trip (10-index batch over 9600 baud SPP,
+  // ~150-250ms in practice) comfortably ahead of the next poll while
+  // noticeably shortening the visible lag after changing scene/channel
+  // group compared to the original 1s interval.
   static const _pollInterval = Duration(milliseconds: 400);
 
   Timer? _pollTimer;
@@ -63,6 +63,9 @@ class _SceneChannelsScreenState extends ConsumerState<SceneChannelsScreen> {
       VIndex.channel1Value,
       VIndex.channel2Value,
       VIndex.channel3Value,
+      VIndex.transitionModeChannel1,
+      VIndex.transitionModeChannel2,
+      VIndex.transitionModeChannel3,
     ]);
   }
 

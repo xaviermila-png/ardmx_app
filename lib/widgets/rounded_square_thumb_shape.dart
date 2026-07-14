@@ -3,21 +3,29 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 /// A rounded-square [Slider] thumb (gray outline, very light gray fill)
-/// instead of Material's default filled circle — the fader's colored track
-/// already conveys the channel, so the thumb stays neutral. Optionally
-/// shows the DMX channel number centered inside it.
+/// instead of Material's default filled circle. Optionally shows a number
+/// (e.g. a DMX channel number) centered inside it — pass `null` for a plain
+/// neutral thumb (e.g. the Main Menu volume slider).
 class RoundedSquareThumbShape extends SliderComponentShape {
   const RoundedSquareThumbShape({
     this.size = 48,
     this.cornerRadius = 10,
     this.channelNumber,
     this.textColor = Colors.black,
+    this.textFontSize = 19,
+    this.rotateText = true,
   });
 
   final double size;
   final double cornerRadius;
   final int? channelNumber;
   final Color textColor;
+  final double textFontSize;
+  // Callers that rotate the Slider itself (e.g. the DMX channel faders,
+  // wrapped in RotatedBox(quarterTurns: 3)) need this text counter-rotated
+  // or it renders sideways — see ChannelSliders. Non-rotated sliders (e.g.
+  // the Main Menu volume slider) should pass false.
+  final bool rotateText;
 
   @override
   Size getPreferredSize(bool isEnabled, bool isDiscrete) =>
@@ -53,20 +61,24 @@ class RoundedSquareThumbShape extends SliderComponentShape {
     );
 
     if (channelNumber == null) return;
-    // This thumb is painted inside the Slider's own RotatedBox(quarterTurns:
-    // 3) ancestor, so without a counter-rotation the number would render
-    // sideways — rotate the opposite way here so it reads upright.
     final textPainter = TextPainter(
       text: TextSpan(
         text: '$channelNumber',
         style: TextStyle(
           color: textColor,
-          fontSize: 19,
-          fontWeight: FontWeight.bold,
+          fontSize: textFontSize,
+          fontWeight: FontWeight.w900,
         ),
       ),
       textDirection: textDirection,
     )..layout();
+    if (!rotateText) {
+      textPainter.paint(
+        canvas,
+        center - Offset(textPainter.width / 2, textPainter.height / 2),
+      );
+      return;
+    }
     canvas.save();
     canvas.translate(center.dx, center.dy);
     canvas.rotate(math.pi / 2);
