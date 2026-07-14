@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/bluetooth/bluetooth_connection_state.dart';
 import '../../routing/app_router.dart';
+import '../../state/providers.dart';
 import '../../widgets/app_scaffold.dart';
 import 'widgets/cycle_progress_bar.dart';
 import 'widgets/dial_selector.dart';
 import 'widgets/volume_slider.dart';
 
-class MainMenuScreen extends StatelessWidget {
+class MainMenuScreen extends ConsumerWidget {
   const MainMenuScreen({super.key});
 
   /// Returns to the connection (Splash) screen without touching the
@@ -19,8 +23,18 @@ class MainMenuScreen extends StatelessWidget {
     ).pushNamedAndRemoveUntil(AppRoutes.splash, (route) => false);
   }
 
+  /// Same "Sortir" behavior as Splash's: disconnect (if connected), then
+  /// exit the app entirely.
+  Future<void> _exit(WidgetRef ref) async {
+    final status = ref.read(bluetoothConnectionServiceProvider).status;
+    if (status == BluetoothConnectionStatus.connected) {
+      await ref.read(bluetoothConnectionServiceProvider.notifier).disconnect();
+    }
+    SystemNavigator.pop();
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -32,20 +46,14 @@ class MainMenuScreen extends StatelessWidget {
         if (!didPop) _goToConnectionScreen(context);
       },
       child: AppScaffold(
-        title: 'Menú Principal ARDMX4',
+        title: 'Menú Principal',
         automaticallyImplyLeading: false,
-        floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _goToConnectionScreen(context),
-          tooltip: 'Tornar a la pantalla de connexió',
-          child: const Icon(Icons.arrow_back),
-        ),
-        // The whole block (progress bar + dial grid + volume) is
-        // bottom-justified — the Spacer goes first so empty space collects
-        // above it. The progress bar sits right above the button grid with
-        // just a small gap, not pinned to the very top of the screen.
+        // The whole block (progress bar + dial grid + volume + bottom row)
+        // is bottom-justified — the Spacer goes first so empty space
+        // collects above it. The progress bar sits right above the button
+        // grid with just a small gap, not pinned to the very top.
         body: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           child: Column(
             children: [
               const Spacer(flex: 4),
@@ -57,6 +65,23 @@ class MainMenuScreen extends StatelessWidget {
               const SizedBox(height: 24),
               const VolumeSlider(),
               const Spacer(flex: 1),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  FloatingActionButton(
+                    heroTag: 'mainMenuBack',
+                    onPressed: () => _goToConnectionScreen(context),
+                    tooltip: 'Tornar a la pantalla de connexió',
+                    child: const Icon(Icons.arrow_back),
+                  ),
+                  FloatingActionButton.extended(
+                    heroTag: 'mainMenuExit',
+                    onPressed: () => _exit(ref),
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Sortir'),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

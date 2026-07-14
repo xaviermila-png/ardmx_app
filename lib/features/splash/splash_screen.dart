@@ -137,7 +137,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       },
       child: Scaffold(
       appBar: AppBar(
-        title: const Text('ARDMX4'),
+        title: null,
         automaticallyImplyLeading: false,
         actions: const [ConnectionBadge(), SizedBox(width: 8)],
       ),

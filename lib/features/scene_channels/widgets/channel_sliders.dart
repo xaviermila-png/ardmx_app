@@ -7,10 +7,10 @@ import '../../../state/providers.dart';
 import '../../../widgets/rounded_square_thumb_shape.dart';
 
 /// The 3 R/G/B vertical sliders (V1-V3, 0-255), inverted (max at top,
-/// matching a physical DMX fader). Same debounce pattern as
-/// [VolumeSlider]: ephemeral local value while dragging for immediate
-/// visual feedback, committed 100ms after the user pauses, and always
-/// force-committed on drag release.
+/// matching a physical DMX fader). Writes are throttled (not debounced)
+/// while dragging: the Arduino gets a live update roughly every
+/// [_throttleInterval] for real-time visual feedback on the actual
+/// lights, plus a guaranteed final write on release.
 class ChannelSliders extends ConsumerStatefulWidget {
   const ChannelSliders({super.key});
 
@@ -19,29 +19,61 @@ class ChannelSliders extends ConsumerStatefulWidget {
 }
 
 class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
-  static const _debounceDelay = Duration(milliseconds: 100);
+  static const _throttleInterval = Duration(milliseconds: 120);
 
   double? _local1;
   double? _local2;
   double? _local3;
-  Timer? _debounceTimer;
+  Timer? _throttleCooldown;
+  bool _pendingDuringCooldown = false;
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
+    _throttleCooldown?.cancel();
     super.dispose();
   }
 
   void _onChanged(int slot, double value) {
     setState(() => _setLocal(slot, value.roundToDouble()));
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(_debounceDelay, _commit);
+    if (_throttleCooldown == null) {
+      // Leading edge: send immediately so the very first movement is felt
+      // right away, then start a cooldown before the next send is allowed.
+      _sendLive();
+      _startCooldown();
+    } else {
+      // Still within the cooldown window — the latest position will go out
+      // as soon as it expires (trailing edge), so drag never gets silently
+      // dropped even if the finger keeps moving continuously.
+      _pendingDuringCooldown = true;
+    }
+  }
+
+  void _startCooldown() {
+    _throttleCooldown = Timer(_throttleInterval, () {
+      _throttleCooldown = null;
+      if (_pendingDuringCooldown) {
+        _pendingDuringCooldown = false;
+        _sendLive();
+        _startCooldown();
+      }
+    });
   }
 
   void _onChangeEnd(int slot, double value) {
-    _debounceTimer?.cancel();
+    _throttleCooldown?.cancel();
+    _throttleCooldown = null;
+    _pendingDuringCooldown = false;
     _setLocal(slot, value.roundToDouble());
-    _commit();
+    _sendLive();
+    // Hand display back over to the remote (polled) value now that dragging
+    // is over — otherwise this slider would ignore every future update
+    // (e.g. the new values that arrive after switching channel group)
+    // forever.
+    setState(() {
+      _local1 = null;
+      _local2 = null;
+      _local3 = null;
+    });
   }
 
   void _setLocal(int slot, double value) {
@@ -55,7 +87,7 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
     }
   }
 
-  void _commit() {
+  void _sendLive() {
     final state = ref.read(appStateProvider);
     ref
         .read(appStateProvider.notifier)
@@ -64,14 +96,6 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
           channel2: _local2 ?? state.channel2Value ?? 0,
           channel3: _local3 ?? state.channel3Value ?? 0,
         );
-    // Hand display back over to the remote (polled) value once we've sent
-    // ours — otherwise this slider would ignore every future update (e.g.
-    // the new values that arrive after switching channel group) forever.
-    setState(() {
-      _local1 = null;
-      _local2 = null;
-      _local3 = null;
-    });
   }
 
   @override

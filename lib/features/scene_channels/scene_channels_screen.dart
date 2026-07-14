@@ -108,11 +108,37 @@ class _SceneChannelsScreenState extends ConsumerState<SceneChannelsScreen> {
                 ),
                 FloatingActionButton(
                   heroTag: 'sceneChannelsRgbWheel',
-                  backgroundColor: Colors.deepOrange,
                   onPressed: () =>
                       Navigator.of(context).pushNamed(AppRoutes.rgbWheel),
                   tooltip: 'Configuració RGB (roda de color)',
-                  child: const Icon(Icons.color_lens, color: Colors.white),
+                  child: SizedBox(
+                    width: 56,
+                    height: 56,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        ClipOval(
+                          child: Image.asset(
+                            'assets/imatges/RGB.png',
+                            fit: BoxFit.cover,
+                            width: 56,
+                            height: 56,
+                          ),
+                        ),
+                        const Text(
+                          'RGB',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            shadows: [
+                              Shadow(blurRadius: 4, color: Colors.white),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),

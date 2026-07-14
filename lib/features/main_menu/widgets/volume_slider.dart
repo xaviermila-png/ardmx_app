@@ -6,10 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../state/providers.dart';
 import '../../../widgets/rounded_square_thumb_shape.dart';
 
-/// Debounced volume control (V[16], 0-30). Keeps an ephemeral local value
-/// for immediate visual feedback while dragging, sends the real write only
-/// after a short pause, and always forces a final send on drag release so
-/// the committed value is never lost to a race with the debounce timer.
+/// Volume control (V[16], 0-30). Writes are throttled (not debounced)
+/// while dragging: the Arduino gets a live update roughly every
+/// [_throttleInterval] for real-time feedback, plus a guaranteed final
+/// write on release.
 class VolumeSlider extends ConsumerStatefulWidget {
   const VolumeSlider({super.key});
 
@@ -18,29 +18,51 @@ class VolumeSlider extends ConsumerStatefulWidget {
 }
 
 class _VolumeSliderState extends ConsumerState<VolumeSlider> {
-  static const _debounceDelay = Duration(milliseconds: 100);
+  static const _throttleInterval = Duration(milliseconds: 120);
 
   double? _localValue;
-  Timer? _debounceTimer;
+  Timer? _throttleCooldown;
+  bool _pendingDuringCooldown = false;
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
+    _throttleCooldown?.cancel();
     super.dispose();
   }
 
   void _onChanged(double value) {
     setState(() => _localValue = value);
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(_debounceDelay, () => _commit(value));
+    if (_throttleCooldown == null) {
+      // Leading edge: send immediately, then start a cooldown before the
+      // next send is allowed.
+      _sendLive(value);
+      _startCooldown();
+    } else {
+      // Trailing edge: the latest position goes out as soon as the
+      // cooldown expires, so a continuous drag is never silently dropped.
+      _pendingDuringCooldown = true;
+    }
+  }
+
+  void _startCooldown() {
+    _throttleCooldown = Timer(_throttleInterval, () {
+      _throttleCooldown = null;
+      if (_pendingDuringCooldown) {
+        _pendingDuringCooldown = false;
+        _sendLive(_localValue!);
+        _startCooldown();
+      }
+    });
   }
 
   void _onChangeEnd(double value) {
-    _debounceTimer?.cancel();
-    _commit(value);
+    _throttleCooldown?.cancel();
+    _throttleCooldown = null;
+    _pendingDuringCooldown = false;
+    _sendLive(value);
   }
 
-  void _commit(double value) {
+  void _sendLive(double value) {
     ref.read(appStateProvider.notifier).setVolume(value.round());
   }
 
