@@ -23,7 +23,11 @@ class RgbWheelScreen extends ConsumerStatefulWidget {
 
 class _RgbWheelScreenState extends ConsumerState<RgbWheelScreen> {
   static const _pollInterval = Duration(milliseconds: 400);
-  static const _throttleInterval = Duration(milliseconds: 120);
+  // Slowed from 120ms to ~4 writes/second: even with polling paused during
+  // a drag (see _poll() below), sending this screen's writes faster than
+  // that was still enough to occasionally corrupt the Arduino's channel
+  // state on real hardware.
+  static const _throttleInterval = Duration(milliseconds: 250);
 
   Timer? _pollTimer;
   Color? _localColor;
