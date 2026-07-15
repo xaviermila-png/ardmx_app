@@ -146,6 +146,19 @@ class AppStateNotifier extends Notifier<AppState> {
   void setPeriodDuration(int periodOffset, double seconds) =>
       _writeAndApply(VIndex.periodDuration(periodOffset), seconds);
 
+  /// Arms/disarms the "Inicialitzar variables" reset (V41). Arming alone
+  /// does nothing destructive — [confirmReset] is the actual trigger.
+  void setResetArmed(bool armed) =>
+      _writeAndApply(VIndex.resetConfirm1, armed ? 1 : 0);
+
+  /// Actually triggers the variable reset (V42=1) and disarms (V41=0) in a
+  /// single batched write, so the dial visibly snaps back to OFF right
+  /// after — only callable meaningfully while [AppState.resetArmed] is true.
+  void confirmReset() => _writeBatchAndApply({
+    VIndex.resetConfirm2: 1,
+    VIndex.resetConfirm1: 0,
+  });
+
   void requestInitialSnapshot() {
     final protocol = ref.read(protocolProvider);
     protocol.requestAll([

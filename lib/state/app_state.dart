@@ -48,6 +48,16 @@ class AppState {
   int? get maxChannels => intAt(VIndex.maxChannels);
   int? get activeChannelsCount => intAt(VIndex.activeChannelsCount);
 
+  /// Whether the "Inicialitzar variables" reset is currently armed
+  /// (V41=1) — the confirm button only actually resets while this is true.
+  bool get resetArmed => intAt(VIndex.resetConfirm1) == 1;
+
+  /// Momentary reset-trigger pin (V42). The Arduino sets this back to 0
+  /// itself once it has actually finished reinitializing its variables —
+  /// used to confirm completion rather than assuming success the instant
+  /// the app sends the trigger.
+  int? get resetConfirm2 => intAt(VIndex.resetConfirm2);
+
   /// Duration (seconds) of cycle period [periodOffset] (0..7), see
   /// [VIndex.periodDuration].
   double? periodDuration(int periodOffset) =>

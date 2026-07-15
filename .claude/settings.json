@@ -27,7 +27,21 @@
       "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; git commit -F \"C:\\\\Users\\\\xavie\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Flutter-projectes-ardmx4-app\\\\bf2bb7c7-3e15-4d29-8be1-a7193f1bcd37\\\\scratchpad\\\\commit_msg2.txt\")",
       "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; git push)",
       "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; git status)",
-      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; git commit -F \"C:\\\\Users\\\\xavie\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Flutter-projectes-ardmx4-app\\\\bf2bb7c7-3e15-4d29-8be1-a7193f1bcd37\\\\scratchpad\\\\commit_msg3.txt\")"
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; git commit -F \"C:\\\\Users\\\\xavie\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Flutter-projectes-ardmx4-app\\\\bf2bb7c7-3e15-4d29-8be1-a7193f1bcd37\\\\scratchpad\\\\commit_msg3.txt\")",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; git commit -F \"C:\\\\Users\\\\xavie\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Flutter-projectes-ardmx4-app\\\\bf2bb7c7-3e15-4d29-8be1-a7193f1bcd37\\\\scratchpad\\\\commit_msg5.txt\"; git push)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; dart format lib/features/parameters/parameters_screen.dart)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; flutter analyze 2>&1 | Select-Object -Last 40)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; flutter test 2>&1 | Select-Object -Last 10)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; flutter analyze 2>&1 | Select-Object -Last 30)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; dart format lib/features/parameters/parameters_screen.dart; flutter analyze 2>&1 | Select-Object -Last 30)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; flutter test 2>&1 | Select-Object -Last 8)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; flutter test 2>&1 | Select-Object -Last 6)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; dart format lib/features/parameters/parameters_screen.dart lib/state/app_state.dart; flutter analyze 2>&1 | Select-Object -Last 40)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; dart format lib/features/parameters/parameters_screen.dart; flutter analyze 2>&1 | Select-Object -Last 40)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; dart format lib/features/credits/credits_screen.dart; flutter analyze 2>&1 | Select-Object -Last 40)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; flutter pub get 2>&1 | Select-Object -Last 40)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; flutter pub get 2>&1 | Select-Object -Last 20)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd c:\\\\Flutter_projectes\\\\ardmx4_app; dart format lib/features/credits/credits_screen.dart lib/features/splash/splash_screen.dart lib/core/constants/app_version.dart; flutter analyze 2>&1 | Select-Object -Last 40)"
     ]
   }
 }
