@@ -158,202 +158,212 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           automaticallyImplyLeading: false,
           actions: const [ConnectionBadge(), SizedBox(width: 8)],
         ),
-        body: Stack(
-          children: [
-            Align(
-              alignment: Alignment.topCenter,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                child: DefaultTextStyle.merge(
-                  style: const TextStyle(fontSize: 16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'ARDMX',
-                        style: TextStyle(
-                          fontSize: 38,
-                          fontWeight: FontWeight.bold,
+        // The bottom Positioned row (Crèdits/CC info/Sortir) sits directly
+        // in the body, not in Scaffold's floatingActionButton slot — so it
+        // needs SafeArea explicitly or it renders underneath the system
+        // navigation bar on devices where that bar overlays content
+        // (confirmed cut off on a second test phone).
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                  child: DefaultTextStyle.merge(
+                    style: const TextStyle(fontSize: 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'ARDMX',
+                          style: TextStyle(
+                            fontSize: 38,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        "Control d'Il·luminació de pessebres",
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      GestureDetector(
-                        // Temporary (phase 2) entry point to DebugScreen for
-                        // validating Bluetooth/protocol against real hardware —
-                        // remove once all 7 production screens are built.
-                        onLongPress: () =>
-                            Navigator.of(context).pushNamed(AppRoutes.debug),
-                        child: Image.asset(
-                          'assets/imatges/ARDMX4_Logo.png',
-                          width: 160,
-                          height: 160,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      if (_checkingPermission)
-                        const CircularProgressIndicator(),
-                      if (_permissionDenied) ...[
-                        const Text('Cal el permís de Bluetooth per continuar.'),
-                        const SizedBox(height: 8),
-                        ElevatedButton(
-                          onPressed: BluetoothPermissions.openSettings,
-                          child: const Text('Obrir ajustos'),
-                        ),
-                      ],
-                      if (_errorMessage != null) ...[
-                        Text(
-                          "Hi ha hagut un error inicialitzant el Bluetooth:\n$_errorMessage",
+                        const SizedBox(height: 4),
+                        const Text(
+                          "Control d'Il·luminació de pessebres",
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
-                        ElevatedButton(
-                          onPressed: _initialize,
-                          child: const Text('Reintentar'),
+                        const SizedBox(height: 16),
+                        GestureDetector(
+                          // Temporary (phase 2) entry point to DebugScreen for
+                          // validating Bluetooth/protocol against real hardware —
+                          // remove once all 7 production screens are built.
+                          onLongPress: () =>
+                              Navigator.of(context).pushNamed(AppRoutes.debug),
+                          child: Image.asset(
+                            'assets/imatges/ARDMX4_Logo.png',
+                            width: 160,
+                            height: 160,
+                          ),
                         ),
-                      ],
-                      if (!_checkingPermission &&
-                          !_permissionDenied &&
-                          _errorMessage == null) ...[
-                        if (_loadingDevices)
-                          const CircularProgressIndicator()
-                        else if (_pairedDevices.isEmpty)
+                        const SizedBox(height: 24),
+                        if (_checkingPermission)
+                          const CircularProgressIndicator(),
+                        if (_permissionDenied) ...[
                           const Text(
-                            "Cap dispositiu Bluetooth emparellat.\nEmparella l'HC-05/06 des dels ajustos d'Android.",
-                            textAlign: TextAlign.center,
-                          )
-                        else ...[
-                          const Text('Selecciona Dispositiu:'),
+                            'Cal el permís de Bluetooth per continuar.',
+                          ),
                           const SizedBox(height: 8),
-                          DropdownButton<BluetoothDevice>(
-                            value: _selectedDevice,
-                            items: [
-                              for (final device in _pairedDevices)
-                                DropdownMenuItem(
-                                  value: device,
-                                  child: Text(device.name ?? '(sense nom)'),
-                                ),
-                            ],
-                            onChanged: (connected || connecting)
-                                ? null
-                                : (device) =>
-                                      setState(() => _selectedDevice = device),
+                          ElevatedButton(
+                            onPressed: BluetoothPermissions.openSettings,
+                            child: const Text('Obrir ajustos'),
                           ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ElevatedButton.icon(
-                                onPressed:
-                                    (!connected &&
-                                        !connecting &&
-                                        _selectedDevice != null)
-                                    ? _connect
-                                    : null,
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size(150, 48),
-                                  textStyle: const TextStyle(fontSize: 16),
-                                ),
-                                icon: connecting
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Icon(Icons.bluetooth_connected),
-                                label: const Text('Connectar'),
-                              ),
-                              const SizedBox(width: 12),
-                              OutlinedButton.icon(
-                                onPressed: connected ? _disconnect : null,
-                                style: OutlinedButton.styleFrom(
-                                  minimumSize: const Size(150, 48),
-                                  textStyle: const TextStyle(fontSize: 16),
-                                ),
-                                icon: const Icon(Icons.bluetooth_disabled),
-                                label: const Text('Desconnectar'),
-                              ),
-                            ],
+                        ],
+                        if (_errorMessage != null) ...[
+                          Text(
+                            "Hi ha hagut un error inicialitzant el Bluetooth:\n$_errorMessage",
+                            textAlign: TextAlign.center,
                           ),
-                          if (connection.status ==
-                              BluetoothConnectionStatus.failed) ...[
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: _initialize,
+                            child: const Text('Reintentar'),
+                          ),
+                        ],
+                        if (!_checkingPermission &&
+                            !_permissionDenied &&
+                            _errorMessage == null) ...[
+                          if (_loadingDevices)
+                            const CircularProgressIndicator()
+                          else if (_pairedDevices.isEmpty)
+                            const Text(
+                              "Cap dispositiu Bluetooth emparellat.\nEmparella l'HC-05/06 des dels ajustos d'Android.",
+                              textAlign: TextAlign.center,
+                            )
+                          else ...[
+                            const Text('Selecciona Dispositiu:'),
                             const SizedBox(height: 8),
-                            Tooltip(
-                              message: connection.lastError ?? '',
-                              child: Text(
-                                friendlyBluetoothError(connection.lastError),
-                                style: const TextStyle(color: Colors.red),
-                                textAlign: TextAlign.center,
-                              ),
+                            DropdownButton<BluetoothDevice>(
+                              value: _selectedDevice,
+                              items: [
+                                for (final device in _pairedDevices)
+                                  DropdownMenuItem(
+                                    value: device,
+                                    child: Text(device.name ?? '(sense nom)'),
+                                  ),
+                              ],
+                              onChanged: (connected || connecting)
+                                  ? null
+                                  : (device) => setState(
+                                      () => _selectedDevice = device,
+                                    ),
                             ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed:
+                                      (!connected &&
+                                          !connecting &&
+                                          _selectedDevice != null)
+                                      ? _connect
+                                      : null,
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size(150, 48),
+                                    textStyle: const TextStyle(fontSize: 16),
+                                  ),
+                                  icon: connecting
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.bluetooth_connected),
+                                  label: const Text('Connectar'),
+                                ),
+                                const SizedBox(width: 12),
+                                OutlinedButton.icon(
+                                  onPressed: connected ? _disconnect : null,
+                                  style: OutlinedButton.styleFrom(
+                                    minimumSize: const Size(150, 48),
+                                    textStyle: const TextStyle(fontSize: 16),
+                                  ),
+                                  icon: const Icon(Icons.bluetooth_disabled),
+                                  label: const Text('Desconnectar'),
+                                ),
+                              ],
+                            ),
+                            if (connection.status ==
+                                BluetoothConnectionStatus.failed) ...[
+                              const SizedBox(height: 8),
+                              Tooltip(
+                                message: connection.lastError ?? '',
+                                child: Text(
+                                  friendlyBluetoothError(connection.lastError),
+                                  style: const TextStyle(color: Colors.red),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
                           ],
                         ],
-                      ],
-                      const SizedBox(height: 32),
-                      SizedBox(
-                        width: 105,
-                        height: 105,
-                        child: ElevatedButton(
-                          onPressed: connected ? _goToMenu : null,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.all(4),
-                            backgroundColor: connected
-                                ? Colors.deepPurple.shade200
-                                : null,
-                            foregroundColor: connected
-                                ? Colors.deepPurple.shade900
-                                : null,
-                            elevation: connected ? 6 : 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: 105,
+                          height: 105,
+                          child: ElevatedButton(
+                            onPressed: connected ? _goToMenu : null,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.all(4),
+                              backgroundColor: connected
+                                  ? Colors.deepPurple.shade200
+                                  : null,
+                              foregroundColor: connected
+                                  ? Colors.deepPurple.shade900
+                                  : null,
+                              elevation: connected ? 6 : 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              textStyle: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            textStyle: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                            child: const Text(
+                              'Menú',
+                              textAlign: TextAlign.center,
                             ),
-                          ),
-                          child: const Text(
-                            'Menú',
-                            textAlign: TextAlign.center,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              left: 12,
-              right: 12,
-              bottom: 16,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  FloatingActionButton(
-                    heroTag: 'splashCredits',
-                    onPressed: _goToCredits,
-                    tooltip: 'Crèdits',
-                    child: const Icon(Icons.info_outline),
-                  ),
-                  Expanded(child: Center(child: _buildCredits())),
-                  FloatingActionButton.extended(
-                    heroTag: 'splashExit',
-                    onPressed: _exit,
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Sortir'),
-                  ),
-                ],
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 16,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    FloatingActionButton(
+                      heroTag: 'splashCredits',
+                      onPressed: _goToCredits,
+                      tooltip: 'Crèdits',
+                      child: const Icon(Icons.info_outline),
+                    ),
+                    Expanded(child: Center(child: _buildCredits())),
+                    FloatingActionButton.extended(
+                      heroTag: 'splashExit',
+                      onPressed: _exit,
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Sortir'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

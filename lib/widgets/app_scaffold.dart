@@ -34,7 +34,14 @@ class AppScaffold extends StatelessWidget {
         automaticallyImplyLeading: automaticallyImplyLeading,
         actions: const [ConnectionBadge(), SizedBox(width: 8)],
       ),
-      body: body,
+      // Every screen puts its own back/exit buttons directly in the body
+      // (not in Scaffold's floatingActionButton slot), so without this they
+      // sit underneath the system navigation bar on devices that render it
+      // translucent/overlaid (confirmed on a second test phone — invisible
+      // on the original one, which uses gesture navigation with a near-zero
+      // inset). SafeArea reads the real per-device inset dynamically, so
+      // this adapts to 3-button nav, gesture nav, or no nav bar at all.
+      body: SafeArea(child: body),
       floatingActionButton: floatingActionButton,
       floatingActionButtonLocation: floatingActionButtonLocation,
     );
