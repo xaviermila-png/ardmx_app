@@ -21,12 +21,16 @@ class ConfigSubmenu extends StatelessWidget {
     ('Escenes', AppRoutes.sceneChannels),
     ('Cicle', AppRoutes.cycleProgramming),
     ('Paràmetres', AppRoutes.parameters),
-    ('Crèdits', AppRoutes.credits),
   ];
 
   @override
   Widget build(BuildContext context) {
+    // Crèdits now lives on the connection screen instead — the remaining
+    // three keep their original size (matching the scene-button grid above)
+    // but shift to the right, so they fill the same slot the fourth button
+    // used to occupy.
     return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
         for (var i = 0; i < _items.length; i++) ...[
           if (i > 0) SizedBox(width: spacing),
@@ -34,8 +38,7 @@ class ConfigSubmenu extends StatelessWidget {
             width: squareSize,
             height: squareSize,
             child: ElevatedButton(
-              onPressed: () =>
-                  Navigator.of(context).pushNamed(_items[i].$2),
+              onPressed: () => Navigator.of(context).pushNamed(_items[i].$2),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 // Lighter pastel lilac than Configuració's own

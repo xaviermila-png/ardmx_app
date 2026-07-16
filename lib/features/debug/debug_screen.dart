@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/bluetooth/bluetooth_permissions.dart';
 import '../../core/protocol/virtuino_update.dart';
+import '../../routing/app_router.dart';
 import '../../state/providers.dart';
 
 /// Temporary screen used only to validate the Bluetooth + protocol stack
@@ -118,6 +119,14 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
                     ElevatedButton(
                       onPressed: () => ref.read(protocolProvider).requestV(14),
                       child: const Text('Demanar V14'),
+                    ),
+                    ElevatedButton(
+                      // No cal connexió: escriure/demanar sense connexió ja
+                      // no fa res (VirtuinoProtocol.output no-op silenciós),
+                      // així que navegar és segur per ensenyar les pantalles.
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed(AppRoutes.mainMenu),
+                      child: const Text('Menú (mode demo)'),
                     ),
                   ],
                 ),

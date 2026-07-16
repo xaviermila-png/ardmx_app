@@ -80,6 +80,18 @@ class AppStateNotifier extends Notifier<AppState> {
     state = state.copyWithV(index, value);
   }
 
+  /// Like [_writeAndApply], but deliberately skips the echo-guard: use this
+  /// when the Arduino may legitimately recalculate and send back a
+  /// *different* authoritative value in response to this exact write (e.g.
+  /// clamping/re-deriving other cycle checkpoints). The normal echo-guard
+  /// would otherwise mistake that genuine correction for a stale in-flight
+  /// poll reply and discard it, permanently showing our own uncorrected
+  /// guess until the next edit.
+  void _writeAndApplyTrustEcho(int index, double value) {
+    ref.read(protocolProvider).writeV(index, value);
+    state = state.copyWithV(index, value);
+  }
+
   void _writeBatchAndApply(Map<int, double> values) {
     ref.read(protocolProvider).writeBatch(values);
     final now = DateTime.now();
@@ -144,7 +156,7 @@ class AppStateNotifier extends Notifier<AppState> {
       _writeAndApply(VIndex.activeChannelsCount, count.toDouble());
 
   void setPeriodDuration(int periodOffset, double seconds) =>
-      _writeAndApply(VIndex.periodDuration(periodOffset), seconds);
+      _writeAndApplyTrustEcho(VIndex.periodDuration(periodOffset), seconds);
 
   /// Arms/disarms the "Inicialitzar variables" reset (V41). Arming alone
   /// does nothing destructive — [confirmReset] is the actual trigger.

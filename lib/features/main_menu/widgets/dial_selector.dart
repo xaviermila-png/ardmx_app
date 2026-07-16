@@ -40,6 +40,15 @@ class DialSelector extends ConsumerWidget {
     MainSelectorMode.configuration: 'Configuració',
   };
 
+  /// Looks up the button label for a raw V[11] value, e.g. for a title
+  /// elsewhere on screen that reproduces the currently selected button.
+  static String? labelFor(int? vValue) {
+    for (final mode in MainSelectorMode.values) {
+      if (mode.vValue == vValue) return _labels[mode];
+    }
+    return null;
+  }
+
   static (Color, Color) _selectedColors(MainSelectorMode mode) {
     switch (mode) {
       case MainSelectorMode.configuration:

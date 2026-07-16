@@ -35,6 +35,11 @@ class MainMenuScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentMode = ref.watch(
+      appStateProvider.select((s) => s.mainSelector),
+    );
+    final currentLabel = DialSelector.labelFor(currentMode) ?? '';
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -56,6 +61,14 @@ class MainMenuScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           child: Column(
             children: [
+              Text(
+                currentLabel,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const Spacer(flex: 4),
               const CycleProgressBar(),
               const SizedBox(height: 20),

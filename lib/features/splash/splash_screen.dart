@@ -109,11 +109,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void _goToMenu() =>
       Navigator.of(context).pushReplacementNamed(AppRoutes.mainMenu);
 
+  void _goToCredits() => Navigator.of(context).pushNamed(AppRoutes.credits);
+
   Widget _buildCredits() {
     final serverVersion = ref.watch(appStateProvider.select((s) => s.t62));
-    const style = TextStyle(fontSize: 11, color: Colors.grey);
+    const style = TextStyle(fontSize: 9, color: Colors.grey);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         const Text('CC BY-NC-SA Xavier Mila 2026', style: style),
         const Text('Versió app: $kAppVersion', style: style),
@@ -128,6 +130,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final connected = connection.status == BluetoothConnectionStatus.connected;
     final connecting =
         connection.status == BluetoothConnectionStatus.connecting;
+
+    // Devices named "ARDMX4..." skip the manual "Menú" tap and go straight
+    // in once connected — see feature request for the reasoning (more
+    // screens to come that depend on this).
+    ref.listen(bluetoothConnectionServiceProvider, (previous, next) {
+      final wasConnected =
+          previous?.status == BluetoothConnectionStatus.connected;
+      final isConnected = next.status == BluetoothConnectionStatus.connected;
+      if (!wasConnected &&
+          isConnected &&
+          (next.deviceName ?? '').startsWith('ARDMX4')) {
+        _goToMenu();
+      }
+    });
 
     return PopScope(
       canPop: false,
@@ -154,7 +170,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        'ARDMX4',
+                        'ARDMX',
                         style: TextStyle(
                           fontSize: 38,
                           fontWeight: FontWeight.bold,
@@ -314,13 +330,30 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 ),
               ),
             ),
-            Positioned(left: 12, bottom: 16, child: _buildCredits()),
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 16,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  FloatingActionButton(
+                    heroTag: 'splashCredits',
+                    onPressed: _goToCredits,
+                    tooltip: 'Crèdits',
+                    child: const Icon(Icons.info_outline),
+                  ),
+                  Expanded(child: Center(child: _buildCredits())),
+                  FloatingActionButton.extended(
+                    heroTag: 'splashExit',
+                    onPressed: _exit,
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Sortir'),
+                  ),
+                ],
+              ),
+            ),
           ],
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: _exit,
-          icon: const Icon(Icons.logout),
-          label: const Text('Sortir'),
         ),
       ),
     );

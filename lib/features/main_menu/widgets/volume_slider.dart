@@ -11,7 +11,12 @@ import '../../../widgets/rounded_square_thumb_shape.dart';
 /// [_throttleInterval] for real-time feedback, plus a guaranteed final
 /// write on release.
 class VolumeSlider extends ConsumerStatefulWidget {
-  const VolumeSlider({super.key});
+  const VolumeSlider({super.key, this.leading});
+
+  /// Optional widget shown at the far left, overlapping the same row as
+  /// the "Volum" title (which stays centered) — used by Cycle Programming
+  /// to show the selected song number at the same height/size as "Volum".
+  final Widget? leading;
 
   @override
   ConsumerState<VolumeSlider> createState() => _VolumeSliderState();
@@ -74,9 +79,19 @@ class _VolumeSliderState extends ConsumerState<VolumeSlider> {
 
     return Column(
       children: [
-        const Text(
-          'Volum',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        SizedBox(
+          height: 28,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const Text(
+                'Volum',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              if (widget.leading != null)
+                Align(alignment: Alignment.centerLeft, child: widget.leading),
+            ],
+          ),
         ),
         SliderTheme(
           data: SliderThemeData(
