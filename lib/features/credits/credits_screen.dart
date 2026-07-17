@@ -30,7 +30,7 @@ class CreditsScreen extends ConsumerWidget {
                 children: [
                   Center(
                     child: Image.asset(
-                      'assets/imatges/ARDMX4_Logo.png',
+                      'assets/imatges/ARDMX_Logo.png',
                       width: 120,
                       height: 120,
                     ),

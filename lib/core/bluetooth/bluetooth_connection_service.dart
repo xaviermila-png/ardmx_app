@@ -11,7 +11,8 @@ import 'bluetooth_connection_state.dart';
 ///
 /// Only ever connects to devices already paired via Android's system
 /// Bluetooth settings (`bondedDevices`) — there is no in-app
-/// scanning/pairing UI. Connecting and disconnecting are both fully
+/// scanning/pairing UI, aside from the narrow [startScan] exception (see its
+/// doc comment). Connecting and disconnecting are both fully
 /// explicit user actions: there is no auto-connect on launch and no
 /// automatic reconnect on drop. This is deliberate (simplified while
 /// diagnosing a real HC-05 connectivity issue) — auto-retry logic was
@@ -51,6 +52,21 @@ class BluetoothConnectionService extends Notifier<BluetoothConnectionState> {
   Future<List<BluetoothDevice>> pairedDevices() async {
     return await _plugin.bondedDevices ?? const [];
   }
+
+  /// Active discovery scan — only used by the Debug screen's "Refrescar
+  /// nom" button, to nudge Android into re-reading a bonded device's
+  /// current advertised name (e.g. after an ARDMX One rename) without
+  /// forgetting/re-pairing it. Everywhere else in the app deliberately only
+  /// ever talks to already-bonded devices and never scans; this is a
+  /// narrow, opt-in exception to that rule, not a reversal of it. Not
+  /// guaranteed to update Android's persisted paired-device name on every
+  /// OS version/OEM — forgetting and re-pairing remains the reliable
+  /// fallback.
+  void startScan() => _plugin.startScan();
+
+  void stopScan() => _plugin.stopScan();
+
+  Stream<BluetoothDevice> get scanResults => _plugin.scanResults;
 
   /// The address of the last device a connection was ever successfully
   /// established with, purely to pre-select it in the device picker —

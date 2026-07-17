@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_blue_classic/flutter_blue_classic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,6 +23,9 @@ class DebugScreen extends ConsumerStatefulWidget {
 
 class _DebugScreenState extends ConsumerState<DebugScreen> {
   final List<String> _log = [];
+  final _nameSuffixController = TextEditingController();
+  StreamSubscription<BluetoothDevice>? _scanSubscription;
+  Timer? _scanTimeout;
 
   void _appendLog(String line) {
     setState(() {
@@ -42,6 +48,75 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
         '${next.lastError != null ? ' — ${next.lastError}' : ''}',
       );
     });
+  }
+
+  @override
+  void dispose() {
+    _nameSuffixController.dispose();
+    _scanSubscription?.cancel();
+    _scanTimeout?.cancel();
+    super.dispose();
+  }
+
+  /// Nudges Android into re-reading the currently/last-connected device's
+  /// advertised name via an active discovery scan — see
+  /// [BluetoothConnectionService.startScan] for why this is a narrow,
+  /// opt-in exception to the app's normal "only bonded devices, never
+  /// scan" rule, and why it isn't guaranteed to work on every phone.
+  void _refreshDeviceName() {
+    final address = ref.read(bluetoothConnectionServiceProvider).deviceAddress;
+    if (address == null) {
+      _appendLog('Cap dispositiu conegut per refrescar (connecta-t\'hi primer)');
+      return;
+    }
+    final service = ref.read(bluetoothConnectionServiceProvider.notifier);
+    _appendLog('Escanejant per refrescar el nom de $address...');
+
+    _scanSubscription?.cancel();
+    _scanSubscription = service.scanResults.listen((device) {
+      if (device.address == address) {
+        _appendLog('Trobat: ${device.name ?? '(sense nom)'} ($address)');
+      }
+    });
+
+    service.startScan();
+    _scanTimeout?.cancel();
+    _scanTimeout = Timer(const Duration(seconds: 8), () {
+      service.stopScan();
+      _scanSubscription?.cancel();
+      _appendLog('Escaneig aturat.');
+    });
+  }
+
+  /// ARDMX One only: the device always keeps its `ARDMXOne_` prefix — this
+  /// only ever sends the numeric suffix (V63), never the full name, so a bug
+  /// here can't produce a name the firmware wouldn't recognize as its own.
+  void _renameArdmxOne() {
+    final digits = _nameSuffixController.text.trim();
+    if (digits.isEmpty) return;
+    ref.read(protocolProvider).writeText(63, digits);
+    _appendLog('Enviat nou nom: ARDMXOne_$digits (l\'ESP32 es reiniciarà)');
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Nom enviat'),
+        content: Text(
+          "L'ESP32 desarà el nom nou (ARDMXOne_$digits) i es reiniciarà. "
+          'Un cop reiniciat, oblida aquest dispositiu i torna\'l a '
+          "aparellar des dels ajustos de Bluetooth d'Android per veure'l "
+          "amb el nom nou. L'app es tancarà ara.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              SystemNavigator.pop();
+            },
+            child: const Text('D\'acord'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickAndConnect() async {
@@ -112,6 +187,10 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
                       child: const Text('Desconnectar'),
                     ),
                     ElevatedButton(
+                      onPressed: _refreshDeviceName,
+                      child: const Text('Refrescar nom (escaneig)'),
+                    ),
+                    ElevatedButton(
                       onPressed: () =>
                           ref.read(protocolProvider).writeV(16, 20),
                       child: const Text('Enviar V16=20'),
@@ -130,6 +209,41 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
                     ),
                   ],
                 ),
+                if ((connectionState.deviceName ?? '').startsWith(
+                  'ARDMXOne',
+                )) ...[
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Canviar nom Bluetooth (ARDMX One) — '
+                    'només el número, màxim 3 xifres',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Row(
+                    children: [
+                      const Text('ARDMXOne_'),
+                      SizedBox(
+                        width: 60,
+                        child: TextField(
+                          controller: _nameSuffixController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(3),
+                          ],
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: _renameArdmxOne,
+                        child: const Text('Canviar nom'),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

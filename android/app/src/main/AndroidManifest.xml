@@ -13,7 +13,7 @@
         android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation" />
     <application
-        android:label="ardmx4_app"
+        android:label="ARDMX"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -12,7 +12,13 @@ import '../../../widgets/rounded_square_thumb_shape.dart';
 /// [_throttleInterval] for real-time visual feedback on the actual
 /// lights, plus a guaranteed final write on release.
 class ChannelSliders extends ConsumerStatefulWidget {
-  const ChannelSliders({super.key});
+  const ChannelSliders({super.key, this.valueFontSize = 20});
+
+  /// Font size of the 0-255 value number shown above each slider. Defaults
+  /// to the original ARDMX4 Scene/Channels size — callers (e.g. ARDMX One's
+  /// screen) can pass a larger value without affecting other screens using
+  /// this same widget.
+  final double valueFontSize;
 
   @override
   ConsumerState<ChannelSliders> createState() => _ChannelSlidersState();
@@ -138,7 +144,7 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
             value.round().toString(),
             style: TextStyle(
               color: color,
-              fontSize: 20,
+              fontSize: widget.valueFontSize,
               fontWeight: FontWeight.bold,
             ),
           ),

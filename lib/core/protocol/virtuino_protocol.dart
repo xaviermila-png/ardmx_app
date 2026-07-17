@@ -47,6 +47,11 @@ class VirtuinoProtocol {
 
   void writeV(int index, num value) => send(_encodeV(index, value));
 
+  /// Writes a raw text value, e.g. `!V63=15$` — used for the handful of
+  /// text pins (currently just ARDMX One's V63 device-name-suffix command)
+  /// where the value isn't a number, unlike every other V-write.
+  void writeText(int index, String text) => send('!V${_pad(index)}=$text\$');
+
   /// Concatenates several writes into a single send, e.g.
   /// `!V11=3$!V16=20$` — used whenever a screen commits several related
   /// values together to minimize write count/latency over SPP.

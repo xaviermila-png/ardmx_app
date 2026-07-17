@@ -109,6 +109,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void _goToMenu() =>
       Navigator.of(context).pushReplacementNamed(AppRoutes.mainMenu);
 
+  void _goToArdmxOne() =>
+      Navigator.of(context).pushReplacementNamed(AppRoutes.ardmxOne);
+
+  /// Where the "Menú" button / auto-redirect on connect should go, based on
+  /// the paired device's Bluetooth name — this is the only mechanism the app
+  /// uses to tell ARDMX One apart from ARDMX4 (no protocol difference).
+  /// Returns null for an unrecognized name so the auto-redirect stays a
+  /// no-op for those (manual "Menú" tap still works, defaulting to Main
+  /// Menu — see its onPressed below).
+  void Function()? _deviceHomeFor(String? deviceName) {
+    final name = deviceName ?? '';
+    if (name.startsWith('ARDMXOne')) return _goToArdmxOne;
+    if (name.startsWith('ARDMX4')) return _goToMenu;
+    return null;
+  }
+
   void _goToCredits() => Navigator.of(context).pushNamed(AppRoutes.credits);
 
   Widget _buildCredits() {
@@ -131,17 +147,23 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final connecting =
         connection.status == BluetoothConnectionStatus.connecting;
 
-    // Devices named "ARDMX4..." skip the manual "Menú" tap and go straight
-    // in once connected — see feature request for the reasoning (more
-    // screens to come that depend on this).
+    // Skip the manual "Menú" tap and go straight in once connected — see
+    // _deviceHomeFor for how ARDMX4 vs ARDMX One is told apart.
+    //
+    // Splash stays mounted (this listener keeps firing) even while another
+    // route — e.g. the Debug screen, reached via long-press on the logo —
+    // is pushed on top of it, since Flutter only disposes a screen on pop,
+    // not while merely covered. Without the isCurrent guard, connecting
+    // from the Debug screen (its own "Connectar..." button) would still
+    // trigger this auto-redirect and yank the user away from Debug into
+    // ArdmxOneScreen/MainMenu, which defeats the point of being in Debug.
     ref.listen(bluetoothConnectionServiceProvider, (previous, next) {
+      if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
       final wasConnected =
           previous?.status == BluetoothConnectionStatus.connected;
       final isConnected = next.status == BluetoothConnectionStatus.connected;
-      if (!wasConnected &&
-          isConnected &&
-          (next.deviceName ?? '').startsWith('ARDMX4')) {
-        _goToMenu();
+      if (!wasConnected && isConnected) {
+        _deviceHomeFor(next.deviceName)?.call();
       }
     });
 
@@ -196,7 +218,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           onLongPress: () =>
                               Navigator.of(context).pushNamed(AppRoutes.debug),
                           child: Image.asset(
-                            'assets/imatges/ARDMX4_Logo.png',
+                            'assets/imatges/ARDMX_Logo.png',
                             width: 160,
                             height: 160,
                           ),
@@ -310,7 +332,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           width: 105,
                           height: 105,
                           child: ElevatedButton(
-                            onPressed: connected ? _goToMenu : null,
+                            onPressed: connected
+                                ? (_deviceHomeFor(connection.deviceName) ??
+                                      _goToMenu)
+                                : null,
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.all(4),
                               backgroundColor: connected
