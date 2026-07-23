@@ -112,17 +112,27 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void _goToArdmxOne() =>
       Navigator.of(context).pushReplacementNamed(AppRoutes.ardmxOne);
 
-  /// Where the "Menú" button / auto-redirect on connect should go, based on
-  /// the paired device's Bluetooth name — this is the only mechanism the app
-  /// uses to tell ARDMX One apart from ARDMX4 (no protocol difference).
-  /// Returns null for an unrecognized name so the auto-redirect stays a
-  /// no-op for those (manual "Menú" tap still works, defaulting to Main
-  /// Menu — see its onPressed below).
-  void Function()? _deviceHomeFor(String? deviceName) {
-    final name = deviceName ?? '';
-    if (name.startsWith('ARDMXOne')) return _goToArdmxOne;
-    if (name.startsWith('ARDMX4')) return _goToMenu;
-    return null;
+  /// Where the "Menú" button / auto-redirect on connect should go — asks
+  /// [DeviceIdentificationService] which product this is (V64 handshake,
+  /// cached per-MAC after the first time — see that class) rather than
+  /// looking at the Bluetooth name directly. [isManualTap] controls what
+  /// happens for an unrecognized device: the auto-redirect stays a no-op
+  /// (so a device that never answers just leaves the user on Splash), but
+  /// the manual "Menú" tap still has to go somewhere, so it falls back to
+  /// Main Menu.
+  Future<void> _goToDeviceHome({required bool isManualTap}) async {
+    final type = await ref
+        .read(deviceIdentificationServiceProvider.notifier)
+        .identify();
+    if (!mounted) return;
+    switch (type) {
+      case DeviceType.ardmxOne:
+        _goToArdmxOne();
+      case DeviceType.ardmx4:
+        _goToMenu();
+      case DeviceType.unknown:
+        if (isManualTap) _goToMenu();
+    }
   }
 
   void _goToCredits() => Navigator.of(context).pushNamed(AppRoutes.credits);
@@ -148,7 +158,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         connection.status == BluetoothConnectionStatus.connecting;
 
     // Skip the manual "Menú" tap and go straight in once connected — see
-    // _deviceHomeFor for how ARDMX4 vs ARDMX One is told apart.
+    // _goToDeviceHome for how ARDMX4 vs ARDMX One is told apart.
     //
     // Splash stays mounted (this listener keeps firing) even while another
     // route — e.g. the Debug screen, reached via long-press on the logo —
@@ -163,7 +173,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           previous?.status == BluetoothConnectionStatus.connected;
       final isConnected = next.status == BluetoothConnectionStatus.connected;
       if (!wasConnected && isConnected) {
-        _deviceHomeFor(next.deviceName)?.call();
+        _goToDeviceHome(isManualTap: false);
       }
     });
 
@@ -333,8 +343,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           height: 105,
                           child: ElevatedButton(
                             onPressed: connected
-                                ? (_deviceHomeFor(connection.deviceName) ??
-                                      _goToMenu)
+                                ? () => _goToDeviceHome(isManualTap: true)
                                 : null,
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.all(4),

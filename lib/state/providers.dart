@@ -7,6 +7,8 @@ import 'app_state_notifier.dart';
 
 export '../core/bluetooth/bluetooth_connection_service.dart'
     show bluetoothConnectionServiceProvider;
+export '../core/bluetooth/device_identification_service.dart'
+    show DeviceType, deviceIdentificationServiceProvider;
 
 /// Built once on top of [BluetoothConnectionService.incomingBytes], which
 /// itself survives reconnects — so this provider never needs to be rebuilt

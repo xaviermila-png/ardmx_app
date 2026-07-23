@@ -113,48 +113,62 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
             // de dalt a baix.
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Nombre de canals actius (1-512)',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Ha de ser múltiple de 3 (grups de 3 sliders).',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black54, fontSize: 12),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: 120,
-                    child: TextField(
-                      controller: _numeroCanalsController,
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
+              child: _Section(
+                title: 'Nombre de canals actius',
+                child: Column(
+                  children: [
+                    const Text(
+                      'Màxim: 512 canals',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: 90,
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade600,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      onSubmitted: _submit,
-                      onTapOutside: (_) {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        _submit(_numeroCanalsController.text);
-                      },
+                      child: TextField(
+                        controller: _numeroCanalsController,
+                        textAlign: TextAlign.center,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        onSubmitted: _submit,
+                        onTapOutside: (_) {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          _submit(_numeroCanalsController.text);
+                        },
+                      ),
                     ),
-                  ),
-                  if (_numeroCanalsError != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Error: $_numeroCanalsError',
+                    const SizedBox(height: 6),
+                    const Text(
+                      '(ha de ser múltiple de 3)',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.red),
+                      style: TextStyle(fontSize: 13),
                     ),
+                    if (_numeroCanalsError != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        _numeroCanalsError!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 12, color: Colors.red),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
             const Expanded(child: SizedBox()),
@@ -173,6 +187,41 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Same card look as ARDMX4's Parameters screen (`_Section` there) — grey
+/// rounded box with a bold centered title — kept as its own private copy
+/// here rather than shared, since these two screens' widgets are otherwise
+/// deliberately independent (see the class doc up top).
+class _Section extends StatelessWidget {
+  const _Section({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          child,
+        ],
       ),
     );
   }
