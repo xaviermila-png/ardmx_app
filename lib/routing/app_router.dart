@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants/v_map.dart';
+import '../features/ardmx_one/ardmx_one_config_screen.dart';
 import '../features/ardmx_one/ardmx_one_screen.dart';
 import '../features/credits/credits_screen.dart';
 import '../features/cycle_programming/cycle_programming_screen.dart';
@@ -19,6 +20,7 @@ class AppRoutes {
   static const splash = '/splash';
   static const mainMenu = '/main-menu';
   static const ardmxOne = '/ardmx-one';
+  static const ardmxOneConfig = '/ardmx-one-config';
   static const sceneChannels = '/scenes';
   static const rgbWheel = '/rgb-wheel';
   static const cycleProgramming = '/cycle-programming';
@@ -47,6 +49,7 @@ class AppRoutes {
     final builder = switch (settings.name) {
       mainMenu => (BuildContext context) => const MainMenuScreen(),
       ardmxOne => (BuildContext context) => const ArdmxOneScreen(),
+      ardmxOneConfig => (BuildContext context) => const ArdmxOneConfigScreen(),
       sceneChannels => (BuildContext context) => const SceneChannelsScreen(),
       rgbWheel => (BuildContext context) => const RgbWheelScreen(),
       cycleProgramming => (BuildContext context) =>

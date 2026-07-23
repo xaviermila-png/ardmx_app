@@ -1,0 +1,179 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/protocol/virtuino_update.dart';
+import '../../state/providers.dart';
+import '../../widgets/app_scaffold.dart';
+
+/// ARDMX One's own settings screen — reached from [ArdmxOneScreen] via a
+/// button between the back arrow and the exit button. Kept separate from
+/// ARDMX4's Parameters screen: different device, different fields.
+///
+/// Only "Nombre de canals actius" for now (wire index V08 — see
+/// `firmware/ardmx_one/src/main.cpp`); more fields will be added here as the
+/// firmware grows to support them.
+class ArdmxOneConfigScreen extends ConsumerStatefulWidget {
+  const ArdmxOneConfigScreen({super.key});
+
+  @override
+  ConsumerState<ArdmxOneConfigScreen> createState() =>
+      _ArdmxOneConfigScreenState();
+}
+
+class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
+  static const _numeroCanalsVIndex = 8;
+
+  final _numeroCanalsController = TextEditingController();
+  StreamSubscription<VirtuinoUpdate>? _subscription;
+  String? _numeroCanalsError;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscription = ref.read(protocolProvider).updates.listen((update) {
+      if (update is VirtuinoVUpdate && update.index == _numeroCanalsVIndex) {
+        setState(() {
+          _numeroCanalsController.text = update.value.round().toString();
+          _numeroCanalsError = null;
+        });
+      }
+    });
+    ref.read(protocolProvider).requestV(_numeroCanalsVIndex);
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    _numeroCanalsController.dispose();
+    super.dispose();
+  }
+
+  // El firmware exigeix que numeroCanals sigui sempre múltiple de 3 (cada
+  // slider en controla un grup de 3) — en lloc de corregir-ho en silenci,
+  // avisem i no enviem res fins que l'usuari ho arregli.
+  void _submit(String raw) {
+    final value = int.tryParse(raw);
+    if (value == null || value < 1 || value > 512 || value % 3 != 0) {
+      setState(() {
+        _numeroCanalsError =
+            'Ha de ser un múltiple de 3, entre 1 i 512 (p.ex. 48, 51, 54...)';
+      });
+      return;
+    }
+    setState(() => _numeroCanalsError = null);
+    ref.read(protocolProvider).writeV(_numeroCanalsVIndex, value);
+  }
+
+  // Flotant i amb marge inferior perquè no quedi tapat pel propi botó de
+  // fletxa enrere (56px d'alçada + 12px de padding, vegeu el Padding que
+  // l'envolta més avall).
+  void _showBackBlockedMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(bottom: 90, left: 16, right: 16),
+        content: Text('Corregeix el nombre de canals abans de tornar enrere.'),
+      ),
+    );
+  }
+
+  // PopScope's canPop only intercepts the system back gesture/button (via
+  // Navigator.maybePop) — an explicit Navigator.pop() call, like our own
+  // back button below, bypasses it entirely and pops unconditionally. So
+  // this button needs the same guard applied by hand.
+  void _attemptBack() {
+    if (_numeroCanalsError != null) {
+      _showBackBlockedMessage();
+      return;
+    }
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      // Bloqueja qualsevol manera de sortir (fletxa pròpia, gest/botó
+      // enrere del sistema) mentre el camp tingui un valor invàlid encara
+      // no corregit — mai s'ha d'arribar a sortir d'aquí amb un error
+      // pendent.
+      canPop: _numeroCanalsError == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _showBackBlockedMessage();
+      },
+      child: AppScaffold(
+        title: 'Configuració',
+        automaticallyImplyLeading: false,
+        body: Column(
+          children: [
+            // Al capdamunt (no centrada verticalment): quan s'hi afegeixin
+            // més opcions de configuració, aniran seguint aquesta mateixa,
+            // de dalt a baix.
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Nombre de canals actius (1-512)',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Ha de ser múltiple de 3 (grups de 3 sliders).',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.black54, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: 120,
+                    child: TextField(
+                      controller: _numeroCanalsController,
+                      textAlign: TextAlign.center,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: _submit,
+                      onTapOutside: (_) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        _submit(_numeroCanalsController.text);
+                      },
+                    ),
+                  ),
+                  if (_numeroCanalsError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Error: $_numeroCanalsError',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const Expanded(child: SizedBox()),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Row(
+                children: [
+                  FloatingActionButton(
+                    heroTag: 'ardmxOneConfigBack',
+                    onPressed: _attemptBack,
+                    tooltip: 'Tornar als canals',
+                    child: const Icon(Icons.arrow_back),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

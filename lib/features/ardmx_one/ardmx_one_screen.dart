@@ -122,6 +122,14 @@ class _ArdmxOneScreenState extends ConsumerState<ArdmxOneScreen> {
                     tooltip: 'Tornar a la pantalla de connexió',
                     child: const Icon(Icons.arrow_back),
                   ),
+                  FloatingActionButton(
+                    heroTag: 'ardmxOneConfig',
+                    onPressed: () => Navigator.of(
+                      context,
+                    ).pushNamed(AppRoutes.ardmxOneConfig),
+                    tooltip: 'Configuració',
+                    child: const Icon(Icons.settings),
+                  ),
                   // RGB access stacked above Sortir, freeing horizontal room
                   // now that the sliders take up less height.
                   Column(
