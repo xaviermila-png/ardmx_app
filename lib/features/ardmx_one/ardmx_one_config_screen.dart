@@ -5,16 +5,21 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/protocol/virtuino_update.dart';
+import '../../routing/app_router.dart';
 import '../../state/providers.dart';
 import '../../widgets/app_scaffold.dart';
 
-/// ARDMX One's own settings screen — reached from [ArdmxOneScreen] via a
+/// ARDMX One's own "Paràmetres" screen — reached from [ArdmxOneScreen] via a
 /// button between the back arrow and the exit button. Kept separate from
 /// ARDMX4's Parameters screen: different device, different fields.
 ///
 /// Only "Nombre de canals actius" for now (wire index V08 — see
 /// `firmware/ardmx_one/src/main.cpp`); more fields will be added here as the
-/// firmware grows to support them.
+/// firmware grows to support them. The Bluetooth name change and factory
+/// reset live one level deeper, in the "Configuració del sistema" screen —
+/// deliberately not on this screen, so a user browsing normal settings can't
+/// stumble into either by accident (both require real recovery steps:
+/// re-pairing after a rename, losing the current scene after a reset).
 class ArdmxOneConfigScreen extends ConsumerStatefulWidget {
   const ArdmxOneConfigScreen({super.key});
 
@@ -53,18 +58,37 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
 
   // El firmware exigeix que numeroCanals sigui sempre múltiple de 3 (cada
   // slider en controla un grup de 3) — en lloc de corregir-ho en silenci,
-  // avisem i no enviem res fins que l'usuari ho arregli.
-  void _submit(String raw) {
+  // avisem i no enviem res fins que l'usuari ho arregli. Retorna el valor
+  // vàlid, o null si l'entrada actual encara no ho és.
+  int? _validate(String raw) {
     final value = int.tryParse(raw);
     if (value == null || value < 1 || value > 512 || value % 3 != 0) {
       setState(() {
         _numeroCanalsError =
             'Ha de ser un múltiple de 3, entre 1 i 512 (p.ex. 48, 51, 54...)';
       });
-      return;
+      return null;
     }
     setState(() => _numeroCanalsError = null);
-    ref.read(protocolProvider).writeV(_numeroCanalsVIndex, value);
+    return value;
+  }
+
+  // Es crida en cada pulsació — només actualitza l'error en directe (no
+  // envia res encara). Sense això, si l'usuari corregeix el número i després
+  // tanca el teclat amb el gest "enrere" d'Android en lloc de tocar fora del
+  // camp o prémer "Fet", `onTapOutside`/`onSubmitted` mai arriben a disparar-
+  // se i l'error queda enganxat encara que el valor ja sigui correcte.
+  void _onChanged(String raw) => _validate(raw);
+
+  // Es crida en perdre el focus (tocar fora del camp o prémer "Fet" al
+  // teclat) — és quan realment s'envia el valor a l'ARDMX One, no a cada
+  // tecla, per no inundar el protocol amb escriptures intermèdies mentre
+  // s'escriu un número de diverses xifres.
+  void _submit(String raw) {
+    final value = _validate(raw);
+    if (value != null) {
+      ref.read(protocolProvider).writeV(_numeroCanalsVIndex, value);
+    }
   }
 
   // Flotant i amb marge inferior perquè no quedi tapat pel propi botó de
@@ -80,11 +104,14 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
     );
   }
 
-  // PopScope's canPop only intercepts the system back gesture/button (via
-  // Navigator.maybePop) — an explicit Navigator.pop() call, like our own
-  // back button below, bypasses it entirely and pops unconditionally. So
-  // this button needs the same guard applied by hand.
+  // Sortir d'aquesta pantalla (fletxa pròpia o gest/botó enrere del
+  // sistema) és l'única manera fiable de saber que l'usuari ha acabat
+  // d'editar — per això sempre es crida _submit() aquí abans de decidir si
+  // es pot sortir, en lloc de confiar només en onSubmitted/onTapOutside del
+  // camp (que mai arriben a disparar-se si es surt amb el gest enrere
+  // d'Android, deixant el valor escrit sense enviar mai al dispositiu).
   void _attemptBack() {
+    _submit(_numeroCanalsController.text);
     if (_numeroCanalsError != null) {
       _showBackBlockedMessage();
       return;
@@ -95,16 +122,16 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      // Bloqueja qualsevol manera de sortir (fletxa pròpia, gest/botó
-      // enrere del sistema) mentre el camp tingui un valor invàlid encara
-      // no corregit — mai s'ha d'arribar a sortir d'aquí amb un error
-      // pendent.
-      canPop: _numeroCanalsError == null,
+      // canPop sempre fals: tota la decisió (confirmar el valor i, si és
+      // vàlid, sortir) es delega a _attemptBack() des d'aquí baix, perquè
+      // el gest/botó enrere del sistema faci exactament el mateix que la
+      // fletxa pròpia.
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) _showBackBlockedMessage();
+        if (!didPop) _attemptBack();
       },
       child: AppScaffold(
-        title: 'Configuració',
+        title: 'Paràmetres',
         automaticallyImplyLeading: false,
         body: Column(
           children: [
@@ -146,6 +173,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
                         ),
+                        onChanged: _onChanged,
                         onSubmitted: _submit,
                         onTapOutside: (_) {
                           FocusManager.instance.primaryFocus?.unfocus();
@@ -175,12 +203,28 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   FloatingActionButton(
                     heroTag: 'ardmxOneConfigBack',
                     onPressed: _attemptBack,
                     tooltip: 'Tornar als canals',
                     child: const Icon(Icons.arrow_back),
+                  ),
+                  FloatingActionButton(
+                    heroTag: 'ardmxOneSystemConfig',
+                    onPressed: () {
+                      _submit(_numeroCanalsController.text);
+                      if (_numeroCanalsError != null) {
+                        _showBackBlockedMessage();
+                        return;
+                      }
+                      Navigator.of(
+                        context,
+                      ).pushNamed(AppRoutes.ardmxOneSystemConfig);
+                    },
+                    tooltip: 'Configuració del sistema',
+                    child: const Icon(Icons.build),
                   ),
                 ],
               ),
@@ -195,7 +239,9 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
 /// Same card look as ARDMX4's Parameters screen (`_Section` there) — grey
 /// rounded box with a bold centered title — kept as its own private copy
 /// here rather than shared, since these two screens' widgets are otherwise
-/// deliberately independent (see the class doc up top).
+/// deliberately independent (see the class doc up top). Also reused by
+/// `ArdmxOneSystemConfigScreen` via its own private copy, for the same
+/// reason.
 class _Section extends StatelessWidget {
   const _Section({required this.title, required this.child});
 
