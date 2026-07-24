@@ -158,7 +158,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                             vIndex: _pessebeNameVIndex,
                             maxLength: 32,
                           ),
-                          SizedBox(height: 6),
+                          SizedBox(height: 10),
                           _EditableTextSection(
                             title: 'Descripció',
                             vIndex: _descriptionVIndex,
@@ -168,7 +168,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                       child: _Section(
                         title: 'Nombre de canals actius',
                         child: Column(
@@ -230,7 +230,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
                       child: _Section(
                         title: 'Configuració',
                         child: const _ExportImportSection(),
