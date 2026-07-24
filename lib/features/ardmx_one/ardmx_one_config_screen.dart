@@ -1,13 +1,18 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/protocol/virtuino_update.dart';
 import '../../routing/app_router.dart';
 import '../../state/providers.dart';
 import '../../widgets/app_scaffold.dart';
+import 'config_json.dart';
 
 /// ARDMX One's own "Paràmetres" screen — reached from [ArdmxOneScreen] via a
 /// button between the back arrow and the exit button. Kept separate from
@@ -229,6 +234,13 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                         ),
                       ),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: _Section(
+                        title: 'Configuració',
+                        child: const _ExportImportSection(),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -379,6 +391,290 @@ class _EditableTextSectionState extends ConsumerState<_EditableTextSection> {
           _submit(_controller.text);
         },
       ),
+    );
+  }
+}
+
+/// Exports the whole device configuration (pessebre name, description,
+/// active channel count, and every active channel's name+value) as a JSON
+/// file shared via Android's system share sheet, or imports one back.
+///
+/// Channel data has no bulk read/write on the wire protocol — V01-03/
+/// V04-06/V65-67 only ever expose the 3 currently-selected slider channels.
+/// Both directions go through V70 instead (query/assign a single channel by
+/// its explicit number, one round trip per channel — see
+/// `firmware/ardmx_one/src/main.cpp`), sent sequentially and awaited one at
+/// a time: the wire protocol has no request/response correlation (any
+/// reply could be mistaken for a different in-flight request), and firing
+/// hundreds of writes at once risked reintroducing the DMX-vs-NVS timing
+/// crash that was just fixed on the firmware side.
+class _ExportImportSection extends ConsumerStatefulWidget {
+  const _ExportImportSection();
+
+  @override
+  ConsumerState<_ExportImportSection> createState() =>
+      _ExportImportSectionState();
+}
+
+class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
+  static const _pessebreVIndex = 68;
+  static const _descripcioVIndex = 69;
+  static const _numeroCanalsVIndex = 8;
+  static const _channelBulkVIndex = 70;
+  static const _roundTripTimeout = Duration(milliseconds: 800);
+
+  bool _running = false;
+  String? _statusText;
+  int _progress = 0;
+  int _progressTotal = 1;
+
+  Future<String?> _readText(int index) async {
+    final protocol = ref.read(protocolProvider);
+    final completer = Completer<String?>();
+    late final StreamSubscription<VirtuinoUpdate> sub;
+    sub = protocol.updates.listen((update) {
+      if (update is VirtuinoTUpdate &&
+          update.index == index &&
+          !completer.isCompleted) {
+        completer.complete(update.text);
+      }
+    });
+    protocol.requestT(index);
+    final result = await completer.future.timeout(
+      const Duration(seconds: 2),
+      onTimeout: () => null,
+    );
+    await sub.cancel();
+    return result;
+  }
+
+  Future<int?> _readValue(int index) async {
+    final protocol = ref.read(protocolProvider);
+    final completer = Completer<double?>();
+    late final StreamSubscription<VirtuinoUpdate> sub;
+    sub = protocol.updates.listen((update) {
+      if (update is VirtuinoVUpdate &&
+          update.index == index &&
+          !completer.isCompleted) {
+        completer.complete(update.value);
+      }
+    });
+    protocol.requestV(index);
+    final result = await completer.future.timeout(
+      const Duration(seconds: 2),
+      onTimeout: () => null,
+    );
+    await sub.cancel();
+    return result?.round();
+  }
+
+  /// Sends a V70 payload (either `"N"` to query channel N, or
+  /// `"N|value|name"` to assign it) and awaits the matching `"value|name"`
+  /// reply, which the firmware sends for both cases.
+  Future<(int value, String name)?> _channelRoundTrip(String payload) async {
+    final protocol = ref.read(protocolProvider);
+    final completer = Completer<String?>();
+    late final StreamSubscription<VirtuinoUpdate> sub;
+    sub = protocol.updates.listen((update) {
+      if (update is VirtuinoTUpdate &&
+          update.index == _channelBulkVIndex &&
+          !completer.isCompleted) {
+        completer.complete(update.text);
+      }
+    });
+    protocol.writeText(_channelBulkVIndex, payload);
+    final reply = await completer.future.timeout(
+      _roundTripTimeout,
+      onTimeout: () => null,
+    );
+    await sub.cancel();
+    if (reply == null) return null;
+    final pipe = reply.indexOf('|');
+    if (pipe == -1) return null;
+    final value = int.tryParse(reply.substring(0, pipe)) ?? 0;
+    return (value, reply.substring(pipe + 1));
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _export() async {
+    setState(() {
+      _running = true;
+      _statusText = 'Llegint configuració…';
+      _progress = 0;
+      _progressTotal = 1;
+    });
+    try {
+      final pessebre = await _readText(_pessebreVIndex) ?? '';
+      final descripcio = await _readText(_descripcioVIndex) ?? '';
+      final numeroCanals = await _readValue(_numeroCanalsVIndex);
+      if (numeroCanals == null || numeroCanals <= 0) {
+        _showMessage('No s\'ha pogut llegir el nombre de canals actius.');
+        return;
+      }
+
+      final canals = <ChannelConfigEntry>[];
+      setState(() {
+        _progressTotal = numeroCanals;
+        _statusText = 'Llegint canals…';
+      });
+      for (var channel = 1; channel <= numeroCanals; channel++) {
+        final result = await _channelRoundTrip('$channel');
+        canals.add(
+          ChannelConfigEntry(
+            number: channel,
+            name: result?.$2 ?? '',
+            value: result?.$1 ?? 0,
+          ),
+        );
+        if (!mounted) return;
+        setState(() => _progress = channel);
+      }
+
+      final config = ArdmxOneConfigData(
+        pessebre: pessebre,
+        descripcio: descripcio,
+        numeroCanals: numeroCanals,
+        canals: canals,
+      );
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/ardmx_one_config.json');
+      await file.writeAsString(config.toPrettyJson());
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          text: 'Configuració ARDMX One',
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _running = false);
+    }
+  }
+
+  Future<bool> _confirmImport(ArdmxOneConfigData config) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Importar configuració?'),
+        content: Text(
+          'Es sobreescriuran el nom del pessebre, la descripció, el nombre '
+          'de canals actius i els noms/valors de ${config.canals.length} '
+          'canals amb el contingut del fitxer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel·lar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Importar'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
+  Future<void> _import() async {
+    final picked = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    final path = picked?.files.singleOrNull?.path;
+    if (path == null) return;
+
+    final ArdmxOneConfigData config;
+    try {
+      config = ArdmxOneConfigData.fromPrettyJson(
+        await File(path).readAsString(),
+      );
+    } catch (_) {
+      _showMessage('El fitxer no és un JSON vàlid de configuració.');
+      return;
+    }
+    if (config.numeroCanals <= 0 || config.canals.isEmpty) {
+      _showMessage('El fitxer no conté cap canal.');
+      return;
+    }
+
+    if (!await _confirmImport(config)) return;
+
+    setState(() {
+      _running = true;
+      _statusText = 'Aplicant configuració…';
+      _progress = 0;
+      _progressTotal = config.canals.length;
+    });
+    try {
+      final protocol = ref.read(protocolProvider);
+      protocol.writeV(_numeroCanalsVIndex, config.numeroCanals);
+      protocol.writeText(_pessebreVIndex, config.pessebre);
+      protocol.writeText(_descripcioVIndex, config.descripcio);
+
+      for (final entry in config.canals) {
+        await _channelRoundTrip(
+          '${entry.number}|${entry.value}|${entry.name}',
+        );
+        if (!mounted) return;
+        setState(() => _progress++);
+      }
+      _showMessage('Configuració importada.');
+    } finally {
+      if (mounted) setState(() => _running = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_running) {
+      return Column(
+        children: [
+          Text(_statusText ?? '', style: const TextStyle(fontSize: 13)),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: _progressTotal > 0 ? _progress / _progressTotal : null,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '$_progress / $_progressTotal',
+            style: const TextStyle(fontSize: 12),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        const Text(
+          'Exporta tota la configuració (pessebre, descripció, canals) a un '
+          'fitxer JSON, o importa\'n un per restaurar-la.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 13),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton.icon(
+              onPressed: _export,
+              icon: const Icon(Icons.upload_file),
+              label: const Text('Exportar'),
+            ),
+            const SizedBox(width: 12),
+            OutlinedButton.icon(
+              onPressed: _import,
+              icon: const Icon(Icons.download),
+              label: const Text('Importar'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
