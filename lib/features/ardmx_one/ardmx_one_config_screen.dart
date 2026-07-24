@@ -150,7 +150,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                 child: Column(
                   children: [
                     const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 16, 16, 16),
+                      padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
                       child: Column(
                         children: [
                           _EditableTextSection(
@@ -158,7 +158,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                             vIndex: _pessebeNameVIndex,
                             maxLength: 32,
                           ),
-                          SizedBox(height: 8),
+                          SizedBox(height: 6),
                           _EditableTextSection(
                             title: 'Descripció',
                             vIndex: _descriptionVIndex,
@@ -168,20 +168,15 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
                       child: _Section(
                         title: 'Nombre de canals actius',
                         child: Column(
                           children: [
-                            const Text(
-                              'Màxim: 512 canals',
-                              style: TextStyle(fontSize: 14),
-                            ),
-                            const SizedBox(height: 6),
                             Container(
-                              width: 90,
+                              width: 80,
                               padding: const EdgeInsets.symmetric(
-                                vertical: 4,
+                                vertical: 2,
                               ),
                               decoration: BoxDecoration(
                                 color: Colors.green.shade600,
@@ -195,7 +190,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                                   FilteringTextInputFormatter.digitsOnly,
                                 ],
                                 style: const TextStyle(
-                                  fontSize: 26,
+                                  fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
@@ -213,14 +208,14 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                                 },
                               ),
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 4),
                             const Text(
-                              '(ha de ser múltiple de 3)',
+                              'Múltiple de 3, màxim 512',
                               textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 13),
+                              style: TextStyle(fontSize: 12),
                             ),
                             if (_numeroCanalsError != null) ...[
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 4),
                               Text(
                                 _numeroCanalsError!,
                                 textAlign: TextAlign.center,
@@ -235,7 +230,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
                       child: _Section(
                         title: 'Configuració',
                         child: const _ExportImportSection(),
@@ -297,7 +292,7 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
         borderRadius: BorderRadius.circular(12),
@@ -308,9 +303,9 @@ class _Section extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           child,
         ],
       ),
@@ -375,13 +370,13 @@ class _EditableTextSectionState extends ConsumerState<_EditableTextSection> {
       child: TextField(
         controller: _controller,
         textAlign: TextAlign.left,
-        // The long field (description) gets a fixed 4-line box — same
+        // The long field (description) gets a fixed 3-line box — same
         // height whether empty or full, so the layout doesn't jump around
         // as the user types — while the short field (pessebe name) stays
         // compact. Scaled off maxLength since this widget is shared by
         // both.
-        minLines: widget.maxLength > 40 ? 4 : 1,
-        maxLines: widget.maxLength > 40 ? 4 : 3,
+        minLines: widget.maxLength > 40 ? 3 : 1,
+        maxLines: widget.maxLength > 40 ? 3 : 2,
         textInputAction: TextInputAction.done,
         maxLength: widget.maxLength,
         decoration: const InputDecoration(border: OutlineInputBorder()),
@@ -652,12 +647,11 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
     return Column(
       children: [
         const Text(
-          'Exporta tota la configuració (pessebre, descripció, canals) a un '
-          'fitxer JSON, o importa\'n un per restaurar-la.',
+          'Exporta o importa tota la configuració en un fitxer JSON.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 13),
+          style: TextStyle(fontSize: 12),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
