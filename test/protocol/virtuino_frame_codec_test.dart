@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:ardmx4_app/core/protocol/virtuino_frame_codec.dart';
 import 'package:ardmx4_app/core/protocol/virtuino_update.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -99,5 +101,34 @@ void main() {
       expect((updates.single as VirtuinoVUpdate).index, 11);
       expect((updates.single as VirtuinoVUpdate).value, 3.0);
     });
+
+    test('decodes multi-byte UTF-8 characters (e.g. Catalan "ç")', () {
+      final codec = VirtuinoFrameCodec();
+      final updates = codec.addBytes(utf8.encode('!V68=Pessebre de Begues\$'));
+
+      expect(updates, hasLength(1));
+      expect(
+        (updates.single as VirtuinoTUpdate).text,
+        'Pessebre de Begues',
+      );
+    });
+
+    test(
+      'decodes a multi-byte UTF-8 character split across two chunks '
+      '(confirmed on hardware to corrupt "ç" into "Ã§" before this fix)',
+      () {
+        final codec = VirtuinoFrameCodec();
+        // "ç" is 0xC3 0xA7 in UTF-8 — split the two bytes across chunks.
+        final bytes = utf8.encode('!V69=començant\$');
+        final splitPoint = bytes.indexOf(0xC3) + 1;
+
+        final first = codec.addBytes(bytes.sublist(0, splitPoint));
+        expect(first, isEmpty);
+
+        final second = codec.addBytes(bytes.sublist(splitPoint));
+        expect(second, hasLength(1));
+        expect((second.single as VirtuinoTUpdate).text, 'començant');
+      },
+    );
   });
 }

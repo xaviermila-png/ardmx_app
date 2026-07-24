@@ -10,6 +10,7 @@ import '../../routing/app_router.dart';
 import '../../state/providers.dart';
 import '../../widgets/app_scaffold.dart';
 import '../scene_channels/widgets/channel_sliders.dart';
+import 'widgets/channel_name_row.dart';
 import 'widgets/channel_number_bar.dart';
 
 /// Home screen for ARDMX One devices (single static scene, no music/cycle) —
@@ -96,6 +97,7 @@ class _ArdmxOneScreenState extends ConsumerState<ArdmxOneScreen> {
         body: Column(
           children: [
             const ChannelNumberBar(),
+            const ChannelNameRow(),
             Expanded(
               child: Center(
                 // Fixed (rather than filling all leftover space): the user
@@ -137,9 +139,8 @@ class _ArdmxOneScreenState extends ConsumerState<ArdmxOneScreen> {
                     children: [
                       FloatingActionButton(
                         heroTag: 'ardmxOneRgbWheel',
-                        onPressed: () => Navigator.of(
-                          context,
-                        ).pushNamed(AppRoutes.rgbWheel),
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed(AppRoutes.rgbWheel),
                         tooltip: 'Configuració RGB (roda de color)',
                         child: SizedBox(
                           width: 56,

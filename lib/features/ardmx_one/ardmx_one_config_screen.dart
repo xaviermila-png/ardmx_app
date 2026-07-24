@@ -30,6 +30,8 @@ class ArdmxOneConfigScreen extends ConsumerStatefulWidget {
 
 class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
   static const _numeroCanalsVIndex = 8;
+  static const _pessebeNameVIndex = 68;
+  static const _descriptionVIndex = 69;
 
   final _numeroCanalsController = TextEditingController();
   StreamSubscription<VirtuinoUpdate>? _subscription;
@@ -135,71 +137,102 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
         automaticallyImplyLeading: false,
         body: Column(
           children: [
-            // Al capdamunt (no centrada verticalment): quan s'hi afegeixin
-            // més opcions de configuració, aniran seguint aquesta mateixa,
-            // de dalt a baix.
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _Section(
-                title: 'Nombre de canals actius',
+            // Desplaçable: amb el teclat obert per editar la descripció (fins
+            // a 128 caràcters), el contingut ja no cap sencer en pantalles
+            // petites — mateix arranjament que ArdmxOneSystemConfigScreen.
+            Expanded(
+              child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    const Text(
-                      'Màxim: 512 canals',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      width: 90,
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade600,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: TextField(
-                        controller: _numeroCanalsController,
-                        textAlign: TextAlign.center,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 16, 16, 16),
+                      child: Column(
+                        children: [
+                          _EditableTextSection(
+                            title: 'Nom del pessebre',
+                            vIndex: _pessebeNameVIndex,
+                            maxLength: 32,
+                          ),
+                          SizedBox(height: 8),
+                          _EditableTextSection(
+                            title: 'Descripció',
+                            vIndex: _descriptionVIndex,
+                            maxLength: 128,
+                          ),
                         ],
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        onChanged: _onChanged,
-                        onSubmitted: _submit,
-                        onTapOutside: (_) {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          _submit(_numeroCanalsController.text);
-                        },
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      '(ha de ser múltiple de 3)',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 13),
-                    ),
-                    if (_numeroCanalsError != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        _numeroCanalsError!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 12, color: Colors.red),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: _Section(
+                        title: 'Nombre de canals actius',
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Màxim: 512 canals',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              width: 90,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade600,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: TextField(
+                                controller: _numeroCanalsController,
+                                textAlign: TextAlign.center,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                                onChanged: _onChanged,
+                                onSubmitted: _submit,
+                                onTapOutside: (_) {
+                                  FocusManager.instance.primaryFocus
+                                      ?.unfocus();
+                                  _submit(_numeroCanalsController.text);
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              '(ha de ser múltiple de 3)',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 13),
+                            ),
+                            if (_numeroCanalsError != null) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                _numeroCanalsError!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
             ),
-            const Expanded(child: SizedBox()),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: Row(
@@ -268,6 +301,83 @@ class _Section extends StatelessWidget {
           const SizedBox(height: 10),
           child,
         ],
+      ),
+    );
+  }
+}
+
+/// Free-text field backed by a single wire text index (V68 nom del pessebe,
+/// V69 descripció) — requests its current value once on mount, then sends
+/// the edited text back on blur/Enter (same "confirm on losing focus"
+/// pattern as [_numeroCanalsController] above, minus the validation: any
+/// text up to [maxLength] is valid here, so there's nothing to block leaving
+/// the screen for). The firmware is the source of truth for the actual
+/// stored length (it truncates UTF-8-safely if needed — see
+/// `sanitizeText()` in `firmware/ardmx_one/src/main.cpp`), this is just the
+/// UI-side hint.
+class _EditableTextSection extends ConsumerStatefulWidget {
+  const _EditableTextSection({
+    required this.title,
+    required this.vIndex,
+    required this.maxLength,
+  });
+
+  final String title;
+  final int vIndex;
+  final int maxLength;
+
+  @override
+  ConsumerState<_EditableTextSection> createState() =>
+      _EditableTextSectionState();
+}
+
+class _EditableTextSectionState extends ConsumerState<_EditableTextSection> {
+  final _controller = TextEditingController();
+  StreamSubscription<VirtuinoUpdate>? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscription = ref.read(protocolProvider).updates.listen((update) {
+      if (update is VirtuinoTUpdate && update.index == widget.vIndex) {
+        _controller.text = update.text;
+      }
+    });
+    ref.read(protocolProvider).requestT(widget.vIndex);
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit(String text) =>
+      ref.read(protocolProvider).writeText(widget.vIndex, text);
+
+  @override
+  Widget build(BuildContext context) {
+    return _Section(
+      title: widget.title,
+      child: TextField(
+        controller: _controller,
+        textAlign: TextAlign.left,
+        // The long field (description) gets a fixed 4-line box — same
+        // height whether empty or full, so the layout doesn't jump around
+        // as the user types — while the short field (pessebe name) stays
+        // compact. Scaled off maxLength since this widget is shared by
+        // both.
+        minLines: widget.maxLength > 40 ? 4 : 1,
+        maxLines: widget.maxLength > 40 ? 4 : 3,
+        textInputAction: TextInputAction.done,
+        maxLength: widget.maxLength,
+        decoration: const InputDecoration(border: OutlineInputBorder()),
+        onSubmitted: _submit,
+        onTapOutside: (_) {
+          FocusManager.instance.primaryFocus?.unfocus();
+          _submit(_controller.text);
+        },
       ),
     );
   }

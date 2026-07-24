@@ -35,9 +35,8 @@ class ChannelNumberBar extends ConsumerWidget {
             children: [
               NavArrowButton(
                 icon: Icons.arrow_back,
-                onPressed: () => ref
-                    .read(appStateProvider.notifier)
-                    .advanceChannelGroup(-1),
+                onPressed: () =>
+                    ref.read(appStateProvider.notifier).advanceChannelGroup(-1),
               ),
               const Expanded(
                 child: Text(

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'virtuino_update.dart';
 
 /// Extracts complete `!Vxx=value$` / `!Txx=text$` frames out of a raw,
@@ -18,36 +20,46 @@ class VirtuinoFrameCodec {
 
   static final RegExp _framePattern = RegExp(r'^([VT])(\d+)=(.*)$');
 
-  String _buffer = '';
+  // '!' and '$' are single-byte ASCII (0x21/0x24). UTF-8 continuation and
+  // lead bytes are always >= 0x80, so these delimiters can never appear as
+  // part of a multi-byte character — searching for them at the byte level
+  // (below) is always safe, even mid-character.
+  static const int _bangByte = 0x21;
+  static const int _dollarByte = 0x24;
 
-  /// Feeds raw bytes from the connection's input stream (the protocol is
-  /// pure ASCII) and returns any complete frames decoded as a result.
+  // Buffered as raw bytes, not a decoded String: text values (channel/scene
+  // names, descriptions) can contain multi-byte UTF-8 characters (e.g. "ç" =
+  // 0xC3 0xA7), and a chunk boundary can legitimately fall in the middle of
+  // one. Decoding byte-by-byte as each chunk arrives (the previous
+  // approach, via String.fromCharCodes) treated every byte as its own
+  // Latin-1 code point and corrupted any such character into two garbled
+  // ones (confirmed on hardware: "ç" arrived as "Ã§"). Buffering raw bytes
+  // and only UTF-8-decoding once a complete frame (a full `!...$` span) has
+  // arrived avoids ever decoding a split sequence.
+  final List<int> _buffer = [];
+
+  /// Feeds raw bytes from the connection's input stream and returns any
+  /// complete frames decoded as a result.
   List<VirtuinoUpdate> addBytes(List<int> bytes) {
-    return addChunk(String.fromCharCodes(bytes));
-  }
-
-  /// Feeds a chunk of text and returns any complete frames decoded as a
-  /// result. Exposed separately from [addBytes] so tests can work with
-  /// plain strings.
-  List<VirtuinoUpdate> addChunk(String chunk) {
-    _buffer += chunk;
+    _buffer.addAll(bytes);
     final updates = <VirtuinoUpdate>[];
 
     while (true) {
-      final start = _buffer.indexOf('!');
+      final start = _buffer.indexOf(_bangByte);
       if (start == -1) {
-        _buffer = '';
+        _buffer.clear();
         break;
       }
-      final end = _buffer.indexOf(r'$', start);
+      final end = _buffer.indexOf(_dollarByte, start);
       if (end == -1) {
         if (start > 0) {
-          _buffer = _buffer.substring(start);
+          _buffer.removeRange(0, start);
         }
         break;
       }
-      final body = _buffer.substring(start + 1, end);
-      _buffer = _buffer.substring(end + 1);
+      final bodyBytes = _buffer.sublist(start + 1, end);
+      _buffer.removeRange(0, end + 1);
+      final body = utf8.decode(bodyBytes, allowMalformed: true);
       final update = _parseFrame(body);
       if (update != null) {
         updates.add(update);
@@ -55,11 +67,17 @@ class VirtuinoFrameCodec {
     }
 
     if (_buffer.length > maxBufferLength) {
-      _buffer = '';
+      _buffer.clear();
     }
 
     return updates;
   }
+
+  /// Feeds a chunk of text and returns any complete frames decoded as a
+  /// result. Exposed separately from [addBytes] so tests can work with
+  /// plain strings; re-encodes to UTF-8 bytes so both entry points share the
+  /// exact same buffering/decoding logic.
+  List<VirtuinoUpdate> addChunk(String chunk) => addBytes(utf8.encode(chunk));
 
   /// Indices >= this are the Arduino's special-cased text pins.
   static const _textPinStart = 61;
