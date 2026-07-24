@@ -6,7 +6,10 @@ plugins {
 
 android {
     namespace = "com.xaviermila.ardmx4_app"
-    compileSdk = flutter.compileSdkVersion
+    // flutter.compileSdkVersion (34, from this Flutter install) is too old
+    // for flutter_plugin_android_lifecycle, a transitive dependency pulled
+    // in by file_picker, which requires compiling against API 36+.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
