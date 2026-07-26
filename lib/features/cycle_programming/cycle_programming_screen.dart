@@ -30,16 +30,22 @@ class CycleProgrammingScreen extends ConsumerStatefulWidget {
 class _CycleProgrammingScreenState
     extends ConsumerState<CycleProgrammingScreen> {
   static const _pollInterval = Duration(milliseconds: 400);
-  static const _periodLabels = [
-    ('1', false),
-    ('1 --->', true),
-    ('2', false),
-    ('2 --->', true),
-    ('3', false),
-    ('3 --->', true),
-    ('4', false),
-    ('4 --->', true),
-  ];
+
+  /// Builds the phase label list for a given scene count (1-4, V18):
+  /// 'Escena 1', 'Transició a Escena 2', 'Escena 2', ... — with the final
+  /// transition always closing the cycle back to Escena 1, whatever the
+  /// scene count. Mirrors [CycleProgressBar]'s own `_stateLabels` (same
+  /// wording), kept as its own copy here since that widget is keyed off V10
+  /// (cycleState) while this screen derives the active phase locally (see
+  /// the comment on `activePeriod` in build()).
+  static List<String> _phaseNamesFor(int sceneCount) {
+    final names = <String>[];
+    for (var scene = 1; scene <= sceneCount; scene++) {
+      names.add('Escena $scene');
+      names.add('Transició a Escena ${scene < sceneCount ? scene + 1 : 1}');
+    }
+    return names;
+  }
 
   Timer? _pollTimer;
 
@@ -72,6 +78,7 @@ class _CycleProgrammingScreenState
       VIndex.totalTime,
       VIndex.songNumber,
       VIndex.volume,
+      VIndex.activeScenesCount,
       for (var i = 0; i < 8; i++) VIndex.periodDuration(i),
     ]);
   }
@@ -140,6 +147,14 @@ class _CycleProgrammingScreenState
         ? (currentTime / totalTime).clamp(0.0, 1.0)
         : 0.0;
 
+    // V18: only cycle through the scenes the user actually configured (1-4,
+    // Paràmetres) — Arduino itself only ever advances through
+    // NumeroEscenes*2 periods, so rows beyond that are stale/irrelevant.
+    final sceneCount =
+        (ref.watch(appStateProvider.select((s) => s.activeScenesCount))) ?? 4;
+    final periodCount = sceneCount.clamp(1, 4) * 2;
+    final phaseNames = _phaseNamesFor(sceneCount.clamp(1, 4));
+
     // V10 (cycleState) only reflects the main dial's Automàtic/Manual mode,
     // not this screen's own Play/Pause (V12/V13) — confirmed on real
     // hardware (V10 stayed 0 the whole time while V12=1 and V14 counted
@@ -148,7 +163,7 @@ class _CycleProgrammingScreenState
     int? activePeriod;
     if (isPlaying) {
       var previous = 0.0;
-      for (var i = 0; i < 8; i++) {
+      for (var i = 0; i < periodCount; i++) {
         if (currentTime >= previous && currentTime < periods[i]) {
           activePeriod = i;
           break;
@@ -164,7 +179,7 @@ class _CycleProgrammingScreenState
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -236,17 +251,27 @@ class _CycleProgrammingScreenState
                         ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Text(
+                        'Transcorregut',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      const Spacer(),
+                      const Text('Total', style: TextStyle(fontSize: 11)),
+                    ],
+                  ),
                   Row(
                     children: [
                       Expanded(
                         child: Stack(
                           children: [
-                            Container(height: 40, color: Colors.blue.shade100),
+                            Container(height: 32, color: Colors.blue.shade100),
                             FractionallySizedBox(
                               widthFactor: fraction,
                               child: Container(
-                                height: 40,
+                                height: 32,
                                 color: Colors.blue.shade700,
                               ),
                             ),
@@ -255,64 +280,99 @@ class _CycleProgrammingScreenState
                       ),
                       Container(
                         width: 70,
-                        height: 40,
+                        height: 32,
                         color: Colors.deepPurple.shade400,
                         alignment: Alignment.center,
                         child: Text(
-                          '${currentTime.round()}"',
+                          '${currentTime.round()}" / ${totalTime.round()}"',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 13,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 14),
                   const Text(
                     'Temps Transició Escenes',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 8),
-                  Center(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
+                  const SizedBox(height: 2),
+                  // Capçaleres de columna: sense elles, la caixa lila
+                  // (moment en què s'acaba la fase, un valor acumulat des
+                  // de l'inici del cicle) es confonia amb el "Transcorregut"
+                  // de dalt, que és un altre valor acumulat similar però no
+                  // el mateix.
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
                       children: [
-                        for (var i = 0; i < 8; i++) ...[
-                          _PeriodRow(
-                            label: _periodLabels[i].$1,
-                            isTransition: _periodLabels[i].$2,
-                            // Progress-bar style: every phase up to and
-                            // including the current one stays lit, not just
-                            // the current one alone.
-                            active: activePeriod != null && i <= activePeriod,
-                            accumulated: periods[i],
-                            duration:
-                                (periods[i] - (i == 0 ? 0 : periods[i - 1]))
-                                    .clamp(0, double.infinity),
-                            onTap: () => _editPeriod(i, periods[i]),
+                        Spacer(),
+                        SizedBox(
+                          width: 64,
+                          child: Text(
+                            'Acaba a',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 11),
                           ),
-                          const SizedBox(height: 6),
-                        ],
+                        ),
+                        SizedBox(width: 8),
+                        SizedBox(
+                          width: 64,
+                          child: Text(
+                            'Durada',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 11),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 56),
-                  VolumeSlider(
-                    leading: Text(
-                      songNumber == null || songNumber == 0
-                          ? 'Cançó: Off'
-                          : 'Cançó: $songNumber',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                  const SizedBox(height: 4),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var i = 0; i < periodCount; i++) ...[
+                        _PeriodRow(
+                          label: phaseNames[i],
+                          // Progress-bar style: every phase up to and
+                          // including the current one stays lit — both the
+                          // green dot and the yellow highlight remain fixed
+                          // as "already done", not just the exact current
+                          // row (per the user: fent-ho així es veu d'un cop
+                          // d'ull tot el recorregut fet, no només l'últim
+                          // pas).
+                          active: activePeriod != null && i <= activePeriod,
+                          accumulated: periods[i],
+                          duration: (periods[i] - (i == 0 ? 0 : periods[i - 1]))
+                              .clamp(0, double.infinity),
+                          onTap: () => _editPeriod(i, periods[i]),
+                        ),
+                        const SizedBox(height: 3),
+                      ],
+                    ],
                   ),
                 ],
+              ),
+            ),
+          ),
+          // Volum sempre enganxat a baix (fora de l'scroll), just per sobre
+          // de la fletxa de retorn — abans quedava al final del contingut
+          // desplaçable i podia quedar amagat quan hi havia 4 escenes.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: VolumeSlider(
+              leading: Text(
+                songNumber == null || songNumber == 0
+                    ? 'Cançó: Off'
+                    : 'Cançó: $songNumber',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -338,7 +398,6 @@ class _CycleProgrammingScreenState
 class _PeriodRow extends StatelessWidget {
   const _PeriodRow({
     required this.label,
-    required this.isTransition,
     required this.active,
     required this.accumulated,
     required this.duration,
@@ -346,7 +405,6 @@ class _PeriodRow extends StatelessWidget {
   });
 
   final String label;
-  final bool isTransition;
   final bool active;
   final double accumulated;
   final double duration;
@@ -354,68 +412,79 @@ class _PeriodRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 56,
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      // Franja de marge a marge (no un requadre ajustat al contingut) perquè
+      // la fase en curs es distingeixi d'un cop d'ull sense dependre de
+      // l'amplada variable del text.
+      decoration: active
+          ? BoxDecoration(
+              color: Colors.amber.shade100,
+              border: Border.symmetric(
+                horizontal: BorderSide(
+                  color: Colors.amber.shade700,
+                  width: 1.5,
+                ),
+              ),
+            )
+          : null,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ),
-        ),
-        Container(
-          width: 20,
-          height: 20,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: active ? Colors.green.shade600 : Colors.grey.shade400,
-            border: Border.all(color: Colors.black45),
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: active ? Colors.green.shade600 : Colors.grey.shade400,
+              border: Border.all(color: Colors.black45),
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        InkWell(
-          borderRadius: BorderRadius.circular(6),
-          onTap: onTap,
-          child: Container(
+          const SizedBox(width: 16),
+          InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: onTap,
+            child: Container(
+              width: 64,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.shade300,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '${accumulated.round()}"',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
             width: 64,
             height: 36,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: Colors.deepPurple.shade300,
+              color: Colors.green.shade700,
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              '${accumulated.round()}"',
+              '${duration.round()}"',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          width: 64,
-          height: 36,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Colors.green.shade700,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            '${duration.round()}"',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        if (isTransition) ...[
-          const SizedBox(width: 8),
-          const Text('Transició', style: TextStyle(fontSize: 13)),
         ],
-      ],
+      ),
     );
   }
 }
