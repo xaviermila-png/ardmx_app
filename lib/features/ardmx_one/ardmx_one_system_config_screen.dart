@@ -218,6 +218,21 @@ class _ResetSectionState extends ConsumerState<_ResetSection> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Escena i canals reinicialitzats')),
           );
+          // Els nivells de canal es refresquen sols perquè la pantalla de
+          // Canals els demana en un poll continu — però el pessebre, la
+          // descripció, el nombre de canals actius i els noms dels 3 canals
+          // seleccionats només es demanen un cop en obrir cada pantalla, així
+          // que sense això quedaven amb el text antic fins a desconnectar i
+          // reconnectar. Com que aquestes peticions van pel mateix stream
+          // que qualsevol pantalla (Paràmetres, Canals) ja escolta, si
+          // segueixen obertes sota d'aquesta reben el valor buit a l'instant.
+          final protocol = ref.read(protocolProvider);
+          protocol.requestT(68); // nom del pessebre
+          protocol.requestT(69); // descripció
+          protocol.requestV(8); // nombre de canals actius
+          protocol.requestT(65); // nom del canal seleccionat, slot 1
+          protocol.requestT(66); // nom del canal seleccionat, slot 2
+          protocol.requestT(67); // nom del canal seleccionat, slot 3
         }
       },
     );
