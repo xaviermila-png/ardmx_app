@@ -638,6 +638,22 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
         if (!mounted) return;
         setState(() => _progress++);
       }
+
+      // El pessebre/descripció es refresquen sols (el firmware els torna a
+      // enviar en resposta a la pròpia escriptura — replyText a V68/V69),
+      // però V08 i el canal seleccionat (V01-03/V65-67) NO tenen eco
+      // automàtic, així que sense això la pantalla de Canals (si segueix
+      // oberta per sota) es quedava amb els valors/noms antics fins a
+      // desconnectar i reconnectar — mateix problema que al reset de
+      // fàbrica.
+      protocol.requestV(_numeroCanalsVIndex);
+      protocol.requestV(1);
+      protocol.requestV(2);
+      protocol.requestV(3);
+      protocol.requestT(65);
+      protocol.requestT(66);
+      protocol.requestT(67);
+
       _showMessage('Configuració importada.');
     } finally {
       if (mounted) setState(() => _running = false);

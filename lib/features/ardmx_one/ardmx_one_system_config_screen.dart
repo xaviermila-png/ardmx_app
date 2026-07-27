@@ -15,50 +15,71 @@ import '../../widgets/app_scaffold.dart';
 /// the user (re-pairing after a Bluetooth rename, losing the current scene
 /// after a factory reset), so they shouldn't be as casually reachable as
 /// the day-to-day channel controls.
-class ArdmxOneSystemConfigScreen extends StatelessWidget {
+class ArdmxOneSystemConfigScreen extends ConsumerWidget {
   const ArdmxOneSystemConfigScreen({super.key});
 
+  // Si l'usuari desbloqueja el reset (ON) i torna enrere sense arribar a
+  // confirmar-lo, el desarma abans de sortir — sense això quedava "ON" en
+  // tornar a obrir aquesta pantalla, com si encara estigués actiu. Centralitzat
+  // aquí (no al dispose() de _ResetSection) perquè cobreixi tant el botó de
+  // fletxa com el gest/botó enrere del sistema (vegeu PopScope més avall).
+  void _attemptBack(WidgetRef ref, BuildContext context) {
+    if (ref.read(appStateProvider).resetArmed) {
+      ref.read(appStateProvider.notifier).setResetArmed(false);
+    }
+    Navigator.of(context).pop();
+  }
+
   @override
-  Widget build(BuildContext context) {
-    return AppScaffold(
-      title: 'Configuració del sistema',
-      automaticallyImplyLeading: false,
-      body: Column(
-        children: [
-          Expanded(
-            // Without this, the keyboard opening while editing the
-            // Bluetooth name shrinks the available height enough to
-            // overflow the two sections below — same fix already applied
-            // to ARDMX4's Parameters screen for the same reason.
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget build(BuildContext context, WidgetRef ref) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _attemptBack(ref, context);
+      },
+      child: AppScaffold(
+        title: 'Configuració del sistema',
+        automaticallyImplyLeading: false,
+        body: Column(
+          children: [
+            Expanded(
+              // Without this, the keyboard opening while editing the
+              // Bluetooth name shrinks the available height enough to
+              // overflow the two sections below — same fix already applied
+              // to ARDMX4's Parameters screen for the same reason.
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _Section(
+                      title: 'Nom Bluetooth',
+                      child: const _BluetoothNameSection(),
+                    ),
+                    const SizedBox(height: 8),
+                    const _ResetSection(),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Row(
                 children: [
-                  _Section(
-                    title: 'Nom Bluetooth',
-                    child: const _BluetoothNameSection(),
+                  FloatingActionButton(
+                    heroTag: 'ardmxOneSystemConfigBack',
+                    onPressed: () => _attemptBack(ref, context),
+                    tooltip: 'Tornar a paràmetres',
+                    child: const Icon(Icons.arrow_back),
                   ),
-                  const SizedBox(height: 8),
-                  const _ResetSection(),
                 ],
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Row(
-              children: [
-                FloatingActionButton(
-                  heroTag: 'ardmxOneSystemConfigBack',
-                  onPressed: () => Navigator.of(context).pop(),
-                  tooltip: 'Tornar a paràmetres',
-                  child: const Icon(Icons.arrow_back),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -190,12 +211,6 @@ class _ResetSectionState extends ConsumerState<_ResetSection> {
   @override
   void dispose() {
     _pollTimer?.cancel();
-    // Si l'usuari torna enrere amb el reset desbloquejat (ON) sense arribar
-    // a prémer "Reset", el desarma — sense això quedava "ON" en tornar a
-    // obrir aquesta pantalla, com si encara estigués actiu.
-    if (ref.read(appStateProvider).resetArmed) {
-      ref.read(appStateProvider.notifier).setResetArmed(false);
-    }
     super.dispose();
   }
 
