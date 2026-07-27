@@ -190,6 +190,12 @@ class _ResetSectionState extends ConsumerState<_ResetSection> {
   @override
   void dispose() {
     _pollTimer?.cancel();
+    // Si l'usuari torna enrere amb el reset desbloquejat (ON) sense arribar
+    // a prémer "Reset", el desarma — sense això quedava "ON" en tornar a
+    // obrir aquesta pantalla, com si encara estigués actiu.
+    if (ref.read(appStateProvider).resetArmed) {
+      ref.read(appStateProvider.notifier).setResetArmed(false);
+    }
     super.dispose();
   }
 

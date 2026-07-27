@@ -72,7 +72,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
     if (value == null || value < 1 || value > 512 || value % 3 != 0) {
       setState(() {
         _numeroCanalsError =
-            'Ha de ser un múltiple de 3, entre 1 i 512 (p.ex. 48, 51, 54...)';
+            'Ha de ser un múltiple de 3, entre 1 i 510 (p.ex. 48, 51, 54...)';
       });
       return null;
     }
@@ -207,7 +207,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                             ),
                             const SizedBox(height: 4),
                             const Text(
-                              'Múltiple de 3, màxim 512',
+                              'Múltiple de 3, màxim 510',
                               textAlign: TextAlign.center,
                               style: TextStyle(fontSize: 12),
                             ),
