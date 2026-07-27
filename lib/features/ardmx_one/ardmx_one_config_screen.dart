@@ -175,9 +175,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                           children: [
                             Container(
                               width: 80,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 2,
-                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 2),
                               decoration: BoxDecoration(
                                 color: Colors.green.shade600,
                                 borderRadius: BorderRadius.circular(8),
@@ -202,8 +200,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                                 onChanged: _onChanged,
                                 onSubmitted: _submit,
                                 onTapOutside: (_) {
-                                  FocusManager.instance.primaryFocus
-                                      ?.unfocus();
+                                  FocusManager.instance.primaryFocus?.unfocus();
                                   _submit(_numeroCanalsController.text);
                                 },
                               ),
@@ -416,6 +413,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
   static const _descripcioVIndex = 69;
   static const _numeroCanalsVIndex = 8;
   static const _channelBulkVIndex = 70;
+  static const _firmwareVersionVIndex = 62;
   static const _roundTripTimeout = Duration(milliseconds: 800);
 
   bool _running = false;
@@ -507,6 +505,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
     try {
       final pessebre = await _readText(_pessebreVIndex) ?? '';
       final descripcio = await _readText(_descripcioVIndex) ?? '';
+      final firmwareVersio = await _readText(_firmwareVersionVIndex) ?? '';
       final numeroCanals = await _readValue(_numeroCanalsVIndex);
       if (numeroCanals == null || numeroCanals <= 0) {
         _showMessage('No s\'ha pogut llegir el nombre de canals actius.');
@@ -536,15 +535,14 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
         descripcio: descripcio,
         numeroCanals: numeroCanals,
         canals: canals,
+        firmwareVersio: firmwareVersio,
+        exportatEl: DateTime.now(),
       );
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/ardmx_one_config.json');
       await file.writeAsString(config.toPrettyJson());
       await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path)],
-          text: 'Configuració ARDMX One',
-        ),
+        ShareParams(files: [XFile(file.path)], text: 'Configuració ARDMX One'),
       );
     } finally {
       if (mounted) setState(() => _running = false);
@@ -552,6 +550,16 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
   }
 
   Future<bool> _confirmImport(ArdmxOneConfigData config) async {
+    final exportatEl = config.exportatEl;
+    final origen = [
+      if (config.firmwareVersio.isNotEmpty) config.firmwareVersio,
+      if (exportatEl != null)
+        'exportat el ${exportatEl.day.toString().padLeft(2, '0')}/'
+            '${exportatEl.month.toString().padLeft(2, '0')}/'
+            '${exportatEl.year} '
+            '${exportatEl.hour.toString().padLeft(2, '0')}:'
+            '${exportatEl.minute.toString().padLeft(2, '0')}',
+    ].join(', ');
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -559,7 +567,8 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
         content: Text(
           'Es sobreescriuran el nom del pessebre, la descripció, el nombre '
           'de canals actius i els noms/valors de ${config.canals.length} '
-          'canals amb el contingut del fitxer.',
+          'canals amb el contingut del fitxer.'
+          '${origen.isNotEmpty ? '\n\nFitxer: $origen' : ''}',
         ),
         actions: [
           TextButton(
@@ -597,6 +606,18 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
       _showMessage('El fitxer no conté cap canal.');
       return;
     }
+    // Fitxers antics exportats abans d'aquest camp tenen model buit — es
+    // consideren compatibles (probablement del mateix dispositiu, d'abans
+    // d'afegir aquesta comprovació). Només es bloqueja quan el fitxer indica
+    // explícitament un model diferent (p.ex. exportat des de l'ARDMX4).
+    if (config.model.isNotEmpty &&
+        config.model != ArdmxOneConfigData.defaultModel) {
+      _showMessage(
+        'Aquest fitxer és de "${config.model}", no d\'ARDMX One. '
+        'No s\'ha importat.',
+      );
+      return;
+    }
 
     if (!await _confirmImport(config)) return;
 
@@ -613,9 +634,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
       protocol.writeText(_descripcioVIndex, config.descripcio);
 
       for (final entry in config.canals) {
-        await _channelRoundTrip(
-          '${entry.number}|${entry.value}|${entry.name}',
-        );
+        await _channelRoundTrip('${entry.number}|${entry.value}|${entry.name}');
         if (!mounted) return;
         setState(() => _progress++);
       }
