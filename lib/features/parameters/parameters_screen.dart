@@ -808,11 +808,17 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
     if (!await _confirmImport(config)) return;
 
     widget.onRunningChanged(true);
+    // 4 valors escalars + 8 temps de transició + un pas per canal — inclou
+    // els paràmetres inicials al total perquè la barra de progrés ja es
+    // mogui durant aquesta fase, en lloc de quedar-se congelada a 0 fins
+    // que comença el bucle de canals (que pot trigar uns segons a
+    // arrencar, vegeu el marge d'assentament més avall).
+    const paramStepCount = 12;
     setState(() {
       _running = true;
       _statusText = 'Aplicant configuració…';
       _progress = 0;
-      _progressTotal = config.canals.length;
+      _progressTotal = paramStepCount + config.canals.length;
     });
     try {
       // Escriptures verificades (no fire-and-forget): la primera d'aquestes
@@ -824,31 +830,29 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
       // canals. Cada valor es reenvia fins que una lectura posterior el
       // confirma.
       final paramFailures = <String>[];
-      if (!await _writeVerified(
+      Future<void> writeParam(String label, int index, num value) async {
+        if (!await _writeVerified(index, value)) paramFailures.add(label);
+        if (mounted) setState(() => _progress++);
+      }
+
+      await writeParam(
+        'nombre d\'escenes',
         VIndex.activeScenesCount,
         config.numeroEscenes,
-      )) {
-        paramFailures.add('nombre d\'escenes');
-      }
-      if (!await _writeVerified(VIndex.songNumber, config.numeroMusica)) {
-        paramFailures.add('cançó');
-      }
-      if (!await _writeVerified(VIndex.volume, config.nivellVolum)) {
-        paramFailures.add('volum');
-      }
-      if (!await _writeVerified(
+      );
+      await writeParam('cançó', VIndex.songNumber, config.numeroMusica);
+      await writeParam('volum', VIndex.volume, config.nivellVolum);
+      await writeParam(
+        'nombre de canals',
         VIndex.activeChannelsCount,
         config.numeroCanals,
-      )) {
-        paramFailures.add('nombre de canals');
-      }
+      );
       for (var i = 0; i < 8 && i < config.periodes.length; i++) {
-        if (!await _writeVerified(
+        await writeParam(
+          'temps de transició ${i + 1}',
           VIndex.periodDuration(i),
           config.periodes[i],
-        )) {
-          paramFailures.add('temps de transició ${i + 1}');
-        }
+        );
       }
 
       // Marge addicional perquè el Mega acabi d'assentar-se abans de
