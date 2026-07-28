@@ -550,6 +550,24 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
     return result;
   }
 
+  /// Writes a V-index and retries until a read-back confirms it actually
+  /// landed — plain `writeV` is fire-and-forget, and right after V18
+  /// (scene count) changes the Mega can be busy for seconds running
+  /// `InicialitzarPrograma()`, silently dropping whatever else arrives on
+  /// its serial buffer meanwhile (same root cause as the channel data —
+  /// see `_assignChannelVerified`, which this mirrors for the scalar
+  /// parameters).
+  Future<bool> _writeVerified(int index, num value) async {
+    final protocol = ref.read(protocolProvider);
+    for (var attempt = 0; attempt < 6; attempt++) {
+      protocol.writeV(index, value);
+      final readBack = await _readValue(index);
+      if (readBack != null && readBack.round() == value.round()) return true;
+      await Future.delayed(const Duration(milliseconds: 400));
+    }
+    return false;
+  }
+
   /// Sends a V63 payload (either `"N"` to query channel N, or
   /// `"N|v1|m1|v2|m2|v3|m3|v4|m4"` to assign it) then a follow-up read
   /// request, and awaits the matching `"v1|m1|v2|m2|v3|m3|v4|m4"` reply the
@@ -797,25 +815,49 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
       _progressTotal = config.canals.length;
     });
     try {
-      final protocol = ref.read(protocolProvider);
-      protocol.writeV(VIndex.activeScenesCount, config.numeroEscenes);
-      protocol.writeV(VIndex.songNumber, config.numeroMusica);
-      protocol.writeV(VIndex.volume, config.nivellVolum);
-      protocol.writeV(VIndex.activeChannelsCount, config.numeroCanals);
+      // Escriptures verificades (no fire-and-forget): la primera d'aquestes
+      // (nombre d'escenes) és precisament la que pot disparar la rutina
+      // bloquejant InicialitzarPrograma() del Mega (vegeu el comentari més
+      // avall) — qualsevol escriptura que arribi mentre encara està
+      // ocupada es perd en silenci, i això incloïa fins ara la cançó, el
+      // volum, el nombre de canals i els temps de transició, no només els
+      // canals. Cada valor es reenvia fins que una lectura posterior el
+      // confirma.
+      final paramFailures = <String>[];
+      if (!await _writeVerified(
+        VIndex.activeScenesCount,
+        config.numeroEscenes,
+      )) {
+        paramFailures.add('nombre d\'escenes');
+      }
+      if (!await _writeVerified(VIndex.songNumber, config.numeroMusica)) {
+        paramFailures.add('cançó');
+      }
+      if (!await _writeVerified(VIndex.volume, config.nivellVolum)) {
+        paramFailures.add('volum');
+      }
+      if (!await _writeVerified(
+        VIndex.activeChannelsCount,
+        config.numeroCanals,
+      )) {
+        paramFailures.add('nombre de canals');
+      }
       for (var i = 0; i < 8 && i < config.periodes.length; i++) {
-        protocol.writeV(VIndex.periodDuration(i), config.periodes[i]);
+        if (!await _writeVerified(
+          VIndex.periodDuration(i),
+          config.periodes[i],
+        )) {
+          paramFailures.add('temps de transició ${i + 1}');
+        }
       }
 
-      // Marge perquè el Mega acabi d'assentar-se: si el nombre d'escenes
-      // acaba de canviar (p.ex. important just després d'un reset de
-      // fàbrica), el firmware llança InicialitzarPrograma() — una rutina
-      // bloquejant pròpia (recarrega temps, reenvia DMX, imprimeix molt
-      // per sèrie a 9600 bauds, mesurat en maquinari real fins a 3-4 s)
-      // durant la qual no buida el seu buffer sèrie. Sense aquest marge,
-      // els primers canals que enviem arriben durant aquesta finestra i es
-      // perden — la verificació de _assignChannelVerified ho cobreix
-      // igualment, però esperar aquí estalvia haver de gastar reintents
-      // just al començament.
+      // Marge addicional perquè el Mega acabi d'assentar-se abans de
+      // començar el bombardeig de canals: si el nombre d'escenes acaba de
+      // canviar (p.ex. important just després d'un reset de fàbrica), el
+      // firmware llança InicialitzarPrograma() — una rutina bloquejant
+      // pròpia (recarrega temps, reenvia DMX, imprimeix molt per sèrie a
+      // 9600 bauds, mesurat en maquinari real fins a 3-4 s) durant la qual
+      // no buida el seu buffer sèrie.
       await Future.delayed(const Duration(seconds: 5));
 
       final failedChannels = <int>[];
@@ -825,12 +867,18 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
         if (!mounted) return;
         setState(() => _progress++);
       }
+
+      final problems = [
+        if (paramFailures.isNotEmpty)
+          'paràmetres no confirmats: ${paramFailures.join(', ')}',
+        if (failedChannels.isNotEmpty)
+          '${failedChannels.length} canal(s) no confirmats: '
+              '${failedChannels.join(', ')}',
+      ];
       _showMessage(
-        failedChannels.isEmpty
+        problems.isEmpty
             ? 'Configuració importada.'
-            : 'Configuració importada, però ${failedChannels.length} '
-                  'canal(s) no s\'han pogut confirmar: '
-                  '${failedChannels.join(', ')}.',
+            : 'Configuració importada amb incidències — ${problems.join('; ')}.',
       );
     } finally {
       widget.onRunningChanged(false);
