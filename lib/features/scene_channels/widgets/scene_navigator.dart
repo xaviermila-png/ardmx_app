@@ -39,8 +39,7 @@ class SceneNavigator extends ConsumerWidget {
           ),
           NavArrowButton(
             icon: Icons.arrow_forward,
-            onPressed: () =>
-                ref.read(appStateProvider.notifier).changeScene(1),
+            onPressed: () => ref.read(appStateProvider.notifier).changeScene(1),
           ),
         ],
       ),

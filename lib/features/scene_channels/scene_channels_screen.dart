@@ -7,7 +7,7 @@ import '../../core/constants/v_map.dart';
 import '../../routing/app_router.dart';
 import '../../state/providers.dart';
 import '../../widgets/app_scaffold.dart';
-import 'widgets/channel_group_navigator.dart';
+import '../ardmx_one/widgets/channel_number_bar.dart';
 import 'widgets/channel_sliders.dart';
 import 'widgets/scene_navigator.dart';
 import 'widgets/transition_mode_selector.dart';
@@ -94,15 +94,12 @@ class _SceneChannelsScreenState extends ConsumerState<SceneChannelsScreen> {
       body: Column(
         children: [
           const SceneNavigator(),
-          const ChannelGroupNavigator(),
-          // A bit of breathing room below the blue channels box, made
-          // possible by the transition-mode selector below being more
-          // compact now than the sliders shrinking to fit.
-          const SizedBox(height: 14),
+          const ChannelNumberBar(),
+          const SizedBox(height: 8),
           const Expanded(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 8),
-              child: ChannelSliders(),
+              child: ChannelSliders(thumbSize: 40, cornerRadius: 9),
             ),
           ),
           const Padding(

@@ -4,12 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../state/providers.dart';
 import '../../scene_channels/widgets/nav_arrow_button.dart';
 
-/// Bigger "canals" bar for the ARDMX One screen. Two rows: the arrows +
-/// "CANALS" title on top, and the 3 selected DMX channel numbers (V4-V6)
-/// below, each centered directly above its matching slider — unlike
-/// ARDMX4's plain "CANALS"-only bar (which deliberately doesn't show
-/// numbers, per an earlier explicit user decision for that screen), this
-/// screen has no separate scene bar competing for space, so it fits both.
+/// Bigger "canals" bar, shared by the ARDMX One screen and ARDMX4's Scene/
+/// Channels screen. Two rows: the arrows + "CANALS" title on top, and the 3
+/// selected DMX channel numbers (V4-V6) below, each centered directly above
+/// its matching slider. ARDMX4's Scene/Channels screen also has a separate
+/// scene bar above this one competing for vertical space, so its sliders
+/// pass a smaller [ChannelSliders.thumbSize] to make room.
 class ChannelNumberBar extends ConsumerWidget {
   const ChannelNumberBar({super.key});
 

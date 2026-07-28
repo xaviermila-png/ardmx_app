@@ -12,13 +12,28 @@ import '../../../widgets/rounded_square_thumb_shape.dart';
 /// [_throttleInterval] for real-time visual feedback on the actual
 /// lights, plus a guaranteed final write on release.
 class ChannelSliders extends ConsumerStatefulWidget {
-  const ChannelSliders({super.key, this.valueFontSize = 20});
+  const ChannelSliders({
+    super.key,
+    this.valueFontSize = 20,
+    this.thumbSize = 56,
+    this.cornerRadius = 12,
+  });
 
   /// Font size of the 0-255 value number shown above each slider. Defaults
   /// to the original ARDMX4 Scene/Channels size — callers (e.g. ARDMX One's
   /// screen) can pass a larger value without affecting other screens using
   /// this same widget.
   final double valueFontSize;
+
+  /// Size (width/height) of the square slider thumb. Defaults to the
+  /// original size — ARDMX4's Scene/Channels screen passes a smaller value
+  /// to leave room for [ChannelNumberBar] above without the track getting
+  /// squeezed too short.
+  final double thumbSize;
+
+  /// Corner radius of the square slider thumb, scaled down alongside
+  /// [thumbSize] so it stays visually proportionate.
+  final double cornerRadius;
 
   @override
   ConsumerState<ChannelSliders> createState() => _ChannelSlidersState();
@@ -155,8 +170,8 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
                 data: SliderThemeData(
                   trackHeight: 10,
                   thumbShape: RoundedSquareThumbShape(
-                    size: 56,
-                    cornerRadius: 12,
+                    size: widget.thumbSize,
+                    cornerRadius: widget.cornerRadius,
                     channelNumber: channelNumber,
                     textColor: color,
                   ),
