@@ -9,15 +9,19 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/constants/v_map.dart';
 import '../../core/protocol/virtuino_update.dart';
+import '../../routing/app_router.dart';
 import '../../state/providers.dart';
 import '../../widgets/app_scaffold.dart';
 import 'config_json.dart';
 
-/// Parameters screen (V50=4): number of active scenes, song to play,
-/// number of manageable channels, and the armed/confirm reset of Arduino
-/// variables. All four values are plain Arduino state (V0/V18/V39/V40/V41),
-/// never pushed unsolicited, so this screen polls them like every other
-/// screen that shows live V-values.
+/// Parameters screen (V50=4): number of active scenes, song to play, and
+/// number of manageable channels. These are plain Arduino state
+/// (V0/V18/V39/V40), never pushed unsolicited, so this screen polls them
+/// like every other screen that shows live V-values. The factory reset
+/// lives one level deeper, in "Configuració del sistema" (reached via its
+/// own button) — deliberately not on this screen, so it isn't as casually
+/// reachable as the day-to-day controls here (mirrors ARDMX One's own
+/// Paràmetres/Configuració del sistema split).
 class ParametersScreen extends ConsumerStatefulWidget {
   const ParametersScreen({super.key});
 
@@ -29,7 +33,6 @@ class _ParametersScreenState extends ConsumerState<ParametersScreen> {
   static const _pollInterval = Duration(milliseconds: 400);
 
   Timer? _pollTimer;
-  bool _resetPending = false;
   // true while an export/import is running (_ExportImportSection) — the
   // channel bulk protocol (V63) has no request/response correlation, so
   // this screen's own periodic poll must go fully quiet during it. Without
@@ -65,27 +68,11 @@ class _ParametersScreenState extends ConsumerState<ParametersScreen> {
     // export/import.
     if (_channelOpRunning) return;
 
-    // While waiting for the reset confirmation, the Arduino can be busy
-    // long enough (actually reinitializing its variables) that polling the
-    // full bundle piles up faster than it drains — observed on real
-    // hardware as a burst of ~30 queued requests all replied to at once.
-    // Narrow to just the two indices we're actually waiting on so the
-    // serial link stays light while it's busy.
-    if (_resetPending) {
-      ref.read(protocolProvider).requestAll([
-        VIndex.resetConfirm1,
-        VIndex.resetConfirm2,
-      ]);
-      return;
-    }
-
     ref.read(protocolProvider).requestAll([
       VIndex.activeScenesCount,
       VIndex.songNumber,
       VIndex.activeChannelsCount,
       VIndex.maxChannels,
-      VIndex.resetConfirm1,
-      VIndex.resetConfirm2,
     ]);
   }
 
@@ -152,23 +139,6 @@ class _ParametersScreenState extends ConsumerState<ParametersScreen> {
     );
     final maxChannels = ref.watch(
       appStateProvider.select((s) => s.maxChannels),
-    );
-    final resetArmed = ref.watch(appStateProvider.select((s) => s.resetArmed));
-
-    // The Arduino sets V41/V42 back to 0 itself once it has actually
-    // finished reinitializing its variables — that's the real confirmation
-    // of completion, not the instant we send the trigger (which only ever
-    // proves the write was sent, not that the reset ran).
-    ref.listen(
-      appStateProvider.select((s) => (s.resetArmed, s.resetConfirm2)),
-      (previous, next) {
-        if (_resetPending && !next.$1 && next.$2 == 0) {
-          setState(() => _resetPending = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Variables reinicialitzades')),
-          );
-        }
-      },
     );
 
     return AppScaffold(
@@ -291,75 +261,6 @@ class _ParametersScreenState extends ConsumerState<ParametersScreen> {
                   ),
                   const SizedBox(height: 8),
                   _Section(
-                    title: 'Reset de fàbrica',
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Single toggle button: tap to arm (OFF -> ON), tap again
-                        // to disarm — this alone never resets anything, it just
-                        // reveals the confirm button below/beside it.
-                        _SelectableButton(
-                          label: resetArmed ? 'ON' : 'OFF',
-                          selected: resetArmed,
-                          selectedBackground: Colors.red.shade200,
-                          selectedForeground: Colors.red.shade900,
-                          onTap: _resetPending
-                              ? () {}
-                              : () => ref
-                                    .read(appStateProvider.notifier)
-                                    .setResetArmed(!resetArmed),
-                        ),
-                        // Keep showing the confirm button (as a spinner)
-                        // while _resetPending — confirmReset() optimistically
-                        // flips resetArmed back to false immediately, but
-                        // the button must stay up until the Arduino's own
-                        // confirmation arrives.
-                        if (resetArmed || _resetPending) ...[
-                          const SizedBox(width: 12),
-                          ElevatedButton(
-                            onPressed: _resetPending
-                                ? null
-                                : () {
-                                    setState(() => _resetPending = true);
-                                    ref
-                                        .read(appStateProvider.notifier)
-                                        .confirmReset();
-                                  },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade700,
-                              foregroundColor: Colors.white,
-                              disabledBackgroundColor: Colors.grey.shade400,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 16,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: _resetPending
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text(
-                                    'Reset',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _Section(
                     title: 'Configuració',
                     child: _ExportImportSection(
                       onRunningChanged: (running) =>
@@ -373,12 +274,21 @@ class _ParametersScreenState extends ConsumerState<ParametersScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 FloatingActionButton(
                   heroTag: 'parametersBack',
                   onPressed: () => Navigator.of(context).pop(),
                   tooltip: 'Tornar al menú principal',
                   child: const Icon(Icons.arrow_back),
+                ),
+                FloatingActionButton(
+                  heroTag: 'parametersSystemConfig',
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pushNamed(AppRoutes.parametersSystemConfig),
+                  tooltip: 'Configuració del sistema',
+                  child: const Icon(Icons.build),
                 ),
               ],
             ),

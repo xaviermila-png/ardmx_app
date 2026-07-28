@@ -10,6 +10,7 @@ import '../features/cycle_programming/cycle_programming_screen.dart';
 import '../features/debug/debug_screen.dart';
 import '../features/main_menu/main_menu_screen.dart';
 import '../features/parameters/parameters_screen.dart';
+import '../features/parameters/parameters_system_config_screen.dart';
 import '../features/rgb_wheel/rgb_wheel_screen.dart';
 import '../features/scene_channels/scene_channels_screen.dart';
 import '../features/splash/splash_screen.dart';
@@ -27,6 +28,7 @@ class AppRoutes {
   static const rgbWheel = '/rgb-wheel';
   static const cycleProgramming = '/cycle-programming';
   static const parameters = '/parameters';
+  static const parametersSystemConfig = '/parameters-system-config';
   static const credits = '/credits';
 
   /// Not part of the production 7-screen flow — a temporary screen (phase
@@ -52,13 +54,15 @@ class AppRoutes {
       mainMenu => (BuildContext context) => const MainMenuScreen(),
       ardmxOne => (BuildContext context) => const ArdmxOneScreen(),
       ardmxOneConfig => (BuildContext context) => const ArdmxOneConfigScreen(),
-      ardmxOneSystemConfig => (BuildContext context) =>
-          const ArdmxOneSystemConfigScreen(),
+      ardmxOneSystemConfig =>
+        (BuildContext context) => const ArdmxOneSystemConfigScreen(),
       sceneChannels => (BuildContext context) => const SceneChannelsScreen(),
       rgbWheel => (BuildContext context) => const RgbWheelScreen(),
-      cycleProgramming => (BuildContext context) =>
-          const CycleProgrammingScreen(),
+      cycleProgramming =>
+        (BuildContext context) => const CycleProgrammingScreen(),
       parameters => (BuildContext context) => const ParametersScreen(),
+      parametersSystemConfig =>
+        (BuildContext context) => const ParametersSystemConfigScreen(),
       credits => (BuildContext context) => const CreditsScreen(),
       debug => (BuildContext context) => const DebugScreen(),
       _ => (BuildContext context) => const SplashScreen(),
