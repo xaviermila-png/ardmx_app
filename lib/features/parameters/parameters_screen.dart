@@ -30,6 +30,14 @@ class _ParametersScreenState extends ConsumerState<ParametersScreen> {
 
   Timer? _pollTimer;
   bool _resetPending = false;
+  // true while an export/import is running (_ExportImportSection) — the
+  // channel bulk protocol (V63) has no request/response correlation, so
+  // this screen's own periodic poll must go fully quiet during it. Without
+  // this, the poll's V18/V0/V40/V39/V41/V42 bundle was observed interleaving
+  // with the V63 write+read frames on real hardware, corrupting the
+  // sequence badly enough that imported channel values silently reverted
+  // to 0.
+  bool _channelOpRunning = false;
 
   @override
   void initState() {
@@ -52,6 +60,10 @@ class _ParametersScreenState extends ConsumerState<ParametersScreen> {
     // Wheel's _poll() for why: two screens polling at once can corrupt the
     // wire protocol badly enough to leave garbage stuck in Arduino state.
     if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+
+    // See _channelOpRunning's doc — must stay fully quiet during an
+    // export/import.
+    if (_channelOpRunning) return;
 
     // While waiting for the reset confirmation, the Arduino can be busy
     // long enough (actually reinitializing its variables) that polling the
@@ -349,7 +361,10 @@ class _ParametersScreenState extends ConsumerState<ParametersScreen> {
                   const SizedBox(height: 8),
                   _Section(
                     title: 'Configuració',
-                    child: const _ExportImportSection(),
+                    child: _ExportImportSection(
+                      onRunningChanged: (running) =>
+                          setState(() => _channelOpRunning = running),
+                    ),
                   ),
                 ],
               ),
@@ -473,7 +488,12 @@ class _SelectableButton extends StatelessWidget {
 /// round trip is two frames (write the query/assignment, then explicitly
 /// request a read) instead of one.
 class _ExportImportSection extends ConsumerStatefulWidget {
-  const _ExportImportSection();
+  const _ExportImportSection({required this.onRunningChanged});
+
+  /// Called with `true` right before an export/import starts and `false`
+  /// once it finishes — lets the parent screen pause its own periodic poll
+  /// for the duration (see `_channelOpRunning` in `_ParametersScreenState`).
+  final ValueChanged<bool> onRunningChanged;
 
   @override
   ConsumerState<_ExportImportSection> createState() =>
@@ -535,7 +555,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
   /// request, and awaits the matching `"v1|m1|v2|m2|v3|m3|v4|m4"` reply the
   /// firmware leaves for either case — see the class doc for why this is
   /// two frames, not one.
-  Future<String?> _channelRoundTrip(String payload) async {
+  Future<String?> _channelRoundTripOnce(String payload) async {
     final protocol = ref.read(protocolProvider);
     final completer = Completer<String?>();
     late final StreamSubscription<VirtuinoUpdate> sub;
@@ -547,6 +567,12 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
       }
     });
     protocol.writeText(_channelBulkVIndex, payload);
+    // Marge deliberat abans de la lectura: a 9600 bauds el Mega pot no
+    // haver acabat de processar l'escriptura si la lectura arriba
+    // pràcticament al mateix instant (condició de cursa observada en
+    // maquinari real — els dos primers canals es quedaven a 0 sense
+    // aquesta pausa, tot i que l'escriptura sortia correcta per Bluetooth).
+    await Future.delayed(const Duration(milliseconds: 30));
     protocol.requestT(_channelBulkVIndex);
     final reply = await completer.future.timeout(
       _roundTripTimeout,
@@ -554,6 +580,23 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
     );
     await sub.cancel();
     return reply;
+  }
+
+  /// [_channelRoundTripOnce] with retries — necessary because a change to
+  /// V18/V40 (scene/channel count) makes the Mega run its own, blocking
+  /// `InicialitzarPrograma()` (reloads timings, re-sends DMX, lots of
+  /// Serial prints at 9600 bauds): while that runs, the Mega isn't draining
+  /// its serial buffer, so whatever channel writes land during that window
+  /// get silently dropped (observed on real hardware: importing right
+  /// after a factory reset — which changes the scene count — always lost
+  /// exactly the first few channels). Retrying the same round trip is
+  /// simpler and more robust than trying to predict how long that takes.
+  Future<String?> _channelRoundTrip(String payload) async {
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final reply = await _channelRoundTripOnce(payload);
+      if (reply != null) return reply;
+    }
+    return null;
   }
 
   (List<int>, List<int>)? _parseChannelReply(String? reply) {
@@ -569,6 +612,42 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
     return (valors, modes);
   }
 
+  /// Assigns one channel's 4 scenes and retries until the Mega's own
+  /// echoed-back reply actually matches what we asked for — not just until
+  /// *some* reply arrives. A plain "got a reply" check isn't enough here:
+  /// on real hardware, right after a scene-count change (V18), the Mega
+  /// can reply with a stale/zeroed read while it's still mid-`
+  /// InicialitzarPrograma()` internally, which a mere non-null check would
+  /// have accepted as success. Returns false (after exhausting retries) if
+  /// the channel could never be confirmed.
+  Future<bool> _assignChannelVerified(Ardmx4ChannelConfigEntry entry) async {
+    final fields = <String>[];
+    for (var i = 0; i < 4; i++) {
+      fields.add('${entry.valors[i]}');
+      fields.add('${entry.modes[i]}');
+    }
+    final payload = '${entry.number}|${fields.join('|')}';
+
+    for (var attempt = 0; attempt < 6; attempt++) {
+      final parsed = _parseChannelReply(await _channelRoundTripOnce(payload));
+      if (parsed != null &&
+          _listEquals(parsed.$1, entry.valors) &&
+          _listEquals(parsed.$2, entry.modes)) {
+        return true;
+      }
+      await Future.delayed(const Duration(milliseconds: 400));
+    }
+    return false;
+  }
+
+  bool _listEquals(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
   void _showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -577,6 +656,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
   }
 
   Future<void> _export() async {
+    widget.onRunningChanged(true);
     setState(() {
       _running = true;
       _statusText = 'Llegint configuració…';
@@ -635,6 +715,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
         ShareParams(files: [XFile(file.path)], text: 'Configuració ARDMX4'),
       );
     } finally {
+      widget.onRunningChanged(false);
       if (mounted) setState(() => _running = false);
     }
   }
@@ -708,6 +789,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
 
     if (!await _confirmImport(config)) return;
 
+    widget.onRunningChanged(true);
     setState(() {
       _running = true;
       _statusText = 'Aplicant configuració…';
@@ -724,18 +806,34 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
         protocol.writeV(VIndex.periodDuration(i), config.periodes[i]);
       }
 
+      // Marge perquè el Mega acabi d'assentar-se: si el nombre d'escenes
+      // acaba de canviar (p.ex. important just després d'un reset de
+      // fàbrica), el firmware llança InicialitzarPrograma() — una rutina
+      // bloquejant pròpia (recarrega temps, reenvia DMX, imprimeix molt
+      // per sèrie a 9600 bauds, mesurat en maquinari real fins a 3-4 s)
+      // durant la qual no buida el seu buffer sèrie. Sense aquest marge,
+      // els primers canals que enviem arriben durant aquesta finestra i es
+      // perden — la verificació de _assignChannelVerified ho cobreix
+      // igualment, però esperar aquí estalvia haver de gastar reintents
+      // just al començament.
+      await Future.delayed(const Duration(seconds: 5));
+
+      final failedChannels = <int>[];
       for (final entry in config.canals) {
-        final fields = <String>[];
-        for (var i = 0; i < 4; i++) {
-          fields.add('${entry.valors[i]}');
-          fields.add('${entry.modes[i]}');
-        }
-        await _channelRoundTrip('${entry.number}|${fields.join('|')}');
+        final ok = await _assignChannelVerified(entry);
+        if (!ok) failedChannels.add(entry.number);
         if (!mounted) return;
         setState(() => _progress++);
       }
-      _showMessage('Configuració importada.');
+      _showMessage(
+        failedChannels.isEmpty
+            ? 'Configuració importada.'
+            : 'Configuració importada, però ${failedChannels.length} '
+                  'canal(s) no s\'han pogut confirmar: '
+                  '${failedChannels.join(', ')}.',
+      );
     } finally {
+      widget.onRunningChanged(false);
       if (mounted) setState(() => _running = false);
     }
   }
