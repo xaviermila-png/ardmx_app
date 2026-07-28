@@ -902,7 +902,9 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
           ),
           const SizedBox(height: 4),
           Text(
-            '$_progress / $_progressTotal',
+            _progressTotal > 0
+                ? '${(100 * _progress / _progressTotal).round()} %'
+                : '',
             style: const TextStyle(fontSize: 12),
           ),
         ],
