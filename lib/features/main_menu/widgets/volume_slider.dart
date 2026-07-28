@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/v_map.dart';
 import '../../../state/providers.dart';
 import '../../../widgets/rounded_square_thumb_shape.dart';
 
@@ -10,6 +11,13 @@ import '../../../widgets/rounded_square_thumb_shape.dart';
 /// while dragging: the Arduino gets a live update roughly every
 /// [_throttleInterval] for real-time feedback, plus a guaranteed final
 /// write on release.
+///
+/// Polls V16 itself (not left to whichever screen embeds it): Main Menu has
+/// no poll loop of its own at all, so without this the volume shown there
+/// could only ever reflect whatever some *other* screen happened to have
+/// fetched earlier in the session — e.g. it stayed stale after an ARDMX4
+/// config import, even though Cycle Programming (which does poll V16
+/// itself) picked up the new value fine.
 class VolumeSlider extends ConsumerStatefulWidget {
   const VolumeSlider({super.key, this.leading});
 
@@ -24,13 +32,35 @@ class VolumeSlider extends ConsumerStatefulWidget {
 
 class _VolumeSliderState extends ConsumerState<VolumeSlider> {
   static const _throttleInterval = Duration(milliseconds: 120);
+  static const _pollInterval = Duration(milliseconds: 800);
 
   double? _localValue;
   Timer? _throttleCooldown;
   bool _pendingDuringCooldown = false;
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Deferred a frame: _poll() calls ModalRoute.of(context), not
+    // resolvable synchronously inside initState (same fix as every other
+    // polling screen/widget in the app).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _poll());
+    _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
+  }
+
+  void _poll() {
+    // Only the topmost route should poll — same reasoning as every other
+    // screen's _poll(): two screens (or, here, two mounted-but-covered
+    // instances of this same widget) polling at once can corrupt the wire
+    // protocol.
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+    ref.read(protocolProvider).requestV(VIndex.volume);
+  }
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _throttleCooldown?.cancel();
     super.dispose();
   }
