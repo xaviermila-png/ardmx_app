@@ -95,6 +95,12 @@ class _VolumeSliderState extends ConsumerState<VolumeSlider> {
     _throttleCooldown = null;
     _pendingDuringCooldown = false;
     _sendLive(value);
+    // Hand display back over to the remote (polled) value now that dragging
+    // is over — otherwise this slider would ignore every future update
+    // (e.g. a value applied via config import) forever, stuck showing
+    // whatever was last dragged to. Same fix already applied to
+    // ChannelSliders' own _onChangeEnd for the identical reason.
+    setState(() => _localValue = null);
   }
 
   void _sendLive(double value) {
