@@ -24,6 +24,8 @@ class DebugScreen extends ConsumerStatefulWidget {
 class _DebugScreenState extends ConsumerState<DebugScreen> {
   final List<String> _log = [];
   final _nameSuffixController = TextEditingController();
+  final _rawIndexController = TextEditingController();
+  final _rawValueController = TextEditingController();
   StreamSubscription<BluetoothDevice>? _scanSubscription;
   Timer? _scanTimeout;
 
@@ -53,9 +55,45 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
   @override
   void dispose() {
     _nameSuffixController.dispose();
+    _rawIndexController.dispose();
+    _rawValueController.dispose();
     _scanSubscription?.cancel();
     _scanTimeout?.cancel();
     super.dispose();
+  }
+
+  int? get _rawIndex => int.tryParse(_rawIndexController.text.trim());
+
+  void _rawWriteNumber() {
+    final index = _rawIndex;
+    final value = double.tryParse(_rawValueController.text.trim());
+    if (index == null || value == null) {
+      _appendLog('Índex o valor numèric invàlid');
+      return;
+    }
+    ref.read(protocolProvider).writeV(index, value);
+    _appendLog('Enviat V$index=$value');
+  }
+
+  void _rawWriteText() {
+    final index = _rawIndex;
+    if (index == null) {
+      _appendLog('Índex invàlid');
+      return;
+    }
+    final text = _rawValueController.text;
+    ref.read(protocolProvider).writeText(index, text);
+    _appendLog('Enviat V$index=$text (text)');
+  }
+
+  void _rawRequest() {
+    final index = _rawIndex;
+    if (index == null) {
+      _appendLog('Índex invàlid');
+      return;
+    }
+    ref.read(protocolProvider).requestT(index);
+    _appendLog('Demanat V$index=?');
   }
 
   /// Nudges Android into re-reading the currently/last-connected device's
@@ -66,7 +104,9 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
   void _refreshDeviceName() {
     final address = ref.read(bluetoothConnectionServiceProvider).deviceAddress;
     if (address == null) {
-      _appendLog('Cap dispositiu conegut per refrescar (connecta-t\'hi primer)');
+      _appendLog(
+        'Cap dispositiu conegut per refrescar (connecta-t\'hi primer)',
+      );
       return;
     }
     final service = ref.read(bluetoothConnectionServiceProvider.notifier);
@@ -206,6 +246,53 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
                       onPressed: () =>
                           Navigator.of(context).pushNamed(AppRoutes.mainMenu),
                       child: const Text('Menú (mode demo)'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Comanda V lliure (per provar índexs sense pantalla pròpia)',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 70,
+                      child: TextField(
+                        controller: _rawIndexController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          labelText: 'Índex',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 140,
+                      child: TextField(
+                        controller: _rawValueController,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          labelText: 'Valor / text',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: _rawWriteNumber,
+                      child: const Text('Escriu V (num)'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _rawWriteText,
+                      child: const Text('Escriu T (text)'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _rawRequest,
+                      child: const Text('Demana'),
                     ),
                   ],
                 ),
