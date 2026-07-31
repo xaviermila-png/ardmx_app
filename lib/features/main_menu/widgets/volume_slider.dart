@@ -19,12 +19,45 @@ import '../../../widgets/rounded_square_thumb_shape.dart';
 /// config import, even though Cycle Programming (which does poll V16
 /// itself) picked up the new value fine.
 class VolumeSlider extends ConsumerStatefulWidget {
-  const VolumeSlider({super.key, this.leading});
+  const VolumeSlider({
+    super.key,
+    this.leading,
+    this.leadingAlignment = Alignment.centerLeft,
+    this.titleFontSize = 20,
+    this.titleAlignment = Alignment.center,
+    this.titleRowHeight = 28,
+    this.thumbSize = 40,
+  });
 
   /// Optional widget shown at the far left, overlapping the same row as
-  /// the "Volum" title (which stays centered) — used by Cycle Programming
-  /// to show the selected song number at the same height/size as "Volum".
+  /// the "Volum" title — used by Cycle Programming to show the selected
+  /// song number at the same height as "Volum".
   final Widget? leading;
+
+  /// Where [leading] sits within its row — defaults to the original
+  /// centered-vertically left placement.
+  final Alignment leadingAlignment;
+
+  /// Font size of the "Volum" title (and, by convention, whatever [leading]
+  /// widget the caller builds at a matching size) — defaults to the
+  /// original 20 so every existing caller is unaffected; a screen tight on
+  /// vertical space (e.g. a 4-scene Cycle Programming layout that would
+  /// otherwise paginate) can pass a smaller value.
+  final double titleFontSize;
+
+  /// Where the "Volum" title sits within its row — defaults to centered
+  /// (unaffected for existing callers). [Alignment.centerRight] frees up
+  /// the row for [leading] to read as a compact single line instead of two
+  /// overlapping centered/left labels.
+  final Alignment titleAlignment;
+
+  /// Height of the row containing the title (and [leading]) — defaults to
+  /// the original 28.
+  final double titleRowHeight;
+
+  /// Side length of the square slider thumb (which also shows the current
+  /// volume number) — defaults to the original 40.
+  final double thumbSize;
 
   @override
   ConsumerState<VolumeSlider> createState() => _VolumeSliderState();
@@ -116,16 +149,22 @@ class _VolumeSliderState extends ConsumerState<VolumeSlider> {
     return Column(
       children: [
         SizedBox(
-          height: 28,
+          height: widget.titleRowHeight,
           child: Stack(
             alignment: Alignment.center,
             children: [
-              const Text(
-                'Volum',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              Align(
+                alignment: widget.titleAlignment,
+                child: Text(
+                  'Volum',
+                  style: TextStyle(
+                    fontSize: widget.titleFontSize,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
               if (widget.leading != null)
-                Align(alignment: Alignment.centerLeft, child: widget.leading),
+                Align(alignment: widget.leadingAlignment, child: widget.leading),
             ],
           ),
         ),
@@ -133,10 +172,10 @@ class _VolumeSliderState extends ConsumerState<VolumeSlider> {
           data: SliderThemeData(
             trackHeight: 10,
             thumbShape: RoundedSquareThumbShape(
-              size: 40,
+              size: widget.thumbSize,
               cornerRadius: 10,
               channelNumber: value.round(),
-              textFontSize: 18,
+              textFontSize: widget.thumbSize * 0.45,
               rotateText: false,
             ),
           ),

@@ -15,7 +15,17 @@
     <application
         android:label="ARDMX"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false">
+        <!-- Without this, Android's auto-backup silently restores this app's
+             SharedPreferences (including DeviceIdentificationService's
+             per-MAC device-type cache) after an uninstall+reinstall, on any
+             phone with cloud backup enabled (observed on this project's own
+             test phone) — making a "fresh install" not actually clear a
+             stale/wrong cached device type, which is confusing during
+             hardware bring-up when the same physical board's Bluetooth MAC
+             gets reflashed with different firmware over time. -->
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

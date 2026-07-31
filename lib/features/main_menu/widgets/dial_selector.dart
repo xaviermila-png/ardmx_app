@@ -13,7 +13,18 @@ import 'config_submenu.dart';
 /// Configuració = pastel lilac (which also reveals a third row of submenu
 /// buttons: Escenes/Cicle/Paràmetres/Crèdits).
 class DialSelector extends ConsumerWidget {
-  const DialSelector({super.key});
+  const DialSelector({super.key, this.submenuBuilder = _defaultSubmenu});
+
+  /// Builds the third row's submenu (Escenes/Cicle/Paràmetres), given the
+  /// same square size/spacing used for the rest of the grid — defaults to
+  /// [ConfigSubmenu] (the ARDMX4 tree's own routes). Other device trees
+  /// (e.g. ARDMX4 EVO) pass their own builder pointing at their own routes,
+  /// so this widget stays shared while navigation targets stay separate
+  /// per product.
+  final Widget Function(double squareSize, double spacing) submenuBuilder;
+
+  static Widget _defaultSubmenu(double squareSize, double spacing) =>
+      ConfigSubmenu(squareSize: squareSize, spacing: spacing);
 
   static const _spacing = 8.0;
 
@@ -131,7 +142,7 @@ class DialSelector extends ConsumerWidget {
               maintainSize: true,
               maintainAnimation: true,
               maintainState: true,
-              child: ConfigSubmenu(squareSize: squareSize, spacing: _spacing),
+              child: submenuBuilder(squareSize, _spacing),
             ),
           ],
         );

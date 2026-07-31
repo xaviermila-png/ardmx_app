@@ -103,6 +103,7 @@ class AppStateNotifier extends Notifier<AppState> {
     state = next;
   }
 
+
   void setScreen(AppScreen screen) =>
       _writeAndApply(VIndex.activeScreen, screen.vValue.toDouble());
 
@@ -163,13 +164,34 @@ class AppStateNotifier extends Notifier<AppState> {
   void setResetArmed(bool armed) =>
       _writeAndApply(VIndex.resetConfirm1, armed ? 1 : 0);
 
-  /// Actually triggers the variable reset (V42=1) and disarms (V41=0) in a
-  /// single batched write, so the dial visibly snaps back to OFF right
-  /// after — only callable meaningfully while [AppState.resetArmed] is true.
-  void confirmReset() => _writeBatchAndApply({
-    VIndex.resetConfirm2: 1,
-    VIndex.resetConfirm1: 0,
-  });
+  /// Actually triggers the variable reset. Deliberately sends **only** V42=1
+  /// over the wire — V41 is left as whatever [setResetArmed] already set it
+  /// to (1) and is never explicitly cleared from here.
+  ///
+  /// The firmware's trigger condition is `V41==1 && V42==1` evaluated on its
+  /// own polling loop, not on either write individually. Originally this
+  /// method also sent V41=0 in the same batch (to visibly snap the dial back
+  /// to OFF) — but that meant two separate frames went out (V42=1, then
+  /// V41=0), and depending on Bluetooth timing the firmware could process
+  /// both before its loop ever saw them true *simultaneously*, so the reset
+  /// silently never fired. Confirmed on real hardware (ARDMX4 EVO): the same
+  /// user action would sometimes reset fine and sometimes hang forever with
+  /// no observable cause, purely depending on which frame the firmware's
+  /// loop happened to land between. Not writing V41=0 at all removes the
+  /// race: V41 stays 1 (already fully processed well before this write is
+  /// even sent) until the firmware's own reset code clears both V41 and V42
+  /// to 0 once it completes — which is also the real completion signal the
+  /// UI is waiting for.
+  ///
+  /// The dial still visibly snaps to OFF immediately: local state is updated
+  /// optimistically for both indices without putting V41 on the wire. Uses
+  /// the trust-echo write for V42 since the firmware's own V42=0 correction
+  /// is expected to land soon after and must not be swallowed by the
+  /// echo-guard (see [_writeAndApplyTrustEcho]).
+  void confirmReset() {
+    _writeAndApplyTrustEcho(VIndex.resetConfirm2, 1);
+    state = state.copyWithV(VIndex.resetConfirm1, 0);
+  }
 
   void requestInitialSnapshot() {
     final protocol = ref.read(protocolProvider);
