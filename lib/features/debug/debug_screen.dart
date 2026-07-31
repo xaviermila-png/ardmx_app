@@ -245,7 +245,18 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
                       // així que navegar és segur per ensenyar les pantalles.
                       onPressed: () =>
                           Navigator.of(context).pushNamed(AppRoutes.mainMenu),
-                      child: const Text('Menú (mode demo)'),
+                      child: const Text('ARDMX4 (mode demo)'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed(AppRoutes.ardmxOne),
+                      child: const Text('ARDMX One (mode demo)'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(
+                        context,
+                      ).pushNamed(AppRoutes.ardmx4EvoMainMenu),
+                      child: const Text('ARDMX4 EVO (mode demo)'),
                     ),
                   ],
                 ),
