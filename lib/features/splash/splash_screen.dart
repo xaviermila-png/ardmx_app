@@ -1,6 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_blue_classic/flutter_blue_classic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/bluetooth/bluetooth_connection_state.dart';
@@ -15,8 +16,19 @@ import '../../widgets/connection_badge.dart';
 /// launch, no automatic reconnect on drop. This is deliberate while
 /// diagnosing a real HC-05 connectivity issue: auto-retry logic made
 /// failures harder to reproduce (it was found to hammer the module with
-/// rapid reconnect attempts). The user picks a paired device and taps
+/// rapid reconnect attempts). The user picks a device and taps
 /// Connect/Disconnect themselves.
+///
+/// Two separate device-selection sections, not a merged list — Classic
+/// (the Mega) and BLE (the ESP32 boards, since `ardmx-one-firmware`'s
+/// migration off Bluetooth Classic) are fundamentally different discovery
+/// mechanisms: Classic only ever shows already-paired devices (instant,
+/// static list), BLE requires an active scan (a live, timed process) since
+/// this app never bonds/pairs BLE devices. Conflating them into one list
+/// would hide that difference. See [BluetoothConnectionService.connect],
+/// which picks the right transport from [DiscoveredDevice.kind] — nothing
+/// past that point (this screen included, past the initial pick) needs to
+/// know or care which transport is active.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -29,13 +41,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   bool _permissionDenied = false;
   bool _loadingDevices = true;
   String? _errorMessage;
-  List<BluetoothDevice> _pairedDevices = const [];
-  BluetoothDevice? _selectedDevice;
+
+  List<DiscoveredDevice> _pairedDevices = const [];
+  DiscoveredDevice? _selectedClassicDevice;
+
+  bool _bleScanning = false;
+  List<DiscoveredDevice> _bleDevices = const [];
+  StreamSubscription<List<DiscoveredDevice>>? _bleScanSubscription;
 
   @override
   void initState() {
     super.initState();
     _initialize();
+  }
+
+  @override
+  void dispose() {
+    _bleScanSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _initialize() async {
@@ -61,7 +84,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       final lastAddress = await service.lastKnownDeviceAddress();
       if (!mounted) return;
 
-      BluetoothDevice? preselected;
+      DiscoveredDevice? preselected;
       for (final device in devices) {
         if (device.address == lastAddress) {
           preselected = device;
@@ -70,7 +93,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       }
       setState(() {
         _pairedDevices = devices;
-        _selectedDevice =
+        _selectedClassicDevice =
             preselected ?? (devices.isNotEmpty ? devices.first : null);
         _loadingDevices = false;
       });
@@ -88,14 +111,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     }
   }
 
-  Future<void> _connect() async {
-    final device = _selectedDevice;
-    if (device == null) return;
+  Future<void> _connect(DiscoveredDevice device) async {
     await ref.read(bluetoothConnectionServiceProvider.notifier).connect(device);
   }
 
   Future<void> _disconnect() async {
     await ref.read(bluetoothConnectionServiceProvider.notifier).disconnect();
+  }
+
+  Future<void> _startBleScan() async {
+    final service = ref.read(bluetoothConnectionServiceProvider.notifier);
+    setState(() {
+      _bleScanning = true;
+      _bleDevices = const [];
+    });
+    _bleScanSubscription?.cancel();
+    _bleScanSubscription = service.bleScanResults.listen((devices) {
+      if (!mounted) return;
+      setState(() => _bleDevices = devices);
+    });
+    try {
+      await service.startBleScan();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _errorMessage = 'Error escanejant BLE: $error');
+    }
+    // startBleScan()'s own timeout stops the underlying scan, but the app
+    // still needs to flip the UI back out of "scanning" state itself.
+    if (!mounted) return;
+    setState(() => _bleScanning = false);
   }
 
   Future<void> _exit() async {
@@ -155,6 +199,152 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     );
   }
 
+  Widget _sectionTitle(String text) => Text(
+    text,
+    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+  );
+
+  Widget _buildClassicSection({
+    required bool connected,
+    required bool connecting,
+  }) {
+    if (_pairedDevices.isEmpty) {
+      return Column(
+        children: [
+          _sectionTitle('Bluetooth Classic (ARDMX4)'),
+          const SizedBox(height: 6),
+          const Text(
+            "Cap dispositiu aparellat.\nEmparella l'HC-05/06 des dels ajustos d'Android.",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12),
+          ),
+        ],
+      );
+    }
+
+    final canConnect =
+        !connected && !connecting && _selectedClassicDevice != null;
+    return Column(
+      children: [
+        _sectionTitle('Bluetooth Classic (ARDMX4)'),
+        const SizedBox(height: 6),
+        Container(
+          width: 260,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.deepPurple.shade200, width: 2),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<DiscoveredDevice>(
+              value: _selectedClassicDevice,
+              isExpanded: true,
+              items: [
+                for (final device in _pairedDevices)
+                  DropdownMenuItem(
+                    value: device,
+                    child: Text(
+                      device.name ?? '(sense nom)',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+              ],
+              onChanged: (connected || connecting)
+                  ? null
+                  : (device) =>
+                        setState(() => _selectedClassicDevice = device),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: 260,
+          child: ElevatedButton.icon(
+            onPressed: canConnect
+                ? () => _connect(_selectedClassicDevice!)
+                : null,
+            style: ElevatedButton.styleFrom(
+              side: canConnect
+                  ? const BorderSide(color: Colors.deepPurple, width: 2)
+                  : null,
+            ),
+            icon: const Icon(Icons.bluetooth_connected),
+            label: const Text(
+              'Connectar',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBleSection({
+    required bool connected,
+    required bool connecting,
+  }) {
+    final canScan = !connected && !connecting && !_bleScanning;
+    return Column(
+      children: [
+        _sectionTitle('BLE (ARDMX One / EVO)'),
+        const SizedBox(height: 6),
+        SizedBox(
+          width: 260,
+          child: ElevatedButton.icon(
+            onPressed: canScan ? _startBleScan : null,
+            icon: _bleScanning
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.bluetooth_searching),
+            label: Text(_bleScanning ? 'Escanejant…' : 'Escanejar'),
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (_bleDevices.isEmpty)
+          Text(
+            _bleScanning
+                ? 'Cercant dispositius…'
+                : 'Cap dispositiu trobat. Prem "Escanejar".',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 12),
+          )
+        else
+          Container(
+            width: 260,
+            constraints: const BoxConstraints(maxHeight: 150),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.deepPurple.shade200, width: 2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              children: [
+                for (final device in _bleDevices)
+                  ListTile(
+                    dense: true,
+                    title: Text(
+                      device.name ?? device.address,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onTap: (connected || connecting)
+                        ? null
+                        : () => _connect(device),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final connection = ref.watch(bluetoothConnectionServiceProvider);
@@ -163,7 +353,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         connection.status == BluetoothConnectionStatus.connecting;
 
     // Skip the manual "Menú" tap and go straight in once connected — see
-    // _goToDeviceHome for how ARDMX4 vs ARDMX One is told apart.
+    // _goToDeviceHome for how ARDMX4 vs ARDMX One/EVO is told apart.
     //
     // Splash stays mounted (this listener keeps firing) even while another
     // route — e.g. the Debug screen, reached via long-press on the logo —
@@ -205,8 +395,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             children: [
               Align(
                 alignment: Alignment.topCenter,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
                   child: DefaultTextStyle.merge(
                     style: const TextStyle(fontSize: 16),
                     child: Column(
@@ -234,11 +424,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                               Navigator.of(context).pushNamed(AppRoutes.debug),
                           child: Image.asset(
                             'assets/imatges/ARDMX_Logo.png',
-                            width: 160,
-                            height: 160,
+                            width: 140,
+                            height: 140,
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
                         if (_checkingPermission)
                           const CircularProgressIndicator(),
                         if (_permissionDenied) ...[
@@ -253,7 +443,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         ],
                         if (_errorMessage != null) ...[
                           Text(
-                            "Hi ha hagut un error inicialitzant el Bluetooth:\n$_errorMessage",
+                            "Hi ha hagut un error:\n$_errorMessage",
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
@@ -267,145 +457,54 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                             _errorMessage == null) ...[
                           if (_loadingDevices)
                             const CircularProgressIndicator()
-                          else if (_pairedDevices.isEmpty)
-                            const Text(
-                              "Cap dispositiu Bluetooth emparellat.\nEmparella l'HC-05/06 des dels ajustos d'Android.",
-                              textAlign: TextAlign.center,
-                            )
                           else ...[
-                            const Text('Selecciona Dispositiu:'),
+                            _buildClassicSection(
+                              connected: connected,
+                              connecting: connecting,
+                            ),
+                            const SizedBox(height: 20),
+                            const Divider(),
+                            const SizedBox(height: 10),
+                            _buildBleSection(
+                              connected: connected,
+                              connecting: connecting,
+                            ),
+                          ],
+                          const SizedBox(height: 20),
+                          SizedBox(
+                            width: 260,
+                            child: OutlinedButton.icon(
+                              onPressed: connected ? _disconnect : null,
+                              style: OutlinedButton.styleFrom(
+                                side: connected
+                                    ? const BorderSide(
+                                        color: Colors.deepPurple,
+                                        width: 2,
+                                      )
+                                    : null,
+                              ),
+                              icon: const Icon(Icons.bluetooth_disabled),
+                              label: const Text(
+                                'Desconnectar',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          if (connection.status ==
+                              BluetoothConnectionStatus.failed) ...[
                             const SizedBox(height: 8),
-                            // Amplada limitada (no isExpanded): els noms de
-                            // dispositiu no passen de 20 caràcters per
-                            // convenció, així que no cal ocupar tota
-                            // l'amplada — i queda centrat de franc gràcies
-                            // al crossAxisAlignment.center per defecte
-                            // d'aquesta Column.
-                            Container(
-                              width: 260,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: Colors.deepPurple.shade200,
-                                  width: 2,
-                                ),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<BluetoothDevice>(
-                                  value: _selectedDevice,
-                                  isExpanded: true,
-                                  items: [
-                                    for (final device in _pairedDevices)
-                                      DropdownMenuItem(
-                                        value: device,
-                                        child: Text(
-                                          device.name ?? '(sense nom)',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(fontSize: 18),
-                                        ),
-                                      ),
-                                  ],
-                                  onChanged: (connected || connecting)
-                                      ? null
-                                      : (device) => setState(
-                                          () => _selectedDevice = device,
-                                        ),
-                                ),
+                            Tooltip(
+                              message: connection.lastError ?? '',
+                              child: Text(
+                                friendlyBluetoothError(connection.lastError),
+                                style: const TextStyle(color: Colors.red),
+                                textAlign: TextAlign.center,
                               ),
                             ),
-                            const SizedBox(height: 28),
-                            Builder(
-                              builder: (context) {
-                                final canConnect =
-                                    !connected &&
-                                    !connecting &&
-                                    _selectedDevice != null;
-                                // Same deepPurple highlight as the device
-                                // selector box, but only on whichever of the
-                                // two buttons is actually actionable right
-                                // now — draws the eye to the next step.
-                                const activeBorder = BorderSide(
-                                  color: Colors.deepPurple,
-                                  width: 2,
-                                );
-                                return Row(
-                                  children: [
-                                    Expanded(
-                                      child: ElevatedButton.icon(
-                                        onPressed: canConnect ? _connect : null,
-                                        style: ElevatedButton.styleFrom(
-                                          minimumSize: const Size(0, 48),
-                                          textStyle: const TextStyle(
-                                            fontSize: 16,
-                                          ),
-                                          side: canConnect
-                                              ? activeBorder
-                                              : null,
-                                        ),
-                                        icon: connecting
-                                            ? const SizedBox(
-                                                width: 16,
-                                                height: 16,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                ),
-                                              )
-                                            : const Icon(
-                                                Icons.bluetooth_connected,
-                                              ),
-                                        label: const Text(
-                                          'Connectar',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: connected
-                                            ? _disconnect
-                                            : null,
-                                        style: OutlinedButton.styleFrom(
-                                          minimumSize: const Size(0, 48),
-                                          textStyle: const TextStyle(
-                                            fontSize: 16,
-                                          ),
-                                          side: connected ? activeBorder : null,
-                                        ),
-                                        icon: const Icon(
-                                          Icons.bluetooth_disabled,
-                                        ),
-                                        label: const Text(
-                                          'Desconnectar',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
-                            ),
-                            if (connection.status ==
-                                BluetoothConnectionStatus.failed) ...[
-                              const SizedBox(height: 8),
-                              Tooltip(
-                                message: connection.lastError ?? '',
-                                child: Text(
-                                  friendlyBluetoothError(connection.lastError),
-                                  style: const TextStyle(color: Colors.red),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ],
                           ],
                         ],
-                        const SizedBox(height: 48),
+                        const SizedBox(height: 32),
                         SizedBox(
                           width: 105,
                           height: 105,

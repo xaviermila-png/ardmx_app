@@ -1,17 +1,31 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Bluetooth Classic (SPP) to a device already paired via Android system settings.
-         No active scanning/discovery is performed by our own code, so location
-         permissions are not needed. BLUETOOTH_SCAN is declared (with
-         neverForLocation, so it doesn't drag in location) purely because the
-         flutter_blue_classic plugin's own connect() implementation always
-         requests it internally on API 31+ and has a bug where it crashes if that
-         request isn't already granted (see BluetoothPermissions.ensureGranted). -->
+    <!-- Bluetooth Classic (SPP, the Mega) connects only to a device already
+         paired via Android system settings — no active scanning/discovery.
+         BLUETOOTH_SCAN is declared (with neverForLocation, so it doesn't drag
+         in location) purely because the flutter_blue_classic plugin's own
+         connect() implementation always requests it internally on API 31+ and
+         has a bug where it crashes if that request isn't already granted (see
+         BluetoothPermissions.ensureGranted).
+
+         BLE (GATT, the ESP32 boards) DOES actively scan (flutter_blue_plus,
+         see BluetoothConnectionService.startBleScan) — on API 31+ this is
+         covered by the same BLUETOOTH_SCAN(neverForLocation) below, no extra
+         permission needed. On API < 31, BLE scan results are only ever
+         delivered if a location permission is also granted at runtime — this
+         app's actual fleet is all API 31+ (Android 12+), so that runtime
+         request isn't implemented; ACCESS_FINE_LOCATION is still declared
+         below (capped to <=30) for manifest correctness, but BLE scanning
+         will silently return nothing on an unsupported older device without
+         also adding a runtime location-permission request. -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission
         android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation" />
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="30" />
     <application
         android:label="ARDMX"
         android:name="${applicationName}"

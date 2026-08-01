@@ -7,6 +7,8 @@ import 'app_state_notifier.dart';
 
 export '../core/bluetooth/bluetooth_connection_service.dart'
     show bluetoothConnectionServiceProvider;
+export '../core/bluetooth/bluetooth_transport.dart'
+    show DiscoveredDevice, TransportKind;
 export '../core/bluetooth/device_identification_service.dart'
     show DeviceType, deviceIdentificationServiceProvider;
 

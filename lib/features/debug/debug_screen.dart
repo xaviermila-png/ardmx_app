@@ -173,7 +173,7 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
       _appendLog('Cap dispositiu emparellat trobat');
       return;
     }
-    final selected = await showDialog<BluetoothDevice>(
+    final selected = await showDialog<DiscoveredDevice>(
       context: context,
       builder: (context) => SimpleDialog(
         title: const Text('Tria un dispositiu emparellat'),
