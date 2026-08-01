@@ -144,17 +144,23 @@ class _Ardmx4EvoParametersScreenState
                   _Section(
                     title: "Nombre d'escenes",
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         for (var n = 1; n <= 4; n++)
-                          _SelectableButton(
-                            label: '$n',
-                            selected: scenesCount == n,
-                            selectedBackground: Colors.orange.shade200,
-                            selectedForeground: Colors.orange.shade900,
-                            onTap: () => ref
-                                .read(appStateProvider.notifier)
-                                .setActiveScenesCount(n),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              child: _SelectableButton(
+                                label: '$n',
+                                selected: scenesCount == n,
+                                selectedBackground: Colors.orange.shade200,
+                                selectedForeground: Colors.orange.shade900,
+                                onTap: () => ref
+                                    .read(appStateProvider.notifier)
+                                    .setActiveScenesCount(n),
+                              ),
+                            ),
                           ),
                       ],
                     ),
@@ -165,26 +171,39 @@ class _Ardmx4EvoParametersScreenState
                     child: Column(
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            _SelectableButton(
-                              label: 'Off',
-                              selected: songNumber == 0,
-                              selectedBackground: Colors.blue.shade200,
-                              selectedForeground: Colors.blue.shade900,
-                              onTap: () => ref
-                                  .read(appStateProvider.notifier)
-                                  .setSongNumber(0),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                child: _SelectableButton(
+                                  label: 'Off',
+                                  selected: songNumber == 0,
+                                  selectedBackground: Colors.blue.shade200,
+                                  selectedForeground: Colors.blue.shade900,
+                                  onTap: () => ref
+                                      .read(appStateProvider.notifier)
+                                      .setSongNumber(0),
+                                ),
+                              ),
                             ),
                             for (var n = 1; n <= 4; n++)
-                              _SelectableButton(
-                                label: '$n',
-                                selected: songNumber == n,
-                                selectedBackground: Colors.blue.shade200,
-                                selectedForeground: Colors.blue.shade900,
-                                onTap: () => ref
-                                    .read(appStateProvider.notifier)
-                                    .setSongNumber(n),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  child: _SelectableButton(
+                                    label: '$n',
+                                    selected: songNumber == n,
+                                    selectedBackground: Colors.blue.shade200,
+                                    selectedForeground: Colors.blue.shade900,
+                                    onTap: () => ref
+                                        .read(appStateProvider.notifier)
+                                        .setSongNumber(n),
+                                  ),
+                                ),
                               ),
                           ],
                         ),
@@ -431,8 +450,11 @@ class _SelectableButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // No fixed width — callers wrap this in Expanded within a Row so a
+    // whole row of buttons shrinks together on a narrow screen instead of
+    // overflowing (confirmed clipped on a small-screen Xiaomi at a fixed
+    // 56dp each).
     return SizedBox(
-      width: 56,
       height: 56,
       child: ElevatedButton(
         onPressed: onTap,

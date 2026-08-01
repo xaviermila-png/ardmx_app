@@ -120,6 +120,8 @@ class _CycleProgressBarState extends ConsumerState<CycleProgressBar> {
                   stateLabel,
                   textAlign: TextAlign.center,
                   style: textStyle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               Text('${totalTime.round()}"', style: textStyle),

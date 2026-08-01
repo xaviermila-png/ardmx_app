@@ -197,166 +197,169 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
     final connectionState = ref.watch(bluetoothConnectionServiceProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Depuració Bluetooth / Protocol')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Estat: ${connectionState.status.name}'),
-                if (connectionState.deviceName != null)
-                  Text(
-                    'Dispositiu: ${connectionState.deviceName} (${connectionState.deviceAddress})',
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Estat: ${connectionState.status.name}'),
+                  if (connectionState.deviceName != null)
+                    Text(
+                      'Dispositiu: ${connectionState.deviceName} (${connectionState.deviceAddress})',
+                    ),
+                  if (connectionState.lastError != null)
+                    Text('Últim error: ${connectionState.lastError}'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _pickAndConnect,
+                        child: const Text('Connectar...'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => ref
+                            .read(bluetoothConnectionServiceProvider.notifier)
+                            .disconnect(),
+                        child: const Text('Desconnectar'),
+                      ),
+                      ElevatedButton(
+                        onPressed: _refreshDeviceName,
+                        child: const Text('Refrescar nom (escaneig)'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () =>
+                            ref.read(protocolProvider).writeV(16, 20),
+                        child: const Text('Enviar V16=20'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () =>
+                            ref.read(protocolProvider).requestV(14),
+                        child: const Text('Demanar V14'),
+                      ),
+                      ElevatedButton(
+                        // No cal connexió: escriure/demanar sense connexió ja
+                        // no fa res (VirtuinoProtocol.output no-op silenciós),
+                        // així que navegar és segur per ensenyar les pantalles.
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed(AppRoutes.mainMenu),
+                        child: const Text('ARDMX4 (mode demo)'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed(AppRoutes.ardmxOne),
+                        child: const Text('ARDMX One (mode demo)'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pushNamed(AppRoutes.ardmx4EvoMainMenu),
+                        child: const Text('ARDMX4 EVO (mode demo)'),
+                      ),
+                    ],
                   ),
-                if (connectionState.lastError != null)
-                  Text('Últim error: ${connectionState.lastError}'),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    ElevatedButton(
-                      onPressed: _pickAndConnect,
-                      child: const Text('Connectar...'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => ref
-                          .read(bluetoothConnectionServiceProvider.notifier)
-                          .disconnect(),
-                      child: const Text('Desconnectar'),
-                    ),
-                    ElevatedButton(
-                      onPressed: _refreshDeviceName,
-                      child: const Text('Refrescar nom (escaneig)'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () =>
-                          ref.read(protocolProvider).writeV(16, 20),
-                      child: const Text('Enviar V16=20'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => ref.read(protocolProvider).requestV(14),
-                      child: const Text('Demanar V14'),
-                    ),
-                    ElevatedButton(
-                      // No cal connexió: escriure/demanar sense connexió ja
-                      // no fa res (VirtuinoProtocol.output no-op silenciós),
-                      // així que navegar és segur per ensenyar les pantalles.
-                      onPressed: () =>
-                          Navigator.of(context).pushNamed(AppRoutes.mainMenu),
-                      child: const Text('ARDMX4 (mode demo)'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () =>
-                          Navigator.of(context).pushNamed(AppRoutes.ardmxOne),
-                      child: const Text('ARDMX One (mode demo)'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(
-                        context,
-                      ).pushNamed(AppRoutes.ardmx4EvoMainMenu),
-                      child: const Text('ARDMX4 EVO (mode demo)'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Comanda V lliure (per provar índexs sense pantalla pròpia)',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 70,
-                      child: TextField(
-                        controller: _rawIndexController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          labelText: 'Índex',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 140,
-                      child: TextField(
-                        controller: _rawValueController,
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          labelText: 'Valor / text',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: _rawWriteNumber,
-                      child: const Text('Escriu V (num)'),
-                    ),
-                    ElevatedButton(
-                      onPressed: _rawWriteText,
-                      child: const Text('Escriu T (text)'),
-                    ),
-                    ElevatedButton(
-                      onPressed: _rawRequest,
-                      child: const Text('Demana'),
-                    ),
-                  ],
-                ),
-                if ((connectionState.deviceName ?? '').startsWith(
-                  'ARDMXOne',
-                )) ...[
                   const SizedBox(height: 12),
                   const Text(
-                    'Canviar nom Bluetooth (ARDMX One) — '
-                    'només el número, màxim 3 xifres',
+                    'Comanda V lliure (per provar índexs sense pantalla pròpia)',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      const Text('ARDMXOne_'),
                       SizedBox(
-                        width: 60,
+                        width: 70,
                         child: TextField(
-                          controller: _nameSuffixController,
+                          controller: _rawIndexController,
                           keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(3),
-                          ],
                           decoration: const InputDecoration(
                             isDense: true,
+                            labelText: 'Índex',
                             border: OutlineInputBorder(),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 140,
+                        child: TextField(
+                          controller: _rawValueController,
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            labelText: 'Valor / text',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
                       ElevatedButton(
-                        onPressed: _renameArdmxOne,
-                        child: const Text('Canviar nom'),
+                        onPressed: _rawWriteNumber,
+                        child: const Text('Escriu V (num)'),
+                      ),
+                      ElevatedButton(
+                        onPressed: _rawWriteText,
+                        child: const Text('Escriu T (text)'),
+                      ),
+                      ElevatedButton(
+                        onPressed: _rawRequest,
+                        child: const Text('Demana'),
                       ),
                     ],
                   ),
+                  if ((connectionState.deviceName ?? '').startsWith(
+                    'ARDMXOne',
+                  )) ...[
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Canviar nom Bluetooth (ARDMX One) — '
+                      'només el número, màxim 3 xifres',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Row(
+                      children: [
+                        const Text('ARDMXOne_'),
+                        SizedBox(
+                          width: 60,
+                          child: TextField(
+                            controller: _nameSuffixController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(3),
+                            ],
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: _renameArdmxOne,
+                          child: const Text('Canviar nom'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: _log.length,
-              itemBuilder: (context, index) => Text(
-                _log[index],
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
               ),
             ),
-          ),
-        ],
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(8),
+                itemCount: _log.length,
+                itemBuilder: (context, index) => Text(
+                  _log[index],
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

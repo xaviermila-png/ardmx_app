@@ -283,12 +283,20 @@ class _CycleProgrammingScreenState
                         height: 32,
                         color: Colors.deepPurple.shade400,
                         alignment: Alignment.center,
-                        child: Text(
-                          '${currentTime.round()}" / ${totalTime.round()}"',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        // FittedBox instead of a fixed fontSize: a cycle
+                        // running past 999s (totalTime 4+ digits) would
+                        // otherwise clip inside this fixed-width box.
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '${currentTime.round()}" / ${totalTime.round()}"',
+                            maxLines: 1,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ),
@@ -433,6 +441,8 @@ class _PeriodRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
@@ -457,11 +467,15 @@ class _PeriodRow extends StatelessWidget {
                 color: Colors.deepPurple.shade300,
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Text(
-                '${accumulated.round()}"',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '${accumulated.round()}"',
+                  maxLines: 1,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -475,11 +489,15 @@ class _PeriodRow extends StatelessWidget {
               color: Colors.green.shade700,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text(
-              '${duration.round()}"',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '${duration.round()}"',
+                maxLines: 1,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),

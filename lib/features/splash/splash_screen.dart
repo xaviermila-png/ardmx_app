@@ -275,58 +275,121 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           else ...[
                             const Text('Selecciona Dispositiu:'),
                             const SizedBox(height: 8),
-                            DropdownButton<BluetoothDevice>(
-                              value: _selectedDevice,
-                              items: [
-                                for (final device in _pairedDevices)
-                                  DropdownMenuItem(
-                                    value: device,
-                                    child: Text(device.name ?? '(sense nom)'),
-                                  ),
-                              ],
-                              onChanged: (connected || connecting)
-                                  ? null
-                                  : (device) => setState(
-                                      () => _selectedDevice = device,
-                                    ),
+                            // Amplada limitada (no isExpanded): els noms de
+                            // dispositiu no passen de 20 caràcters per
+                            // convenció, així que no cal ocupar tota
+                            // l'amplada — i queda centrat de franc gràcies
+                            // al crossAxisAlignment.center per defecte
+                            // d'aquesta Column.
+                            Container(
+                              width: 260,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Colors.deepPurple.shade200,
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<BluetoothDevice>(
+                                  value: _selectedDevice,
+                                  isExpanded: true,
+                                  items: [
+                                    for (final device in _pairedDevices)
+                                      DropdownMenuItem(
+                                        value: device,
+                                        child: Text(
+                                          device.name ?? '(sense nom)',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontSize: 18),
+                                        ),
+                                      ),
+                                  ],
+                                  onChanged: (connected || connecting)
+                                      ? null
+                                      : (device) => setState(
+                                          () => _selectedDevice = device,
+                                        ),
+                                ),
+                              ),
                             ),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                ElevatedButton.icon(
-                                  onPressed:
-                                      (!connected &&
-                                          !connecting &&
-                                          _selectedDevice != null)
-                                      ? _connect
-                                      : null,
-                                  style: ElevatedButton.styleFrom(
-                                    minimumSize: const Size(150, 48),
-                                    textStyle: const TextStyle(fontSize: 16),
-                                  ),
-                                  icon: connecting
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
+                            const SizedBox(height: 28),
+                            Builder(
+                              builder: (context) {
+                                final canConnect =
+                                    !connected &&
+                                    !connecting &&
+                                    _selectedDevice != null;
+                                // Same deepPurple highlight as the device
+                                // selector box, but only on whichever of the
+                                // two buttons is actually actionable right
+                                // now — draws the eye to the next step.
+                                const activeBorder = BorderSide(
+                                  color: Colors.deepPurple,
+                                  width: 2,
+                                );
+                                return Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: canConnect ? _connect : null,
+                                        style: ElevatedButton.styleFrom(
+                                          minimumSize: const Size(0, 48),
+                                          textStyle: const TextStyle(
+                                            fontSize: 16,
                                           ),
-                                        )
-                                      : const Icon(Icons.bluetooth_connected),
-                                  label: const Text('Connectar'),
-                                ),
-                                const SizedBox(width: 12),
-                                OutlinedButton.icon(
-                                  onPressed: connected ? _disconnect : null,
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size(150, 48),
-                                    textStyle: const TextStyle(fontSize: 16),
-                                  ),
-                                  icon: const Icon(Icons.bluetooth_disabled),
-                                  label: const Text('Desconnectar'),
-                                ),
-                              ],
+                                          side: canConnect
+                                              ? activeBorder
+                                              : null,
+                                        ),
+                                        icon: connecting
+                                            ? const SizedBox(
+                                                width: 16,
+                                                height: 16,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                ),
+                                              )
+                                            : const Icon(
+                                                Icons.bluetooth_connected,
+                                              ),
+                                        label: const Text(
+                                          'Connectar',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: connected
+                                            ? _disconnect
+                                            : null,
+                                        style: OutlinedButton.styleFrom(
+                                          minimumSize: const Size(0, 48),
+                                          textStyle: const TextStyle(
+                                            fontSize: 16,
+                                          ),
+                                          side: connected ? activeBorder : null,
+                                        ),
+                                        icon: const Icon(
+                                          Icons.bluetooth_disabled,
+                                        ),
+                                        label: const Text(
+                                          'Desconnectar',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                             if (connection.status ==
                                 BluetoothConnectionStatus.failed) ...[
@@ -342,7 +405,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                             ],
                           ],
                         ],
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 48),
                         SizedBox(
                           width: 105,
                           height: 105,
