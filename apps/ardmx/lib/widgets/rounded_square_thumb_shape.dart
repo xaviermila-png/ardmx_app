@@ -2,16 +2,22 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// A rounded-square [Slider] thumb (gray outline, very light gray fill)
-/// instead of Material's default filled circle. Optionally shows a number
-/// (e.g. a DMX channel number) centered inside it — pass `null` for a plain
-/// neutral thumb (e.g. the Main Menu volume slider).
+import '../theme/ardmx_colors.dart';
+
+/// A rounded-square [Slider] thumb (neutral outline, very light neutral
+/// fill) instead of Material's default filled circle. Optionally shows a
+/// number (e.g. a DMX channel number) centered inside it — pass `null` for
+/// a plain neutral thumb (e.g. the Main Menu volume slider).
+///
+/// [SliderComponentShape.paint] has no [BuildContext], so this can't pull
+/// colors from `Theme.of(context)` — it uses the [ArdmxColors] neutrals
+/// directly instead of Material's generic black/grey.
 class RoundedSquareThumbShape extends SliderComponentShape {
   const RoundedSquareThumbShape({
     this.size = 48,
     this.cornerRadius = 10,
     this.channelNumber,
-    this.textColor = Colors.black,
+    this.textColor = ArdmxColors.textPrimary,
     this.textFontSize = 19,
     this.rotateText = true,
   });
@@ -51,11 +57,14 @@ class RoundedSquareThumbShape extends SliderComponentShape {
       Rect.fromCenter(center: center, width: size, height: size),
       Radius.circular(cornerRadius),
     );
-    canvas.drawRRect(rrect, Paint()..color = const Color(0xFFEEEEEE));
+    canvas.drawRRect(rrect, Paint()..color = ArdmxColors.surfaceVariant);
     canvas.drawRRect(
       rrect,
+      // textSecondary rather than the (much lighter) outline neutral — the
+      // original grey.shade600 stroke was chosen for visibility against the
+      // light fill, and #E5E7EB would be nearly invisible here.
       Paint()
-        ..color = Colors.grey.shade600
+        ..color = ArdmxColors.textSecondary
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );

@@ -180,12 +180,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Widget _buildCredits() {
     final serverVersion = ref.watch(appStateProvider.select((s) => s.t62));
-    const style = TextStyle(fontSize: 9, color: Colors.grey);
+    final style = TextStyle(
+      fontSize: 9,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('CC BY-NC-SA Xavier Mila 2026', style: style),
-        const Text('Versió app: $kAppVersion', style: style),
+        Text('CC BY-NC-SA Xavier Mila 2026', style: style),
+        Text('Versió app: $kAppVersion', style: style),
         Text('Versió server: ${serverVersion ?? '—'}', style: style),
       ],
     );
@@ -208,7 +211,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             width: 260,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.deepPurple.shade200, width: 2),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.primary,
+                width: 2,
+              ),
               borderRadius: BorderRadius.circular(10),
             ),
             child: DropdownButtonHideUnderline(
@@ -253,7 +259,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     bool outlined = false,
   }) {
     final side = BorderSide(
-      color: enabled ? Colors.deepPurple : Colors.transparent,
+      color: enabled
+          ? Theme.of(context).colorScheme.primary
+          : Colors.transparent,
       width: 2,
     );
     final child = Text(label, maxLines: 1, overflow: TextOverflow.ellipsis);
@@ -266,9 +274,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               icon: icon,
               label: child,
             )
-          : ElevatedButton.icon(
+          : FilledButton.icon(
               onPressed: onPressed,
-              style: ElevatedButton.styleFrom(side: side),
+              style: FilledButton.styleFrom(side: side),
               icon: icon,
               label: child,
             ),
@@ -353,9 +361,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
+                        Text(
                           "Control d'Il·luminació de pessebres",
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
@@ -379,7 +390,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                             'Cal el permís de Bluetooth per continuar.',
                           ),
                           const SizedBox(height: 8),
-                          ElevatedButton(
+                          FilledButton(
                             onPressed: BluetoothPermissions.openSettings,
                             child: const Text('Obrir ajustos'),
                           ),
@@ -390,7 +401,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
-                          ElevatedButton(
+                          FilledButton(
                             onPressed: _initialize,
                             child: const Text('Reintentar'),
                           ),
@@ -461,7 +472,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                               message: connection.lastError ?? '',
                               child: Text(
                                 friendlyBluetoothError(connection.lastError),
-                                style: const TextStyle(color: Colors.red),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                             ),

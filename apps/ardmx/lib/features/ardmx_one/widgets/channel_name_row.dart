@@ -24,7 +24,7 @@ class ChannelNameRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.blue.shade900,
+      color: Theme.of(context).colorScheme.primary,
       padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
       child: const Row(
         children: [
@@ -104,19 +104,23 @@ class _ChannelNameFieldState extends ConsumerState<_ChannelNameField> {
       }
     });
 
+    final onPrimary = Theme.of(context).colorScheme.onPrimary;
     return TextField(
       controller: _controller,
       focusNode: _focusNode,
       textAlign: TextAlign.center,
       maxLength: 15,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
-      decoration: const InputDecoration(
+      style: TextStyle(color: onPrimary, fontSize: 14),
+      decoration: InputDecoration(
         isDense: true,
         counterText: '',
-        border: OutlineInputBorder(),
+        border: const OutlineInputBorder(),
         filled: true,
-        fillColor: Colors.white24,
-        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        fillColor: onPrimary.withValues(alpha: 0.14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 8,
+          vertical: 6,
+        ),
       ),
       onSubmitted: _submit,
       onTapOutside: (_) {

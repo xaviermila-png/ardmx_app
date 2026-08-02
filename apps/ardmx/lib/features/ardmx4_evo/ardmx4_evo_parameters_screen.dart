@@ -154,8 +154,6 @@ class _Ardmx4EvoParametersScreenState
                               child: _SelectableButton(
                                 label: '$n',
                                 selected: scenesCount == n,
-                                selectedBackground: Colors.orange.shade200,
-                                selectedForeground: Colors.orange.shade900,
                                 onTap: () => ref
                                     .read(appStateProvider.notifier)
                                     .setActiveScenesCount(n),
@@ -180,8 +178,6 @@ class _Ardmx4EvoParametersScreenState
                                 child: _SelectableButton(
                                   label: 'Off',
                                   selected: songNumber == 0,
-                                  selectedBackground: Colors.blue.shade200,
-                                  selectedForeground: Colors.blue.shade900,
                                   onTap: () => ref
                                       .read(appStateProvider.notifier)
                                       .setSongNumber(0),
@@ -197,8 +193,6 @@ class _Ardmx4EvoParametersScreenState
                                   child: _SelectableButton(
                                     label: '$n',
                                     selected: songNumber == n,
-                                    selectedBackground: Colors.blue.shade200,
-                                    selectedForeground: Colors.blue.shade900,
                                     onTap: () => ref
                                         .read(appStateProvider.notifier)
                                         .setSongNumber(n),
@@ -237,16 +231,16 @@ class _Ardmx4EvoParametersScreenState
                               width: 90,
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               decoration: BoxDecoration(
-                                color: Colors.green.shade600,
+                                color: Theme.of(context).colorScheme.primary,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               alignment: Alignment.center,
                               child: Text(
                                 '${channelsCount ?? '—'}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 26,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: Theme.of(context).colorScheme.onPrimary,
                                 ),
                               ),
                             ),
@@ -349,7 +343,7 @@ class _CompactTextFieldState extends ConsumerState<_CompactTextField> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -370,7 +364,10 @@ class _CompactTextFieldState extends ConsumerState<_CompactTextField> {
                 alignment: Alignment.topRight,
                 child: Text(
                   '$_length/${widget.maxLength}',
-                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],
@@ -414,7 +411,7 @@ class _Section extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -437,44 +434,51 @@ class _SelectableButton extends StatelessWidget {
   const _SelectableButton({
     required this.label,
     required this.selected,
-    required this.selectedBackground,
-    required this.selectedForeground,
     required this.onTap,
   });
 
   final String label;
   final bool selected;
-  final Color selectedBackground;
-  final Color selectedForeground;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     // No fixed width — callers wrap this in Expanded within a Row so a
     // whole row of buttons shrinks together on a narrow screen instead of
     // overflowing (confirmed clipped on a small-screen Xiaomi at a fixed
     // 56dp each).
-    return SizedBox(
-      height: 56,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: selected ? selectedBackground : null,
-          foregroundColor: selected ? selectedForeground : null,
-          elevation: selected ? 4 : 1,
-          padding: const EdgeInsets.all(4),
-          minimumSize: Size.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+    return Semantics(
+      selected: selected,
+      child: SizedBox(
+        height: 56,
+        child: FilledButton(
+          onPressed: onTap,
+          style: FilledButton.styleFrom(
+            backgroundColor: selected ? scheme.primaryContainer : scheme.surfaceContainerHighest,
+            foregroundColor: selected
+                ? scheme.onPrimaryContainer
+                : scheme.onSurfaceVariant,
+            elevation: selected ? 4 : 1,
+            padding: const EdgeInsets.all(4),
+            minimumSize: Size.zero,
+            // The selected state isn't color/elevation alone — a visible
+            // border carries the same information non-color-dependently too.
+            side: selected
+                ? BorderSide(color: scheme.primary, width: 2)
+                : BorderSide.none,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
-        ),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            label,
-            maxLines: 1,
-            softWrap: false,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              softWrap: false,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ),
         ),
       ),

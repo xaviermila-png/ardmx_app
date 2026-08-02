@@ -239,12 +239,17 @@ class _Ardmx4EvoCycleProgrammingScreenState
                       Expanded(
                         child: Stack(
                           children: [
-                            Container(height: 32, color: Colors.blue.shade100),
+                            Container(
+                              height: 32,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primaryContainer,
+                            ),
                             FractionallySizedBox(
                               widthFactor: fraction,
                               child: Container(
                                 height: 32,
-                                color: Colors.blue.shade700,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
                           ],
@@ -253,7 +258,7 @@ class _Ardmx4EvoCycleProgrammingScreenState
                       Container(
                         width: 70,
                         height: 32,
-                        color: Colors.deepPurple.shade400,
+                        color: Theme.of(context).colorScheme.primary,
                         alignment: Alignment.center,
                         padding: const EdgeInsets.symmetric(horizontal: 2),
                         // FittedBox instead of a fixed fontSize: a cycle
@@ -264,8 +269,8 @@ class _Ardmx4EvoCycleProgrammingScreenState
                           child: Text(
                             '${currentTime.round()}" / ${totalTime.round()}"',
                             maxLines: 1,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onPrimary,
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
                             ),
@@ -382,18 +387,17 @@ class _PeriodRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       // Only a top border (not top+bottom): consecutive active rows used to
       // each draw their own bottom+top border, showing as two close-together
-      // orange lines between phases — a single top border per row shows one
-      // line at each boundary instead, and saves a bit of vertical space.
+      // lines between phases — a single top border per row shows one line
+      // at each boundary instead, and saves a bit of vertical space.
       decoration: active
           ? BoxDecoration(
-              color: Colors.amber.shade100,
-              border: Border(
-                top: BorderSide(color: Colors.amber.shade700, width: 1.5),
-              ),
+              color: scheme.primaryContainer,
+              border: Border(top: BorderSide(color: scheme.primary, width: 1.5)),
             )
           : null,
       child: Row(
@@ -411,7 +415,12 @@ class _PeriodRow extends StatelessWidget {
             height: 20,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: active ? Colors.green.shade600 : Colors.grey.shade400,
+              // Green rather than primary — an "on/lit" indicator (same
+              // idea as the Play toggle's own ON=green), not a brand
+              // selection state.
+              color: active
+                  ? Colors.green.shade600
+                  : scheme.surfaceContainerHighest,
               border: Border.all(color: Colors.black45),
             ),
           ),
@@ -424,7 +433,10 @@ class _PeriodRow extends StatelessWidget {
               height: 36,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: Colors.deepPurple.shade300,
+                // primary for "Acaba a", secondary for "Durada" below —
+                // two different brand colors so the two numeric columns
+                // stay visually distinguishable at a glance.
+                color: scheme.primary,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: FittedBox(
@@ -432,8 +444,8 @@ class _PeriodRow extends StatelessWidget {
                 child: Text(
                   '${accumulated.round()}"',
                   maxLines: 1,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: scheme.onPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -446,7 +458,7 @@ class _PeriodRow extends StatelessWidget {
             height: 36,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: Colors.green.shade700,
+              color: scheme.secondary,
               borderRadius: BorderRadius.circular(6),
             ),
             child: FittedBox(
@@ -454,8 +466,8 @@ class _PeriodRow extends StatelessWidget {
               child: Text(
                 '${duration.round()}"',
                 maxLines: 1,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: scheme.onSecondary,
                   fontWeight: FontWeight.bold,
                 ),
               ),

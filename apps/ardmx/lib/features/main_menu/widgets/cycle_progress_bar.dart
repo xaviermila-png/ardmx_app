@@ -31,9 +31,6 @@ class CycleProgressBar extends ConsumerStatefulWidget {
 class _CycleProgressBarState extends ConsumerState<CycleProgressBar> {
   static const _pollInterval = Duration(seconds: 1);
 
-  static final _barColor = Colors.red.shade700;
-  static final _textColor = Colors.red.shade900;
-
   /// V[10] (cycle state, 1-8) -> label, matching the Arduino sketch's own
   /// EstatActual comments (0-indexed there, V10 = EstatActual + 1).
   static const _stateLabels = {
@@ -98,10 +95,11 @@ class _CycleProgressBarState extends ConsumerState<CycleProgressBar> {
     final fraction = totalTime > 0
         ? (currentTime / totalTime).clamp(0.0, 1.0)
         : 0.0;
+    final barColor = Theme.of(context).colorScheme.primary;
     final textStyle = TextStyle(
       fontWeight: FontWeight.bold,
       fontSize: 20,
-      color: _textColor,
+      color: barColor,
     );
 
     return Visibility(
@@ -131,12 +129,12 @@ class _CycleProgressBarState extends ConsumerState<CycleProgressBar> {
           Container(
             height: 40,
             decoration: BoxDecoration(
-              border: Border.all(color: _barColor, width: 2),
+              border: Border.all(color: barColor, width: 2),
             ),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: fraction,
-              child: Container(color: _barColor),
+              child: Container(color: barColor),
             ),
           ),
         ],

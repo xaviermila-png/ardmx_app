@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/bluetooth/bluetooth_connection_state.dart';
 import 'routing/app_router.dart';
 import 'state/providers.dart';
+import 'theme/ardmx_theme.dart';
 
 class App extends ConsumerStatefulWidget {
   const App({super.key});
@@ -46,10 +47,9 @@ class _AppState extends ConsumerState<App> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'ARDMX',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      theme: ArdmxTheme.light,
+      darkTheme: ArdmxTheme.dark,
+      themeMode: ThemeMode.system,
       navigatorObservers: [_observer],
       initialRoute: AppRoutes.splash,
       onGenerateRoute: AppRoutes.onGenerateRoute,

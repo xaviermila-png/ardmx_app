@@ -101,7 +101,7 @@ class _Ardmx4EvoMainMenuScreenState
               const Spacer(flex: 4),
               const CycleProgressBar(),
               const SizedBox(height: 20),
-              const Divider(color: Colors.black, thickness: 1, height: 1),
+              const Divider(thickness: 1, height: 1),
               const SizedBox(height: 20),
               const DialSelector(submenuBuilder: _submenu),
               const SizedBox(height: 24),

@@ -69,6 +69,7 @@ class TransitionModeSelector extends ConsumerWidget {
               child: _ModeColumn(
                 current: mode1,
                 color: Colors.red,
+                channelName: 'vermell',
                 onChanged: (m) => update(1, m),
               ),
             ),
@@ -76,6 +77,7 @@ class TransitionModeSelector extends ConsumerWidget {
               child: _ModeColumn(
                 current: mode2,
                 color: Colors.green,
+                channelName: 'verd',
                 onChanged: (m) => update(2, m),
               ),
             ),
@@ -83,6 +85,7 @@ class TransitionModeSelector extends ConsumerWidget {
               child: _ModeColumn(
                 current: mode3,
                 color: Colors.blue,
+                channelName: 'blau',
                 onChanged: (m) => update(3, m),
               ),
             ),
@@ -101,11 +104,13 @@ class _ModeColumn extends StatelessWidget {
   const _ModeColumn({
     required this.current,
     required this.color,
+    required this.channelName,
     required this.onChanged,
   });
 
   final TransitionMode? current;
   final Color color;
+  final String channelName;
   final ValueChanged<TransitionMode> onChanged;
 
   @override
@@ -125,6 +130,7 @@ class _ModeColumn extends StatelessWidget {
             _ModeOption(
               label: TransitionModeSelector._label(mode),
               color: color,
+              channelName: channelName,
               selected: current == mode,
               onTap: () => onChanged(mode),
             ),
@@ -138,37 +144,58 @@ class _ModeOption extends StatelessWidget {
   const _ModeOption({
     required this.label,
     required this.color,
+    required this.channelName,
     required this.selected,
     required this.onTap,
   });
 
   final String label;
   final Color color;
+  final String channelName;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(4),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(5),
-                border: Border.all(color: color, width: 2),
-                color: selected ? color : Colors.transparent,
+    return Semantics(
+      // inMutuallyExclusiveGroup: the 3 options within one channel's
+      // column are a radio group (Gradual/Inicial/Final), not independent
+      // toggles — this tells a screen reader that too.
+      label: 'Transició $label, canal $channelName',
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(4),
+        // 48dp minimum touch target (WCAG 2.5.5/2.5.8) — the visible 20x20
+        // checkbox + text is much shorter than that on its own, so this pads
+        // the tappable area out to the full height without changing what's
+        // drawn.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: color, width: 2),
+                      color: selected ? color : Colors.transparent,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(label, style: const TextStyle(fontSize: 15)),
+                ],
               ),
             ),
-            const SizedBox(width: 8),
-            Text(label, style: const TextStyle(fontSize: 15)),
-          ],
+          ),
         ),
       ),
     );

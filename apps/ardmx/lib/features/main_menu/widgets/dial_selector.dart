@@ -7,10 +7,11 @@ import '../../../state/providers.dart';
 /// The 7-position main rotary dial (V[11]), laid out as a square-ish grid:
 /// row 1 is the 4 scene buttons (squares), row 2 is
 /// Automàtic/Manual/Configuració (3 rectangles spanning the same total
-/// width, and the same height, as row 1). Each active button gets a color
-/// by category: scenes = pastel orange, Automàtic/Manual = pastel green,
-/// Configuració = pastel lilac (which also reveals a third row of submenu
-/// buttons: Escenes/Cicle/Paràmetres/Crèdits).
+/// width, and the same height, as row 1). The active button always gets
+/// the theme's `primaryContainer`/`onPrimaryContainer` (previously a
+/// different ad-hoc color per category — orange for scenes, green for
+/// Automàtic/Manual — now unified on-brand). Configuració also reveals a
+/// third row of submenu buttons: Escenes/Cicle/Paràmetres/Crèdits.
 class DialSelector extends ConsumerWidget {
   const DialSelector({super.key, required this.submenuBuilder});
 
@@ -55,18 +56,6 @@ class DialSelector extends ConsumerWidget {
     return null;
   }
 
-  static (Color, Color) _selectedColors(MainSelectorMode mode) {
-    switch (mode) {
-      case MainSelectorMode.configuration:
-        return (Colors.deepPurple.shade200, Colors.deepPurple.shade900);
-      case MainSelectorMode.automatic:
-      case MainSelectorMode.manual:
-        return (Colors.green.shade200, Colors.green.shade900);
-      default:
-        return (Colors.orange.shade200, Colors.orange.shade900);
-    }
-  }
-
   Widget _modeButton({
     required WidgetRef ref,
     required MainSelectorMode mode,
@@ -74,14 +63,11 @@ class DialSelector extends ConsumerWidget {
     required double width,
     required double height,
   }) {
-    final (bg, fg) = _selectedColors(mode);
     return _ModeButton(
       label: _labels[mode]!,
       width: width,
       height: height,
       selected: current == mode.vValue,
-      selectedBackground: bg,
-      selectedForeground: fg,
       onTap: () => ref.read(appStateProvider.notifier).selectMainMode(mode),
     );
   }
@@ -152,8 +138,6 @@ class _ModeButton extends StatelessWidget {
     required this.width,
     required this.height,
     required this.selected,
-    required this.selectedBackground,
-    required this.selectedForeground,
     required this.onTap,
   });
 
@@ -161,32 +145,55 @@ class _ModeButton extends StatelessWidget {
   final double width;
   final double height;
   final bool selected;
-  final Color selectedBackground;
-  final Color selectedForeground;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      height: height,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          backgroundColor: selected ? selectedBackground : null,
-          foregroundColor: selected ? selectedForeground : null,
-          elevation: selected ? 4 : 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+    final scheme = Theme.of(context).colorScheme;
+    // Merges into FilledButton's own auto-generated "button" semantics
+    // (same node — Semantics here doesn't force a new container) so a
+    // screen reader gets "label, selected/not selected, button" instead of
+    // relying on the visual-only color/border cue for which mode is active.
+    return Semantics(
+      selected: selected,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: FilledButton(
+          onPressed: onTap,
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            backgroundColor: selected ? scheme.primaryContainer : scheme.surfaceContainerHighest,
+            foregroundColor: selected
+                ? scheme.onPrimaryContainer
+                : scheme.onSurfaceVariant,
+            elevation: selected ? 4 : 1,
+            // The selected state isn't color/elevation alone: a visible
+            // border and bold text carry the same information non-visually
+            // distinguishable-color-blind-safe way too.
+            side: selected
+                ? BorderSide(color: scheme.primary, width: 2)
+                : BorderSide.none,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 13),
+          // FittedBox instead of maxLines+ellipsis: this button has a
+          // fixed width/height from the parent SizedBox, so at a large
+          // system text scale (150-200%) the label needs to shrink to fit
+          // rather than get clipped mid-word.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
         ),
       ),
     );

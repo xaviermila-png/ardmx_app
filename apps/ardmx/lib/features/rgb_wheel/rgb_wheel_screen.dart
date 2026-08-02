@@ -202,22 +202,22 @@ class _RgbWheelScreenState extends ConsumerState<RgbWheelScreen> {
           const SizedBox(height: 10),
           Container(
             width: double.infinity,
-            color: Colors.grey.shade300,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Text(
-                  '${(displayColor.r * 255).round()}',
-                  style: _valueStyle(Colors.red),
+                _ChannelValue(
+                  value: (displayColor.r * 255).round(),
+                  dotColor: Colors.red,
                 ),
-                Text(
-                  '${(displayColor.g * 255).round()}',
-                  style: _valueStyle(Colors.green),
+                _ChannelValue(
+                  value: (displayColor.g * 255).round(),
+                  dotColor: Colors.green,
                 ),
-                Text(
-                  '${(displayColor.b * 255).round()}',
-                  style: _valueStyle(Colors.blue),
+                _ChannelValue(
+                  value: (displayColor.b * 255).round(),
+                  dotColor: Colors.blue,
                 ),
               ],
             ),
@@ -248,13 +248,15 @@ class _RgbWheelScreenState extends ConsumerState<RgbWheelScreen> {
           SliderTheme(
             data: SliderThemeData(
               trackHeight: 10,
-              activeTrackColor: Colors.amber.shade700,
-              inactiveTrackColor: Colors.amber.shade100,
+              activeTrackColor: Theme.of(context).colorScheme.primary,
+              inactiveTrackColor: Theme.of(
+                context,
+              ).colorScheme.primaryContainer,
               thumbShape: RoundedSquareThumbShape(
                 size: 40,
                 cornerRadius: 10,
                 channelNumber: brightness255.round(),
-                textColor: Colors.amber.shade900,
+                textColor: Theme.of(context).colorScheme.primary,
                 textFontSize: 16,
                 rotateText: false,
               ),
@@ -288,10 +290,41 @@ class _RgbWheelScreenState extends ConsumerState<RgbWheelScreen> {
   }
 
   static const _numberStyle = TextStyle(fontSize: 22, fontWeight: FontWeight.bold);
+}
 
-  static TextStyle _valueStyle(Color color) => TextStyle(
-    color: color,
-    fontSize: 24,
-    fontWeight: FontWeight.bold,
-  );
+/// One R/G/B value — the number itself stays in the theme's normal (dark)
+/// text color for guaranteed contrast; the channel color is only a small
+/// reinforcing dot next to it, not the text color. Coloring the digits
+/// themselves (the previous design) failed WCAG's 3:1 large-text minimum
+/// for green/blue against a light background (as low as 2.5:1) — the dot
+/// keeps the at-a-glance R/G/B association without that failure mode, and
+/// also means the channel isn't identified by color alone.
+class _ChannelValue extends StatelessWidget {
+  const _ChannelValue({required this.value, required this.dotColor});
+
+  final int value;
+  final Color dotColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          '$value',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
 }

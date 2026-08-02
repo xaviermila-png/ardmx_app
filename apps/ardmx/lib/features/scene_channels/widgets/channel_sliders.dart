@@ -146,6 +146,16 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
   }
 
   Widget _slider(int slot, double value, int? channelNumber, Color color) {
+    // The channel color is carried by the border and the slider track —
+    // it's deliberately not used for the value/channel-number *text*
+    // (Colors.red/green especially fell as low as ~2.5:1 against a light
+    // background, well under WCAG's 3:1 large-text minimum). Neutral
+    // onSurface text keeps guaranteed contrast regardless of which
+    // channel color is in play.
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final channelLabel = channelNumber != null
+        ? 'Fader canal $slot, canal $channelNumber'
+        : 'Fader canal $slot';
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8),
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -158,7 +168,7 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
           Text(
             value.round().toString(),
             style: TextStyle(
-              color: color,
+              color: onSurface,
               fontSize: widget.valueFontSize,
               fontWeight: FontWeight.bold,
             ),
@@ -173,7 +183,7 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
                     size: widget.thumbSize,
                     cornerRadius: widget.cornerRadius,
                     channelNumber: channelNumber,
-                    textColor: color,
+                    textColor: onSurface,
                   ),
                 ).copyWith(activeTrackColor: color),
                 child: Slider(
@@ -182,6 +192,14 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
                   max: 255,
                   onChanged: (v) => _onChanged(slot, v),
                   onChangeEnd: (v) => _onChangeEnd(slot, v),
+                  // Custom announcement (e.g. "Fader canal 1, canal 4, 180")
+                  // instead of Slider's own generic "value" — this keeps
+                  // its built-in adjustable semantics (swipe up/down to
+                  // change value with a screen reader) intact, unlike
+                  // wrapping it in a Semantics/ExcludeSemantics pair which
+                  // would silently drop that interaction.
+                  semanticFormatterCallback: (v) =>
+                      '$channelLabel, ${v.round()} de 255',
                 ),
               ),
             ),

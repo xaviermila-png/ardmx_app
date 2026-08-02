@@ -36,14 +36,15 @@ class ChannelNumberBar extends ConsumerWidget {
     final ch1 = ref.watch(appStateProvider.select((s) => s.channel1Number));
     final ch2 = ref.watch(appStateProvider.select((s) => s.channel2Number));
     final ch3 = ref.watch(appStateProvider.select((s) => s.channel3Number));
+    final scheme = Theme.of(context).colorScheme;
     final textStyle = TextStyle(
-      color: Colors.white,
+      color: scheme.onPrimary,
       fontSize: fontSize,
       fontWeight: FontWeight.bold,
     );
 
     return Container(
-      color: Colors.blue.shade900,
+      color: scheme.primary,
       padding: padding,
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -81,14 +81,20 @@ class CreditsScreen extends ConsumerWidget {
                     style: TextStyle(fontSize: 16),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     "Versió de l'app: $kAppVersion",
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     'Firmware Arduino: ${firmwareVersion ?? '—'}',
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),

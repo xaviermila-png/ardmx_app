@@ -79,7 +79,10 @@ class _Badge extends StatelessWidget {
           Icon(icon, color: color, size: 18),
           const SizedBox(width: 4),
           // Constrained so a long message can never overflow the AppBar —
-          // it truncates with an ellipsis instead.
+          // it truncates with an ellipsis instead. The full, untruncated
+          // text is still what a screen reader announces (see the
+          // Semantics wrapper below), so nothing is lost there even when
+          // this clips visually.
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 140),
             child: Text(
@@ -92,6 +95,12 @@ class _Badge extends StatelessWidget {
         ],
       ),
     );
-    return details == null ? content : Tooltip(message: details!, child: content);
+    // "Bluetooth: " prefix since this badge otherwise has no visible title
+    // — without it, a screen reader would just announce e.g. "Connectant…"
+    // with no indication of what that's the status of.
+    final labeled = Semantics(label: 'Bluetooth: $label', child: content);
+    return details == null
+        ? labeled
+        : Tooltip(message: details!, child: labeled);
   }
 }

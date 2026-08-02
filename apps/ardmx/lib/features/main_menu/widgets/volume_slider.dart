@@ -186,6 +186,7 @@ class _VolumeSliderState extends ConsumerState<VolumeSlider> {
             divisions: 30,
             onChanged: _onChanged,
             onChangeEnd: _onChangeEnd,
+            semanticFormatterCallback: (v) => 'Volum, ${v.round()} de 30',
           ),
         ),
       ],

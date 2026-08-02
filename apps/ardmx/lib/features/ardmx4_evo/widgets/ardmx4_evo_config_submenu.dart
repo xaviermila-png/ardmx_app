@@ -25,6 +25,7 @@ class Ardmx4EvoConfigSubmenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -33,12 +34,12 @@ class Ardmx4EvoConfigSubmenu extends StatelessWidget {
           SizedBox(
             width: squareSize,
             height: squareSize,
-            child: ElevatedButton(
+            child: FilledButton(
               onPressed: () => Navigator.of(context).pushNamed(_items[i].$2),
-              style: ElevatedButton.styleFrom(
+              style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
-                backgroundColor: Colors.deepPurple.shade100,
-                foregroundColor: Colors.deepPurple.shade900,
+                backgroundColor: scheme.primaryContainer,
+                foregroundColor: scheme.onPrimaryContainer,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),

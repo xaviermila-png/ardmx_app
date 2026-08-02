@@ -177,7 +177,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                               width: 80,
                               padding: const EdgeInsets.symmetric(vertical: 2),
                               decoration: BoxDecoration(
-                                color: Colors.green.shade600,
+                                color: Theme.of(context).colorScheme.primary,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: TextField(
@@ -187,10 +187,10 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                                 inputFormatters: [
                                   FilteringTextInputFormatter.digitsOnly,
                                 ],
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: Theme.of(context).colorScheme.onPrimary,
                                 ),
                                 decoration: const InputDecoration(
                                   border: InputBorder.none,
@@ -216,9 +216,9 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                               Text(
                                 _numeroCanalsError!,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.red,
+                                  color: Theme.of(context).colorScheme.error,
                                 ),
                               ),
                             ],
@@ -291,7 +291,7 @@ class _Section extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -575,7 +575,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancel·lar'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Importar'),
           ),
@@ -692,13 +692,13 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton.icon(
+            FilledButton.icon(
               onPressed: _export,
               icon: const Icon(Icons.upload_file),
               label: const Text('Exportar'),
             ),
             const SizedBox(width: 12),
-            OutlinedButton.icon(
+            FilledButton.icon(
               onPressed: _import,
               icon: const Icon(Icons.download),
               label: const Text('Importar'),

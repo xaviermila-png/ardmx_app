@@ -16,8 +16,9 @@ class SceneNavigator extends ConsumerWidget {
       appStateProvider.select((s) => s.activeScene),
     );
 
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      color: Colors.green.shade900,
+      color: scheme.primary,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
         children: [
@@ -30,8 +31,8 @@ class SceneNavigator extends ConsumerWidget {
             child: Text(
               'Escena ${activeScene ?? '—'}',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: scheme.onPrimary,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),

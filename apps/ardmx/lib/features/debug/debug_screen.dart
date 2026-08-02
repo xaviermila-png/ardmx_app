@@ -150,32 +150,32 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      ElevatedButton(
+                      FilledButton(
                         onPressed: _pickAndConnect,
                         child: const Text('Connectar...'),
                       ),
-                      ElevatedButton(
+                      FilledButton(
                         onPressed: () => ref
                             .read(bluetoothConnectionServiceProvider.notifier)
                             .disconnect(),
                         child: const Text('Desconnectar'),
                       ),
-                      ElevatedButton(
+                      FilledButton(
                         onPressed: () =>
                             ref.read(protocolProvider).writeV(16, 20),
                         child: const Text('Enviar V16=20'),
                       ),
-                      ElevatedButton(
+                      FilledButton(
                         onPressed: () =>
                             ref.read(protocolProvider).requestV(14),
                         child: const Text('Demanar V14'),
                       ),
-                      ElevatedButton(
+                      FilledButton(
                         onPressed: () =>
                             Navigator.of(context).pushNamed(AppRoutes.ardmxOne),
                         child: const Text('ARDMX One (mode demo)'),
                       ),
-                      ElevatedButton(
+                      FilledButton(
                         onPressed: () => Navigator.of(
                           context,
                         ).pushNamed(AppRoutes.ardmx4EvoMainMenu),
@@ -216,15 +216,15 @@ class _DebugScreenState extends ConsumerState<DebugScreen> {
                           ),
                         ),
                       ),
-                      ElevatedButton(
+                      FilledButton(
                         onPressed: _rawWriteNumber,
                         child: const Text('Escriu V (num)'),
                       ),
-                      ElevatedButton(
+                      FilledButton(
                         onPressed: _rawWriteText,
                         child: const Text('Escriu T (text)'),
                       ),
-                      ElevatedButton(
+                      FilledButton(
                         onPressed: _rawRequest,
                         child: const Text('Demana'),
                       ),
