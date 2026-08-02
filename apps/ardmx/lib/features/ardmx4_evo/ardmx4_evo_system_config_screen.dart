@@ -160,7 +160,7 @@ class _BluetoothNameSectionState extends ConsumerState<_BluetoothNameSection> {
     return Column(
       children: [
         const Text(
-          'Fins a 15 caràcters.',
+          'Fins a 15 caràcters: lletres, xifres i "_".',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 13),
         ),
@@ -169,6 +169,9 @@ class _BluetoothNameSectionState extends ConsumerState<_BluetoothNameSection> {
           controller: _controller,
           textAlign: TextAlign.center,
           maxLength: _maxLength,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp('[a-zA-Z0-9_]')),
+          ],
           decoration: const InputDecoration(border: OutlineInputBorder()),
         ),
         const SizedBox(height: 4),

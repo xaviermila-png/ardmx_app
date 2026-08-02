@@ -12,12 +12,15 @@ import '../../routing/app_router.dart';
 import '../../state/providers.dart';
 import '../../widgets/connection_badge.dart';
 
-/// Bluetooth connect/disconnect here is fully explicit — no auto-connect on
-/// launch, no automatic reconnect on drop. This is deliberate (carried over
-/// from diagnosing a real HC-05 connectivity issue on the sibling Classic
-/// app): auto-retry logic made failures harder to reproduce (it was found to
-/// hammer the module with rapid reconnect attempts). The user scans and taps
-/// Connect/Disconnect themselves.
+/// A BLE scan starts automatically once permissions are granted (see
+/// [_initialize]), populating a dropdown the user picks from — a manual
+/// "Tornar a escanejar" button re-triggers it if the wanted device didn't
+/// show up in time. Connecting itself is still a fully explicit user action
+/// (tap "Connectar" after picking a device) — no auto-connect, no automatic
+/// reconnect on drop. That part is deliberate (carried over from diagnosing
+/// a real HC-05 connectivity issue on the sibling Classic app): auto-retry
+/// logic made failures harder to reproduce (it was found to hammer the
+/// module with rapid reconnect attempts).
 ///
 /// BLE-only — this app never bonds/pairs devices via Android settings, it
 /// scans fresh every time (see [BluetoothConnectionService.bleScanResults]).
@@ -35,6 +38,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   bool _bleScanning = false;
   List<DiscoveredDevice> _bleDevices = const [];
+  DiscoveredDevice? _selectedDevice;
+  String? _lastKnownAddress;
   StreamSubscription<List<DiscoveredDevice>>? _bleScanSubscription;
 
   @override
@@ -65,6 +70,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         return;
       }
       setState(() => _checkingPermission = false);
+
+      final service = ref.read(bluetoothConnectionServiceProvider.notifier);
+      _lastKnownAddress = await service.lastKnownDeviceAddress();
+      if (!mounted) return;
+      unawaited(_startBleScan());
     } catch (error) {
       // Never leave the UI stuck on the loading spinner — surface the
       // failure with a way to retry instead. Observed in practice: the
@@ -95,7 +105,23 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     _bleScanSubscription?.cancel();
     _bleScanSubscription = service.bleScanResults.listen((devices) {
       if (!mounted) return;
-      setState(() => _bleDevices = devices);
+      setState(() {
+        _bleDevices = devices;
+        // Keep the current selection if it's still in range; otherwise
+        // prefer the last device successfully connected to, falling back
+        // to whichever was found first.
+        if (_selectedDevice == null || !devices.contains(_selectedDevice)) {
+          DiscoveredDevice? preselected;
+          for (final device in devices) {
+            if (device.address == _lastKnownAddress) {
+              preselected = device;
+              break;
+            }
+          }
+          _selectedDevice =
+              preselected ?? (devices.isNotEmpty ? devices.first : null);
+        }
+      });
     });
     try {
       await service.startBleScan();
@@ -165,71 +191,87 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     );
   }
 
-  Widget _sectionTitle(String text) => Text(
-    text,
-    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-  );
-
-  Widget _buildBleSection({
+  Widget _buildDevicePicker({
     required bool connected,
     required bool connecting,
   }) {
-    final canScan = !connected && !connecting && !_bleScanning;
     return Column(
       children: [
-        _sectionTitle('BLE (ARDMX One / EVO)'),
-        const SizedBox(height: 6),
-        SizedBox(
-          width: 260,
-          child: ElevatedButton.icon(
-            onPressed: canScan ? _startBleScan : null,
-            icon: _bleScanning
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.bluetooth_searching),
-            label: Text(_bleScanning ? 'Escanejant…' : 'Escanejar'),
-          ),
-        ),
-        const SizedBox(height: 10),
         if (_bleDevices.isEmpty)
           Text(
-            _bleScanning
-                ? 'Cercant dispositius…'
-                : 'Cap dispositiu trobat. Prem "Escanejar".',
+            _bleScanning ? 'Cercant dispositius…' : 'Cap dispositiu trobat.',
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 12),
           )
         else
           Container(
             width: 260,
-            constraints: const BoxConstraints(maxHeight: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.deepPurple.shade200, width: 2),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: ListView(
-              shrinkWrap: true,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              children: [
-                for (final device in _bleDevices)
-                  ListTile(
-                    dense: true,
-                    title: Text(
-                      device.name ?? device.address,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<DiscoveredDevice>(
+                value: _selectedDevice,
+                isExpanded: true,
+                iconSize: 36,
+                items: [
+                  for (final device in _bleDevices)
+                    DropdownMenuItem(
+                      value: device,
+                      child: Text(
+                        device.name ?? device.address,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 16),
+                      ),
                     ),
-                    onTap: (connected || connecting)
-                        ? null
-                        : () => _connect(device),
-                  ),
-              ],
+                ],
+                onChanged: (connected || connecting)
+                    ? null
+                    : (device) => setState(() => _selectedDevice = device),
+              ),
             ),
           ),
       ],
+    );
+  }
+
+  /// One consistent look for every action button on this screen (always a
+  /// concrete [BorderSide], never null — toggling it between null and
+  /// non-null was observed to trip a Flutter/Material3 framework bug,
+  /// "Failed to interpolate TextStyles with different inherit values",
+  /// showing a transient red error screen; transparent stands in for "no
+  /// border" instead). Order on screen: Connectar, Desconnectar, Tornar a
+  /// escanejar, Menú.
+  Widget _actionButton({
+    required bool enabled,
+    required Widget icon,
+    required String label,
+    required VoidCallback? onPressed,
+    bool outlined = false,
+  }) {
+    final side = BorderSide(
+      color: enabled ? Colors.deepPurple : Colors.transparent,
+      width: 2,
+    );
+    final child = Text(label, maxLines: 1, overflow: TextOverflow.ellipsis);
+    return SizedBox(
+      width: 260,
+      child: outlined
+          ? OutlinedButton.icon(
+              onPressed: onPressed,
+              style: OutlinedButton.styleFrom(side: side),
+              icon: icon,
+              label: child,
+            )
+          : ElevatedButton.icon(
+              onPressed: onPressed,
+              style: ElevatedButton.styleFrom(side: side),
+              icon: icon,
+              label: child,
+            ),
     );
   }
 
@@ -356,38 +398,61 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         if (!_checkingPermission &&
                             !_permissionDenied &&
                             _errorMessage == null) ...[
-                          _buildBleSection(
+                          _buildDevicePicker(
                             connected: connected,
                             connecting: connecting,
                           ),
                           const SizedBox(height: 20),
-                          SizedBox(
-                            width: 260,
-                            child: OutlinedButton.icon(
-                              onPressed: connected ? _disconnect : null,
-                              style: OutlinedButton.styleFrom(
-                                // Always a concrete BorderSide (never null) —
-                                // toggling it between null and non-null was
-                                // observed (on the sibling ARDMX Classic app,
-                                // same pattern) to trip a Flutter/Material3
-                                // framework bug ("Failed to interpolate
-                                // TextStyles with different inherit values"),
-                                // showing a transient red error screen.
-                                // Transparent stands in for "no border".
-                                side: BorderSide(
-                                  color: connected
-                                      ? Colors.deepPurple
-                                      : Colors.transparent,
-                                  width: 2,
-                                ),
-                              ),
-                              icon: const Icon(Icons.bluetooth_disabled),
-                              label: const Text(
-                                'Desconnectar',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
+                          _actionButton(
+                            enabled:
+                                !connected &&
+                                !connecting &&
+                                _selectedDevice != null,
+                            icon: const Icon(Icons.bluetooth_connected),
+                            label: 'Connectar',
+                            onPressed: (!connected &&
+                                    !connecting &&
+                                    _selectedDevice != null)
+                                ? () => _connect(_selectedDevice!)
+                                : null,
+                          ),
+                          const SizedBox(height: 10),
+                          _actionButton(
+                            enabled: connected,
+                            outlined: true,
+                            icon: const Icon(Icons.bluetooth_disabled),
+                            label: 'Desconnectar',
+                            onPressed: connected ? _disconnect : null,
+                          ),
+                          const SizedBox(height: 10),
+                          _actionButton(
+                            enabled:
+                                !connected && !connecting && !_bleScanning,
+                            icon: _bleScanning
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.bluetooth_searching),
+                            label: _bleScanning
+                                ? 'Escanejant…'
+                                : 'Tornar a escanejar',
+                            onPressed:
+                                (!connected && !connecting && !_bleScanning)
+                                ? _startBleScan
+                                : null,
+                          ),
+                          const SizedBox(height: 10),
+                          _actionButton(
+                            enabled: connected,
+                            icon: const Icon(Icons.menu),
+                            label: 'Menú',
+                            onPressed: connected
+                                ? () => _goToDeviceHome(isManualTap: true)
+                                : null,
                           ),
                           if (connection.status ==
                               BluetoothConnectionStatus.failed) ...[
@@ -402,47 +467,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                             ),
                           ],
                         ],
-                        const SizedBox(height: 32),
-                        SizedBox(
-                          width: 105,
-                          height: 105,
-                          child: ElevatedButton(
-                            onPressed: connected
-                                ? () => _goToDeviceHome(isManualTap: true)
-                                : null,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.all(4),
-                              backgroundColor: connected
-                                  ? Colors.deepPurple.shade200
-                                  : null,
-                              foregroundColor: connected
-                                  ? Colors.deepPurple.shade900
-                                  : null,
-                              elevation: connected ? 6 : 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            // fontSize/fontWeight applied directly to the
-                            // Text rather than via ButtonStyle.textStyle: a
-                            // custom raw TextStyle there, combined with
-                            // onPressed toggling null/non-null, was
-                            // observed (on the sibling ARDMX Classic app,
-                            // same pattern) to trip a Flutter/Material3
-                            // framework bug ("Failed to interpolate
-                            // TextStyles with different inherit values")
-                            // right as `connected` flips true, showing a
-                            // transient red error screen.
-                            child: const Text(
-                              'Menú',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
