@@ -44,47 +44,25 @@ class Ardmx4EvoSystemConfigScreen extends ConsumerWidget {
       },
       child: AppScaffold(
         title: 'Configuració del sistema',
-        automaticallyImplyLeading: false,
-        body: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _Section(
-                      title: 'Nom Bluetooth',
-                      child: const _BluetoothNameSection(),
-                    ),
-                    const SizedBox(height: 8),
-                    _Section(
-                      title: 'Configuració',
-                      child: const _ExportImportSection(),
-                    ),
-                    const SizedBox(height: 8),
-                    const _ResetSection(),
-                  ],
-                ),
+        onBack: () => _attemptBack(ref, context),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Section(
+                title: 'Nom Bluetooth',
+                child: const _BluetoothNameSection(),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Row(
-                children: [
-                  FloatingActionButton(
-                    heroTag: 'ardmx4EvoSystemConfigBack',
-                    onPressed: () => _attemptBack(ref, context),
-                    tooltip: 'Tornar a paràmetres',
-                    child: const Icon(Icons.arrow_back),
-                  ),
-                ],
+              const SizedBox(height: 8),
+              _Section(
+                title: 'Configuració',
+                child: const _ExportImportSection(),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              const _ResetSection(),
+            ],
+          ),
         ),
       ),
     );
@@ -180,7 +158,6 @@ class _BluetoothNameSectionState extends ConsumerState<_BluetoothNameSection> {
     );
   }
 }
-
 
 /// Factory-reset section: same armed/confirm two-step pattern (V41 arm, V42
 /// confirm) as ARDMX4's and ARDMX One's own reset sections, reusing the
@@ -773,7 +750,9 @@ class _SelectableButton extends StatelessWidget {
             // Armed/OFF toggle for the destructive reset flow below — the
             // errorContainer pair (not primaryContainer) since it's arming a
             // dangerous action, not a normal selection.
-            backgroundColor: selected ? scheme.errorContainer : scheme.surfaceContainerHighest,
+            backgroundColor: selected
+                ? scheme.errorContainer
+                : scheme.surfaceContainerHighest,
             foregroundColor: selected
                 ? scheme.onErrorContainer
                 : scheme.onSurfaceVariant,

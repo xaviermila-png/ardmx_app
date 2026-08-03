@@ -18,12 +18,16 @@ class SceneNavigator extends ConsumerWidget {
 
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      color: scheme.primary,
+      // secondary rather than primary: this bar sits directly above
+      // ChannelNumberBar (which uses primary), and with both the same
+      // color the two blended into what looked like one wide bar.
+      color: scheme.secondary,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
         children: [
           NavArrowButton(
             icon: Icons.arrow_back,
+            foregroundColor: scheme.onSecondary,
             onPressed: () =>
                 ref.read(appStateProvider.notifier).changeScene(-1),
           ),
@@ -32,7 +36,7 @@ class SceneNavigator extends ConsumerWidget {
               'Escena ${activeScene ?? '—'}',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: scheme.onPrimary,
+                color: scheme.onSecondary,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
@@ -40,6 +44,7 @@ class SceneNavigator extends ConsumerWidget {
           ),
           NavArrowButton(
             icon: Icons.arrow_forward,
+            foregroundColor: scheme.onSecondary,
             onPressed: () => ref.read(appStateProvider.notifier).changeScene(1),
           ),
         ],

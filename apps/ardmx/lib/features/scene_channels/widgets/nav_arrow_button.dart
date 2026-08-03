@@ -3,27 +3,33 @@ import 'package:flutter/material.dart';
 /// A filled square (rounded-corner) icon button used for the "<-" / "->"
 /// navigator controls — a plain [IconButton] on a colored bar doesn't read
 /// as tappable, so this gives it a visible translucent background. Sits on
-/// bars that are always `colorScheme.primary` (see [SceneNavigator]/
-/// `ChannelNumberBar`), so `onPrimary` is the correct foreground here.
+/// colored bars ([SceneNavigator]'s `secondary`, `ChannelNumberBar`'s
+/// `primary`) — [foregroundColor] defaults to `onPrimary` since that's the
+/// more common case, but [SceneNavigator] passes `onSecondary` to match its
+/// own bar color (the two bars were deliberately given different brand
+/// colors so they don't blend together visually, sitting right on top of
+/// each other on the Scene/Channels screen).
 class NavArrowButton extends StatelessWidget {
   const NavArrowButton({
     super.key,
     required this.icon,
     required this.onPressed,
+    this.foregroundColor,
   });
 
   final IconData icon;
   final VoidCallback onPressed;
+  final Color? foregroundColor;
 
   @override
   Widget build(BuildContext context) {
-    final onPrimary = Theme.of(context).colorScheme.onPrimary;
+    final fg = foregroundColor ?? Theme.of(context).colorScheme.onPrimary;
     return IconButton(
       icon: Icon(icon),
       onPressed: onPressed,
       style: IconButton.styleFrom(
-        backgroundColor: onPrimary.withValues(alpha: 0.25),
-        foregroundColor: onPrimary,
+        backgroundColor: fg.withValues(alpha: 0.25),
+        foregroundColor: fg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         padding: const EdgeInsets.all(10),
         // Visually this is ~44dp (24dp icon + 10dp padding); explicit

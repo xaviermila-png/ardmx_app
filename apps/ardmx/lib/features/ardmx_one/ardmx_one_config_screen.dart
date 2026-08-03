@@ -98,9 +98,9 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
     }
   }
 
-  // Flotant i amb marge inferior perquè no quedi tapat pel propi botó de
-  // fletxa enrere (56px d'alçada + 12px de padding, vegeu el Padding que
-  // l'envolta més avall).
+  // Flotant i amb marge inferior perquè no quedi tapat pel botó de
+  // "Configuració del sistema" (56px d'alçada + 12px de padding, vegeu el
+  // Padding que l'envolta més avall).
   void _showBackBlockedMessage() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -139,7 +139,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
       },
       child: AppScaffold(
         title: 'Paràmetres',
-        automaticallyImplyLeading: false,
+        onBack: _attemptBack,
         body: Column(
           children: [
             // Desplaçable: amb el teclat obert per editar la descripció (fins
@@ -190,7 +190,9 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                                 style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.onPrimary,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
                                 ),
                                 decoration: const InputDecoration(
                                   border: InputBorder.none,
@@ -240,14 +242,8 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  FloatingActionButton(
-                    heroTag: 'ardmxOneConfigBack',
-                    onPressed: _attemptBack,
-                    tooltip: 'Tornar als canals',
-                    child: const Icon(Icons.arrow_back),
-                  ),
                   FloatingActionButton(
                     heroTag: 'ardmxOneSystemConfig',
                     onPressed: () {

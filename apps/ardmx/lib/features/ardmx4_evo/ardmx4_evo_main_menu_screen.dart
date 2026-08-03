@@ -85,7 +85,8 @@ class _Ardmx4EvoMainMenuScreenState
       },
       child: AppScaffold(
         title: 'Menú Principal',
-        automaticallyImplyLeading: false,
+        onBack: () => _goToConnectionScreen(context),
+        onExit: () => _exit(ref),
         body: Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           child: Column(
@@ -122,23 +123,6 @@ class _Ardmx4EvoMainMenuScreenState
                 ),
               ),
               const Spacer(flex: 1),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  FloatingActionButton(
-                    heroTag: 'ardmx4EvoMainMenuBack',
-                    onPressed: () => _goToConnectionScreen(context),
-                    tooltip: 'Tornar a la pantalla de connexió',
-                    child: const Icon(Icons.arrow_back),
-                  ),
-                  FloatingActionButton.extended(
-                    heroTag: 'ardmx4EvoMainMenuExit',
-                    onPressed: () => _exit(ref),
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Sortir'),
-                  ),
-                ],
-              ),
             ],
           ),
         ),

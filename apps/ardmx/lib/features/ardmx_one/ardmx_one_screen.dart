@@ -93,7 +93,8 @@ class _ArdmxOneScreenState extends ConsumerState<ArdmxOneScreen> {
       },
       child: AppScaffold(
         title: 'ARDMX One',
-        automaticallyImplyLeading: false,
+        onBack: () => _goToConnectionScreen(context),
+        onExit: () => _exit(ref),
         body: Column(
           children: [
             const ChannelNumberBar(),
@@ -115,15 +116,9 @@ class _ArdmxOneScreenState extends ConsumerState<ArdmxOneScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  FloatingActionButton(
-                    heroTag: 'ardmxOneBack',
-                    onPressed: () => _goToConnectionScreen(context),
-                    tooltip: 'Tornar a la pantalla de connexió',
-                    child: const Icon(Icons.arrow_back),
-                  ),
                   FloatingActionButton(
                     heroTag: 'ardmxOneConfig',
                     onPressed: () => Navigator.of(
@@ -132,53 +127,40 @@ class _ArdmxOneScreenState extends ConsumerState<ArdmxOneScreen> {
                     tooltip: 'Configuració',
                     child: const Icon(Icons.settings),
                   ),
-                  // RGB access stacked above Sortir, freeing horizontal room
-                  // now that the sliders take up less height.
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      FloatingActionButton(
-                        heroTag: 'ardmxOneRgbWheel',
-                        onPressed: () =>
-                            Navigator.of(context).pushNamed(AppRoutes.rgbWheel),
-                        tooltip: 'Configuració RGB (roda de color)',
-                        child: SizedBox(
-                          width: 56,
-                          height: 56,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              ClipOval(
-                                child: Image.asset(
-                                  'assets/imatges/RGB.png',
-                                  fit: BoxFit.cover,
-                                  width: 56,
-                                  height: 56,
-                                ),
-                              ),
-                              const Text(
-                                'RGB',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  shadows: [
-                                    Shadow(blurRadius: 4, color: Colors.white),
-                                  ],
-                                ),
-                              ),
-                            ],
+                  const SizedBox(width: 12),
+                  FloatingActionButton(
+                    heroTag: 'ardmxOneRgbWheel',
+                    onPressed: () =>
+                        Navigator.of(context).pushNamed(AppRoutes.rgbWheel),
+                    tooltip: 'Configuració RGB (roda de color)',
+                    child: SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          ClipOval(
+                            child: Image.asset(
+                              'assets/imatges/RGB.png',
+                              fit: BoxFit.cover,
+                              width: 56,
+                              height: 56,
+                            ),
                           ),
-                        ),
+                          const Text(
+                            'RGB',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              shadows: [
+                                Shadow(blurRadius: 4, color: Colors.white),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
-                      FloatingActionButton.extended(
-                        heroTag: 'ardmxOneExit',
-                        onPressed: () => _exit(ref),
-                        icon: const Icon(Icons.logout),
-                        label: const Text('Sortir'),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),

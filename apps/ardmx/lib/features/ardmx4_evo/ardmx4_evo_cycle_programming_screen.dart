@@ -146,7 +146,7 @@ class _Ardmx4EvoCycleProgrammingScreenState
 
     return AppScaffold(
       title: 'Programació Cicles',
-      automaticallyImplyLeading: false,
+      onBack: () => Navigator.of(context).pop(),
       body: Column(
         children: [
           Expanded(
@@ -351,19 +351,6 @@ class _Ardmx4EvoCycleProgrammingScreenState
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
-            child: Row(
-              children: [
-                FloatingActionButton(
-                  heroTag: 'ardmx4EvoCycleProgrammingBack',
-                  onPressed: () => Navigator.of(context).pop(),
-                  tooltip: 'Tornar al menú principal',
-                  child: const Icon(Icons.arrow_back),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -397,7 +384,9 @@ class _PeriodRow extends StatelessWidget {
       decoration: active
           ? BoxDecoration(
               color: scheme.primaryContainer,
-              border: Border(top: BorderSide(color: scheme.primary, width: 1.5)),
+              border: Border(
+                top: BorderSide(color: scheme.primary, width: 1.5),
+              ),
             )
           : null,
       child: Row(

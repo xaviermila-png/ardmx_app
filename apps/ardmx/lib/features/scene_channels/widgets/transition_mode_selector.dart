@@ -4,9 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/v_map.dart';
 import '../../../state/providers.dart';
 
-/// "Tipus de transició a l'escena" — 3 columns (one per R/G/B channel) of
-/// Gradual/Inicial/Final radio options, writing V31-V33 as a single
+/// "Tipus de transició a l'escena" — 3 columns (one per R/G/B channel,
+/// lined up under that channel's slider above), each a compact vertical
+/// [ToggleButtons] of Gradual/Inicial/Final, writing V31-V33 as a single
 /// batched write via [AppStateNotifier.setTransitionModes].
+///
+/// A horizontal `SegmentedButton` per channel (one earlier design of this
+/// widget) took up enough height stacked 3-high to squeeze the sliders
+/// above down to an uncomfortable size — this stays in the original
+/// side-by-side 3-column layout instead, just with [ToggleButtons] standing
+/// in for the old raw checkbox rows.
 class TransitionModeSelector extends ConsumerWidget {
   const TransitionModeSelector({super.key});
 
@@ -55,51 +62,40 @@ class TransitionModeSelector extends ConsumerWidget {
           );
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    return Row(
       children: [
-        const Text(
-          "Tipus de transició a l'escena",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        Expanded(
+          child: _ModeColumn(
+            current: mode1,
+            color: Colors.red,
+            channelName: 'vermell',
+            onChanged: (m) => update(1, m),
+          ),
         ),
-        const SizedBox(height: 2),
-        Row(
-          children: [
-            Expanded(
-              child: _ModeColumn(
-                current: mode1,
-                color: Colors.red,
-                channelName: 'vermell',
-                onChanged: (m) => update(1, m),
-              ),
-            ),
-            Expanded(
-              child: _ModeColumn(
-                current: mode2,
-                color: Colors.green,
-                channelName: 'verd',
-                onChanged: (m) => update(2, m),
-              ),
-            ),
-            Expanded(
-              child: _ModeColumn(
-                current: mode3,
-                color: Colors.blue,
-                channelName: 'blau',
-                onChanged: (m) => update(3, m),
-              ),
-            ),
-          ],
+        Expanded(
+          child: _ModeColumn(
+            current: mode2,
+            color: Colors.green,
+            channelName: 'verd',
+            onChanged: (m) => update(2, m),
+          ),
+        ),
+        Expanded(
+          child: _ModeColumn(
+            current: mode3,
+            color: Colors.blue,
+            channelName: 'blau',
+            onChanged: (m) => update(3, m),
+          ),
         ),
       ],
     );
   }
 }
 
-/// One channel's Gradual/Inicial/Final picker — a compact, boxed control
-/// (same bordered look as each channel's slider) with a rounded-square
-/// checkmark indicator instead of Material's default round radio dot, so
-/// the whole selector reads as one unit tied to its slider above.
+/// One channel's Gradual/Inicial/Final picker — a small vertical
+/// [ToggleButtons] tinted with that channel's color, inside the same
+/// bordered box the old checkbox column used.
 class _ModeColumn extends StatelessWidget {
   const _ModeColumn({
     required this.current,
@@ -115,86 +111,46 @@ class _ModeColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-      decoration: BoxDecoration(
-        border: Border.all(color: color.withValues(alpha: 0.6), width: 2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (final mode in TransitionMode.values)
-            _ModeOption(
-              label: TransitionModeSelector._label(mode),
-              color: color,
-              channelName: channelName,
-              selected: current == mode,
-              onTap: () => onChanged(mode),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ModeOption extends StatelessWidget {
-  const _ModeOption({
-    required this.label,
-    required this.color,
-    required this.channelName,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final Color color;
-  final String channelName;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
+    final selected = current ?? TransitionMode.gradual;
     return Semantics(
-      // inMutuallyExclusiveGroup: the 3 options within one channel's
-      // column are a radio group (Gradual/Inicial/Final), not independent
-      // toggles — this tells a screen reader that too.
-      label: 'Transició $label, canal $channelName',
-      selected: selected,
-      inMutuallyExclusiveGroup: true,
-      button: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(4),
-        // 48dp minimum touch target (WCAG 2.5.5/2.5.8) — the visible 20x20
-        // checkbox + text is much shorter than that on its own, so this pads
-        // the tappable area out to the full height without changing what's
-        // drawn.
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 48),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: color, width: 2),
-                      color: selected ? color : Colors.transparent,
-                    ),
+      // Groups the 3 toggles under one accessible description of which
+      // channel this column controls — each toggle's own label/selected
+      // state still comes from ToggleButtons itself.
+      label: 'Transició, canal $channelName',
+      container: true,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          border: Border.all(color: color.withValues(alpha: 0.6), width: 2),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Center(
+          child: ToggleButtons(
+            direction: Axis.vertical,
+            constraints: const BoxConstraints(minHeight: 26, minWidth: 64),
+            borderRadius: BorderRadius.circular(6),
+            fillColor: color,
+            // Black rather than white: white text on the channel colors
+            // (especially green/blue) fell as low as ~2.8:1 against WCAG's
+            // 4.5:1 minimum for normal-sized text; black clears it
+            // comfortably (5.7-7.6:1) without changing any brand color.
+            selectedColor: Colors.black,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            isSelected: [
+              for (final mode in TransitionMode.values) mode == selected,
+            ],
+            onPressed: (index) => onChanged(TransitionMode.values[index]),
+            children: [
+              for (final mode in TransitionMode.values)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    TransitionModeSelector._label(mode),
+                    style: const TextStyle(fontSize: 11),
                   ),
-                  const SizedBox(width: 8),
-                  Text(label, style: const TextStyle(fontSize: 15)),
-                ],
-              ),
-            ),
+                ),
+            ],
           ),
         ),
       ),

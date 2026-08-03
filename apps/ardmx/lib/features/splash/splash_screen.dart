@@ -376,10 +376,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           // remove once all 7 production screens are built.
                           onLongPress: () =>
                               Navigator.of(context).pushNamed(AppRoutes.debug),
-                          child: Image.asset(
-                            'assets/imatges/ARDMX_Logo.png',
-                            width: 140,
-                            height: 140,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(28),
+                            child: Image.asset(
+                              'assets/imatges/ARDMX_Logo.png',
+                              width: 140,
+                              height: 140,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 20),

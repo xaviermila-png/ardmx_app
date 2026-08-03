@@ -120,7 +120,7 @@ class _Ardmx4EvoParametersScreenState
 
     return AppScaffold(
       title: 'Paràmetres',
-      automaticallyImplyLeading: false,
+      onBack: () => Navigator.of(context).pop(),
       body: Column(
         children: [
           Expanded(
@@ -143,65 +143,54 @@ class _Ardmx4EvoParametersScreenState
                   const SizedBox(height: 8),
                   _Section(
                     title: "Nombre d'escenes",
-                    child: Row(
-                      children: [
-                        for (var n = 1; n <= 4; n++)
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              child: _SelectableButton(
-                                label: '$n',
-                                selected: scenesCount == n,
-                                onTap: () => ref
-                                    .read(appStateProvider.notifier)
-                                    .setActiveScenesCount(n),
-                              ),
-                            ),
-                          ),
-                      ],
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<int>(
+                        segments: [
+                          for (var n = 1; n <= 4; n++)
+                            ButtonSegment(value: n, label: Text('$n')),
+                        ],
+                        selected: scenesCount != null ? {scenesCount} : const {},
+                        emptySelectionAllowed: true,
+                        onSelectionChanged: (selection) => ref
+                            .read(appStateProvider.notifier)
+                            .setActiveScenesCount(selection.first),
+                        style: SegmentedButton.styleFrom(
+                          selectedBackgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primaryContainer,
+                          selectedForegroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
                   _Section(
                     title: 'Cançó a reproduir',
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
-                                child: _SelectableButton(
-                                  label: 'Off',
-                                  selected: songNumber == 0,
-                                  onTap: () => ref
-                                      .read(appStateProvider.notifier)
-                                      .setSongNumber(0),
-                                ),
-                              ),
-                            ),
-                            for (var n = 1; n <= 4; n++)
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                  ),
-                                  child: _SelectableButton(
-                                    label: '$n',
-                                    selected: songNumber == n,
-                                    onTap: () => ref
-                                        .read(appStateProvider.notifier)
-                                        .setSongNumber(n),
-                                  ),
-                                ),
-                              ),
-                          ],
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<int>(
+                        segments: [
+                          const ButtonSegment(value: 0, label: Text('Off')),
+                          for (var n = 1; n <= 4; n++)
+                            ButtonSegment(value: n, label: Text('$n')),
+                        ],
+                        selected: songNumber != null ? {songNumber} : const {},
+                        emptySelectionAllowed: true,
+                        onSelectionChanged: (selection) => ref
+                            .read(appStateProvider.notifier)
+                            .setSongNumber(selection.first),
+                        style: SegmentedButton.styleFrom(
+                          selectedBackgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primaryContainer,
+                          selectedForegroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
                         ),
-                      ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -240,7 +229,9 @@ class _Ardmx4EvoParametersScreenState
                                 style: TextStyle(
                                   fontSize: 26,
                                   fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.onPrimary,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
                                 ),
                               ),
                             ),
@@ -256,14 +247,8 @@ class _Ardmx4EvoParametersScreenState
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                FloatingActionButton(
-                  heroTag: 'ardmx4EvoParametersBack',
-                  onPressed: () => Navigator.of(context).pop(),
-                  tooltip: 'Tornar al menú principal',
-                  child: const Icon(Icons.arrow_back),
-                ),
                 FloatingActionButton(
                   heroTag: 'ardmx4EvoSystemConfig',
                   onPressed: () => Navigator.of(
@@ -425,62 +410,6 @@ class _Section extends StatelessWidget {
           const SizedBox(height: 6),
           child,
         ],
-      ),
-    );
-  }
-}
-
-class _SelectableButton extends StatelessWidget {
-  const _SelectableButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    // No fixed width — callers wrap this in Expanded within a Row so a
-    // whole row of buttons shrinks together on a narrow screen instead of
-    // overflowing (confirmed clipped on a small-screen Xiaomi at a fixed
-    // 56dp each).
-    return Semantics(
-      selected: selected,
-      child: SizedBox(
-        height: 56,
-        child: FilledButton(
-          onPressed: onTap,
-          style: FilledButton.styleFrom(
-            backgroundColor: selected ? scheme.primaryContainer : scheme.surfaceContainerHighest,
-            foregroundColor: selected
-                ? scheme.onPrimaryContainer
-                : scheme.onSurfaceVariant,
-            elevation: selected ? 4 : 1,
-            padding: const EdgeInsets.all(4),
-            minimumSize: Size.zero,
-            // The selected state isn't color/elevation alone — a visible
-            // border carries the same information non-color-dependently too.
-            side: selected
-                ? BorderSide(color: scheme.primary, width: 2)
-                : BorderSide.none,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              label,
-              maxLines: 1,
-              softWrap: false,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
       ),
     );
   }

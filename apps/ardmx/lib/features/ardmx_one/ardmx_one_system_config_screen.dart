@@ -39,46 +39,24 @@ class ArdmxOneSystemConfigScreen extends ConsumerWidget {
       },
       child: AppScaffold(
         title: 'Configuració del sistema',
-        automaticallyImplyLeading: false,
-        body: Column(
-          children: [
-            Expanded(
-              // Without this, the keyboard opening while editing the
-              // Bluetooth name shrinks the available height enough to
-              // overflow the two sections below — same fix already applied
-              // to ARDMX4's Parameters screen for the same reason.
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _Section(
-                      title: 'Nom Bluetooth',
-                      child: const _BluetoothNameSection(),
-                    ),
-                    const SizedBox(height: 8),
-                    const _ResetSection(),
-                  ],
-                ),
+        onBack: () => _attemptBack(ref, context),
+        // Keyboard opening while editing the Bluetooth name shrinks the
+        // available height enough to overflow the two sections below —
+        // same fix already applied to ARDMX4's Parameters screen for the
+        // same reason.
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Section(
+                title: 'Nom Bluetooth',
+                child: const _BluetoothNameSection(),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Row(
-                children: [
-                  FloatingActionButton(
-                    heroTag: 'ardmxOneSystemConfigBack',
-                    onPressed: () => _attemptBack(ref, context),
-                    tooltip: 'Tornar a paràmetres',
-                    child: const Icon(Icons.arrow_back),
-                  ),
-                ],
-              ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              const _ResetSection(),
+            ],
+          ),
         ),
       ),
     );
@@ -359,7 +337,9 @@ class _SelectableButton extends StatelessWidget {
             // Armed/OFF toggle for the destructive reset flow below — the
             // errorContainer pair (not primaryContainer) since it's arming a
             // dangerous action, not a normal selection.
-            backgroundColor: selected ? scheme.errorContainer : scheme.surfaceContainerHighest,
+            backgroundColor: selected
+                ? scheme.errorContainer
+                : scheme.surfaceContainerHighest,
             foregroundColor: selected
                 ? scheme.onErrorContainer
                 : scheme.onSurfaceVariant,

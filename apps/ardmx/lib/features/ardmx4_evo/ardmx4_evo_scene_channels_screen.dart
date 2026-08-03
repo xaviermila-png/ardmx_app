@@ -64,7 +64,7 @@ class _Ardmx4EvoSceneChannelsScreenState
   Widget build(BuildContext context) {
     return AppScaffold(
       title: 'Escena / Canals',
-      automaticallyImplyLeading: false,
+      onBack: () => Navigator.of(context).pop(),
       body: Column(
         children: [
           const SceneNavigator(),
@@ -88,14 +88,8 @@ class _Ardmx4EvoSceneChannelsScreenState
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                FloatingActionButton(
-                  heroTag: 'ardmx4EvoSceneChannelsBack',
-                  onPressed: () => Navigator.of(context).pop(),
-                  tooltip: 'Tornar al menú principal',
-                  child: const Icon(Icons.arrow_back),
-                ),
                 FloatingActionButton(
                   heroTag: 'ardmx4EvoSceneChannelsRgbWheel',
                   onPressed: () =>

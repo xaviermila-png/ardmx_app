@@ -177,32 +177,47 @@ class _RgbWheelScreenState extends ConsumerState<RgbWheelScreen> {
       v3.round().clamp(0, 255),
     );
     final displayColor = _localColor ?? remoteColor;
-    final brightness255 =
-        (HSVColor.fromColor(displayColor).value * 255).clamp(0.0, 255.0);
+    final brightness255 = (HSVColor.fromColor(displayColor).value * 255).clamp(
+      0.0,
+      255.0,
+    );
 
     return AppScaffold(
       title: 'Configuració RGB',
-      automaticallyImplyLeading: false,
+      onBack: () => Navigator.of(context).pop(),
       body: Column(
         children: [
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Canals',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.secondary,
+            ),
           ),
           const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              Text('${ch1 ?? '—'}', style: _numberStyle),
-              Text('${ch2 ?? '—'}', style: _numberStyle),
-              Text('${ch3 ?? '—'}', style: _numberStyle),
+              Text(
+                '${ch1 ?? '—'}',
+                style: _numberStyle(Theme.of(context).colorScheme.secondary),
+              ),
+              Text(
+                '${ch2 ?? '—'}',
+                style: _numberStyle(Theme.of(context).colorScheme.secondary),
+              ),
+              Text(
+                '${ch3 ?? '—'}',
+                style: _numberStyle(Theme.of(context).colorScheme.secondary),
+              ),
             ],
           ),
           const SizedBox(height: 10),
           Container(
             width: double.infinity,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            color: Theme.of(context).colorScheme.primary,
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -210,14 +225,17 @@ class _RgbWheelScreenState extends ConsumerState<RgbWheelScreen> {
                 _ChannelValue(
                   value: (displayColor.r * 255).round(),
                   dotColor: Colors.red,
+                  textColor: Theme.of(context).colorScheme.onPrimary,
                 ),
                 _ChannelValue(
                   value: (displayColor.g * 255).round(),
                   dotColor: Colors.green,
+                  textColor: Theme.of(context).colorScheme.onPrimary,
                 ),
                 _ChannelValue(
                   value: (displayColor.b * 255).round(),
                   dotColor: Colors.blue,
+                  textColor: Theme.of(context).colorScheme.onPrimary,
                 ),
               ],
             ),
@@ -226,8 +244,7 @@ class _RgbWheelScreenState extends ConsumerState<RgbWheelScreen> {
             child: Center(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final wheelSize =
-                      constraints.maxWidth < constraints.maxHeight
+                  final wheelSize = constraints.maxWidth < constraints.maxHeight
                       ? constraints.maxWidth * 0.95
                       : constraints.maxHeight * 0.95;
                   return RgbColorWheel(
@@ -241,6 +258,7 @@ class _RgbWheelScreenState extends ConsumerState<RgbWheelScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 8),
           const Text(
             'Intensitat',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -271,39 +289,35 @@ class _RgbWheelScreenState extends ConsumerState<RgbWheelScreen> {
               onChangeEnd: _onBrightnessEnd,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Row(
-              children: [
-                FloatingActionButton(
-                  heroTag: 'rgbWheelBack',
-                  onPressed: () => Navigator.of(context).pop(),
-                  tooltip: 'Tornar a Escena/Canals',
-                  child: const Icon(Icons.arrow_back),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  static const _numberStyle = TextStyle(fontSize: 22, fontWeight: FontWeight.bold);
+  static TextStyle _numberStyle(Color color) =>
+      TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color);
 }
 
-/// One R/G/B value — the number itself stays in the theme's normal (dark)
-/// text color for guaranteed contrast; the channel color is only a small
-/// reinforcing dot next to it, not the text color. Coloring the digits
-/// themselves (the previous design) failed WCAG's 3:1 large-text minimum
-/// for green/blue against a light background (as low as 2.5:1) — the dot
-/// keeps the at-a-glance R/G/B association without that failure mode, and
-/// also means the channel isn't identified by color alone.
+/// One R/G/B value — the number itself always uses a caller-supplied
+/// neutral [textColor] (contrasted against whatever that caller's own
+/// background is) rather than the channel color; the channel color is only
+/// a (bigger, easier-to-spot) reinforcing dot next to it, not the text
+/// color. Coloring the digits themselves (an earlier design) failed WCAG's
+/// 3:1 large-text minimum for green/blue against a light background (as
+/// low as 2.5:1) — the dot keeps the at-a-glance R/G/B association without
+/// that failure mode, and also means the channel isn't identified by color
+/// alone.
 class _ChannelValue extends StatelessWidget {
-  const _ChannelValue({required this.value, required this.dotColor});
+  const _ChannelValue({
+    required this.value,
+    required this.dotColor,
+    required this.textColor,
+  });
 
   final int value;
   final Color dotColor;
+  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
@@ -311,8 +325,8 @@ class _ChannelValue extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 12,
-          height: 12,
+          width: 20,
+          height: 20,
           decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
@@ -321,7 +335,7 @@ class _ChannelValue extends StatelessWidget {
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onSurface,
+            color: textColor,
           ),
         ),
       ],
