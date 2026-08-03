@@ -11,7 +11,6 @@ import '../features/ardmx_one/ardmx_one_config_screen.dart';
 import '../features/ardmx_one/ardmx_one_screen.dart';
 import '../features/ardmx_one/ardmx_one_system_config_screen.dart';
 import '../features/credits/credits_screen.dart';
-import '../features/debug/debug_screen.dart';
 import '../features/rgb_wheel/rgb_wheel_screen.dart';
 import '../features/splash/splash_screen.dart';
 import '../state/providers.dart';
@@ -30,12 +29,6 @@ class AppRoutes {
   static const ardmx4EvoParameters = '/ardmx4-evo-parameters';
   static const ardmx4EvoSystemConfig = '/ardmx4-evo-system-config';
   static const credits = '/credits';
-
-  /// Not part of the production 7-screen flow — a temporary screen (phase
-  /// 2) for validating the Bluetooth/protocol stack against the real
-  /// Arduino, reachable from a long-press on the Splash logo. Not in
-  /// [screenForRoute] since it has no V[50] meaning.
-  static const debug = '/debug';
 
   /// Route name -> the V[50] value that must be written when that route
   /// becomes current.
@@ -67,7 +60,6 @@ class AppRoutes {
         (BuildContext context) => const ArdmxOneSystemConfigScreen(),
       rgbWheel => (BuildContext context) => const RgbWheelScreen(),
       credits => (BuildContext context) => const CreditsScreen(),
-      debug => (BuildContext context) => const DebugScreen(),
       ardmx4EvoMainMenu =>
         (BuildContext context) => const Ardmx4EvoMainMenuScreen(),
       ardmx4EvoSceneChannels =>

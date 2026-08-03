@@ -26,16 +26,12 @@ class AppScaffold extends StatelessWidget {
     required this.body,
     required this.onBack,
     this.onExit,
-    this.floatingActionButton,
-    this.floatingActionButtonLocation,
   });
 
   final String title;
   final Widget body;
   final VoidCallback onBack;
   final VoidCallback? onExit;
-  final Widget? floatingActionButton;
-  final FloatingActionButtonLocation? floatingActionButtonLocation;
 
   @override
   Widget build(BuildContext context) {
@@ -59,8 +55,6 @@ class AppScaffold extends StatelessWidget {
         ],
       ),
       body: SafeArea(child: body),
-      floatingActionButton: floatingActionButton,
-      floatingActionButtonLocation: floatingActionButtonLocation,
     );
   }
 }

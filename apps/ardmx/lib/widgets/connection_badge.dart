@@ -14,6 +14,11 @@ class ConnectionBadge extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final connection = ref.watch(bluetoothConnectionServiceProvider);
+    // Connection-status colors (green/orange/red/grey) are intentionally
+    // literal rather than theme-derived — like the on/off indicators in
+    // Ardmx4EvoCycleProgrammingScreen, they signal a universal
+    // good/warning/bad state, not a brand/UI role, so they must stay fixed
+    // regardless of the app's purple theme.
     return switch (connection.status) {
       BluetoothConnectionStatus.connected => _Badge(
         icon: Icons.bluetooth_connected,
@@ -76,6 +81,9 @@ class _Badge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Smaller than the AppBar's 24px back/logout IconButtons on
+          // purpose — this is a compact status pill sized to match its own
+          // 12px label, not a tap target.
           Icon(icon, color: color, size: 18),
           const SizedBox(width: 4),
           // Constrained so a long message can never overflow the AppBar —

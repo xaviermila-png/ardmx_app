@@ -147,211 +147,203 @@ class _Ardmx4EvoCycleProgrammingScreenState
     return AppScaffold(
       title: 'Programació Cicles',
       onBack: () => Navigator.of(context).pop(),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => ref
-                            .read(appStateProvider.notifier)
-                            .setPlaying(!isPlaying),
-                        child: Container(
-                          width: 64,
-                          height: 40,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: isPlaying
-                                ? Colors.green.shade600
-                                : Colors.red.shade600,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.black45),
-                          ),
-                          child: Text(
-                            isPlaying ? 'ON' : 'OFF',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: () => ref
+                      .read(appStateProvider.notifier)
+                      .setPlaying(!isPlaying),
+                  child: Container(
+                    width: 64,
+                    height: 40,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: isPlaying
+                          ? Colors.green.shade600
+                          : Colors.red.shade600,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.3),
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Play',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    ),
+                    child: Text(
+                      isPlaying ? 'ON' : 'OFF',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const Spacer(),
-                      if (isPlaying)
-                        GestureDetector(
-                          onTap: () => ref
-                              .read(appStateProvider.notifier)
-                              .setPaused(!isPaused),
-                          child: Container(
-                            width: 96,
-                            height: 40,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: isPaused
-                                  ? Colors.red.shade700
-                                  : Colors.grey.shade300,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: isPaused
-                                    ? Colors.red.shade900
-                                    : Colors.grey.shade600,
-                              ),
-                            ),
-                            child: Text(
-                              'Pausa',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: isPaused
-                                    ? Colors.white
-                                    : Colors.grey.shade700,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Text(
-                        'Transcorregut',
-                        style: TextStyle(fontSize: 11),
-                      ),
-                      const Spacer(),
-                      const Text('Total', style: TextStyle(fontSize: 11)),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Stack(
-                          children: [
-                            Container(
-                              height: 32,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.primaryContainer,
-                            ),
-                            FractionallySizedBox(
-                              widthFactor: fraction,
-                              child: Container(
-                                height: 32,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        width: 70,
-                        height: 32,
-                        color: Theme.of(context).colorScheme.primary,
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(horizontal: 2),
-                        // FittedBox instead of a fixed fontSize: a cycle
-                        // running past 999s (totalTime 4+ digits) would
-                        // otherwise clip inside this fixed-width box.
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            '${currentTime.round()}" / ${totalTime.round()}"',
-                            maxLines: 1,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onPrimary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  const Text(
-                    'Temps Transició Escenes',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 2),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Row(
-                      children: [
-                        Spacer(),
-                        SizedBox(
-                          width: 64,
-                          child: Text(
-                            'Acaba a',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 11),
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        SizedBox(
-                          width: 64,
-                          child: Text(
-                            'Durada',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 11),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      for (var i = 0; i < periodCount; i++) ...[
-                        _PeriodRow(
-                          label: phaseNames[i],
-                          active: activePeriod != null && i <= activePeriod,
-                          accumulated: periods[i],
-                          duration: (periods[i] - (i == 0 ? 0 : periods[i - 1]))
-                              .clamp(0, double.infinity),
-                          onTap: () => _editPeriod(i, periods[i]),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Play',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                if (isPlaying)
+                  GestureDetector(
+                    onTap: () => ref
+                        .read(appStateProvider.notifier)
+                        .setPaused(!isPaused),
+                    child: Container(
+                      width: 96,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isPaused
+                            ? Colors.red.shade700
+                            : Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isPaused
+                              ? Colors.red.shade900
+                              : Theme.of(context).colorScheme.outline,
                         ),
-                        const SizedBox(height: 3),
-                      ],
+                      ),
+                      child: Text(
+                        'Pausa',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isPaused
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Text('Transcorregut', style: TextStyle(fontSize: 11)),
+                const Spacer(),
+                const Text('Total', style: TextStyle(fontSize: 11)),
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Stack(
+                    children: [
+                      Container(
+                        height: 32,
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                      ),
+                      FractionallySizedBox(
+                        widthFactor: fraction,
+                        child: Container(
+                          height: 32,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
                     ],
+                  ),
+                ),
+                Container(
+                  width: 70,
+                  height: 32,
+                  color: Theme.of(context).colorScheme.primary,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  // FittedBox instead of a fixed fontSize: a cycle
+                  // running past 999s (totalTime 4+ digits) would
+                  // otherwise clip inside this fixed-width box.
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '${currentTime.round()}" / ${totalTime.round()}"',
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Temps Transició Escenes',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 2),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  Spacer(),
+                  SizedBox(
+                    width: 64,
+                    child: Text(
+                      'Acaba a',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 11),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  SizedBox(
+                    width: 64,
+                    child: Text(
+                      'Durada',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 11),
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
-            child: VolumeSlider(
-              titleFontSize: 14,
-              titleAlignment: Alignment.bottomRight,
-              leadingAlignment: Alignment.bottomLeft,
-              titleRowHeight: 20,
-              thumbSize: 30,
-              leading: Text(
-                songNumber == null || songNumber == 0
-                    ? 'Cançó: Off'
-                    : 'Cançó: $songNumber',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+            const SizedBox(height: 4),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < periodCount; i++) ...[
+                  _PeriodRow(
+                    label: phaseNames[i],
+                    active: activePeriod != null && i <= activePeriod,
+                    accumulated: periods[i],
+                    duration: (periods[i] - (i == 0 ? 0 : periods[i - 1]))
+                        .clamp(0, double.infinity),
+                    onTap: () => _editPeriod(i, periods[i]),
+                  ),
+                  const SizedBox(height: 3),
+                ],
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
+              child: VolumeSlider(
+                titleFontSize: 14,
+                titleAlignment: Alignment.bottomRight,
+                leadingAlignment: Alignment.bottomLeft,
+                titleRowHeight: 20,
+                thumbSize: 30,
+                leading: Text(
+                  songNumber == null || songNumber == 0
+                      ? 'Cançó: Off'
+                      : 'Cançó: $songNumber',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -410,7 +402,9 @@ class _PeriodRow extends StatelessWidget {
               color: active
                   ? Colors.green.shade600
                   : scheme.surfaceContainerHighest,
-              border: Border.all(color: Colors.black45),
+              border: Border.all(
+                color: scheme.onSurface.withValues(alpha: 0.3),
+              ),
             ),
           ),
           const SizedBox(width: 16),

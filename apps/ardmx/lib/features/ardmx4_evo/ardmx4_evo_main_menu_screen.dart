@@ -99,7 +99,7 @@ class _Ardmx4EvoMainMenuScreenState
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const Spacer(flex: 4),
+              const Spacer(flex: 1),
               const CycleProgressBar(),
               const SizedBox(height: 20),
               const Divider(thickness: 1, height: 1),

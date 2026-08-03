@@ -294,12 +294,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // _goToDeviceHome for how ARDMX4 vs ARDMX One/EVO is told apart.
     //
     // Splash stays mounted (this listener keeps firing) even while another
-    // route — e.g. the Debug screen, reached via long-press on the logo —
-    // is pushed on top of it, since Flutter only disposes a screen on pop,
-    // not while merely covered. Without the isCurrent guard, connecting
-    // from the Debug screen (its own "Connectar..." button) would still
-    // trigger this auto-redirect and yank the user away from Debug into
-    // ArdmxOneScreen/MainMenu, which defeats the point of being in Debug.
+    // route — e.g. Credits, pushed via _goToCredits — sits on top of it,
+    // since Flutter only disposes a screen on pop, not while merely
+    // covered. Without the isCurrent guard, a connection completing while
+    // Credits is open would still trigger this auto-redirect and yank the
+    // user out from under it.
     ref.listen(bluetoothConnectionServiceProvider, (previous, next) {
       if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
       final wasConnected =
@@ -370,19 +369,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
-                        GestureDetector(
-                          // Temporary (phase 2) entry point to DebugScreen for
-                          // validating Bluetooth/protocol against real hardware —
-                          // remove once all 7 production screens are built.
-                          onLongPress: () =>
-                              Navigator.of(context).pushNamed(AppRoutes.debug),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(28),
-                            child: Image.asset(
-                              'assets/imatges/ARDMX_Logo.png',
-                              width: 140,
-                              height: 140,
-                            ),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(28),
+                          child: Image.asset(
+                            'assets/imatges/ARDMX_Logo.png',
+                            width: 140,
+                            height: 140,
                           ),
                         ),
                         const SizedBox(height: 20),
