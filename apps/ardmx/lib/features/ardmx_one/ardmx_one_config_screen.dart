@@ -173,38 +173,71 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                         title: 'Nombre de canals actius',
                         child: Column(
                           children: [
+                            // Outlined rather than solid-filled — this is a
+                            // live editable field (type directly, no
+                            // dialog), so it gets the same "clearly a
+                            // field, not an action button" treatment as
+                            // EditableValueChip, just inline instead of a
+                            // tap target. Built from a plain bordered
+                            // Container (rather than InputDecoration's
+                            // border) so the pencil icon can be balanced by
+                            // a matching leading spacer — otherwise the
+                            // number visibly sits left-of-center.
                             Container(
-                              width: 80,
-                              padding: const EdgeInsets.symmetric(vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary,
-                                borderRadius: BorderRadius.circular(8),
+                              width: 150,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
                               ),
-                              child: TextField(
-                                controller: _numeroCanalsController,
-                                textAlign: TextAlign.center,
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  width: 2.5,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const SizedBox(width: 20),
+                                  Flexible(
+                                    child: TextField(
+                                      controller: _numeroCanalsController,
+                                      textAlign: TextAlign.center,
+                                      keyboardType: TextInputType.number,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                      ],
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
+                                      decoration: const InputDecoration(
+                                        border: InputBorder.none,
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.zero,
+                                      ),
+                                      onChanged: _onChanged,
+                                      onSubmitted: _submit,
+                                      onTapOutside: (_) {
+                                        FocusManager.instance.primaryFocus
+                                            ?.unfocus();
+                                        _submit(_numeroCanalsController.text);
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.edit,
+                                    size: 16,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
                                 ],
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimary,
-                                ),
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                                onChanged: _onChanged,
-                                onSubmitted: _submit,
-                                onTapOutside: (_) {
-                                  FocusManager.instance.primaryFocus?.unfocus();
-                                  _submit(_numeroCanalsController.text);
-                                },
                               ),
                             ),
                             const SizedBox(height: 4),

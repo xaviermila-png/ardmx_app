@@ -77,7 +77,7 @@ class CreditsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             const SelectableText(
-              'ardmx4.wordpress.com',
+              'www.lallumdelpessebre.cat',
               style: TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 24),

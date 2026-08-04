@@ -8,6 +8,7 @@ import '../../core/protocol/virtuino_update.dart';
 import '../../routing/app_router.dart';
 import '../../state/providers.dart';
 import '../../widgets/app_scaffold.dart';
+import '../../widgets/editable_value_chip.dart';
 
 /// Parameters screen for the ARDMX4 EVO tree (V50=4): pessebre name and
 /// descripció (V68/V69, compact fields pinned at the top), number of active
@@ -210,30 +211,12 @@ class _Ardmx4EvoParametersScreenState
                         ),
                         const SizedBox(height: 6),
                         Center(
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(8),
+                          child: EditableValueChip(
+                            value: '${channelsCount ?? '—'}',
+                            valueFontSize: 26,
                             onTap: () => _editChannelsCount(
                               channelsCount ?? 0,
                               maxChannels ?? 510,
-                            ),
-                            child: Container(
-                              width: 90,
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                '${channelsCount ?? '—'}',
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimary,
-                                ),
-                              ),
                             ),
                           ),
                         ),
