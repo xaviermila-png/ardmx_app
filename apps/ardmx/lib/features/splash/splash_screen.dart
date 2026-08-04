@@ -294,11 +294,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // _goToDeviceHome for how ARDMX4 vs ARDMX One/EVO is told apart.
     //
     // Splash stays mounted (this listener keeps firing) even while another
-    // route — e.g. Credits, pushed via _goToCredits — sits on top of it,
-    // since Flutter only disposes a screen on pop, not while merely
-    // covered. Without the isCurrent guard, a connection completing while
-    // Credits is open would still trigger this auto-redirect and yank the
-    // user out from under it.
+    // route — e.g. Credits (_goToCredits) or the Debug screen (long-press on
+    // the logo) — sits on top of it, since Flutter only disposes a screen on
+    // pop, not while merely covered. Without the isCurrent guard, a
+    // connection completing while one of those is open would still trigger
+    // this auto-redirect and yank the user out from under it.
     ref.listen(bluetoothConnectionServiceProvider, (previous, next) {
       if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
       final wasConnected =
@@ -369,12 +369,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(28),
-                          child: Image.asset(
-                            'assets/imatges/ARDMX_Logo.png',
-                            width: 140,
-                            height: 140,
+                        GestureDetector(
+                          // Hidden entry point to the offline nav shortcut
+                          // (DebugScreen) — not shown anywhere in the UI on
+                          // purpose, so it doesn't clutter the production
+                          // flow, but kept reachable for demoing screen
+                          // navigation without a device nearby.
+                          onLongPress: () =>
+                              Navigator.of(context).pushNamed(AppRoutes.debug),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(28),
+                            child: Image.asset(
+                              'assets/imatges/ARDMX_Logo.png',
+                              width: 140,
+                              height: 140,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 20),
