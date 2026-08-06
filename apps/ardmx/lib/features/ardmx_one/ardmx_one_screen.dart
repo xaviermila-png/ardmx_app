@@ -116,18 +116,9 @@ class _ArdmxOneScreenState extends ConsumerState<ArdmxOneScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  FloatingActionButton(
-                    heroTag: 'ardmxOneConfig',
-                    onPressed: () => Navigator.of(
-                      context,
-                    ).pushNamed(AppRoutes.ardmxOneConfig),
-                    tooltip: 'Configuració',
-                    child: const Icon(Icons.settings),
-                  ),
-                  const SizedBox(width: 12),
                   FloatingActionButton(
                     heroTag: 'ardmxOneRgbWheel',
                     onPressed: () =>
@@ -161,6 +152,14 @@ class _ArdmxOneScreenState extends ConsumerState<ArdmxOneScreen> {
                         ],
                       ),
                     ),
+                  ),
+                  FloatingActionButton(
+                    heroTag: 'ardmxOneConfig',
+                    onPressed: () => Navigator.of(
+                      context,
+                    ).pushNamed(AppRoutes.ardmxOneConfig),
+                    tooltip: 'Configuració',
+                    child: const Icon(Icons.settings),
                   ),
                 ],
               ),

@@ -264,7 +264,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
                       child: _Section(
-                        title: 'Configuració',
+                        title: 'Exportació/Importació de la configuració',
                         child: const _ExportImportSection(),
                       ),
                     ),
@@ -713,7 +713,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
     return Column(
       children: [
         const Text(
-          'Exporta o importa tota la configuració en un fitxer JSON.',
+          'Exporta o importa tota la configuració en un fitxer JSON',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12),
         ),

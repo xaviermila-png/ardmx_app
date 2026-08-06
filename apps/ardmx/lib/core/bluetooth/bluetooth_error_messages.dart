@@ -7,6 +7,14 @@ String friendlyBluetoothError(String? raw) {
   if (raw == null) return "No s'ha pogut connectar.";
   final lower = raw.toLowerCase();
 
+  if (lower.contains('bluetooth must be turned on') ||
+      lower.contains('bluetooth is off') ||
+      lower.contains('bluetooth is disabled') ||
+      lower.contains('adapter is off') ||
+      lower.contains('adapter not enabled')) {
+    return 'El Bluetooth del mòbil està desactivat. '
+        "Activa'l i torna-ho a provar.";
+  }
   if (lower.contains('read failed') || lower.contains('timeout')) {
     return "No s'ha pogut connectar: comprova que el dispositiu estigui "
         "engegat i a l'abast.";

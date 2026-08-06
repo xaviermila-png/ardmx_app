@@ -2,4 +2,4 @@
 /// screens — single source of truth so the two never drift apart. Bumped
 /// manually alongside the Arduino sketch's own "V4.x" versioning scheme,
 /// not tied to pubspec.yaml's semver, which is unrelated packaging metadata.
-const kAppVersion = 'V4.50';
+const kAppVersion = 'V1.0';

@@ -35,9 +35,9 @@ class CreditsScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 28),
             const Text(
-              'Projecte: ARDMX4',
+              'Projecte: ARDMX',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),

@@ -38,7 +38,7 @@ class ArdmxOneSystemConfigScreen extends ConsumerWidget {
         if (!didPop) _attemptBack(ref, context);
       },
       child: AppScaffold(
-        title: 'Configuració del sistema',
+        title: 'Configuració',
         onBack: () => _attemptBack(ref, context),
         // Keyboard opening while editing the Bluetooth name shrinks the
         // available height enough to overflow the two sections below —

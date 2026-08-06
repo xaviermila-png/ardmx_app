@@ -43,7 +43,7 @@ class Ardmx4EvoSystemConfigScreen extends ConsumerWidget {
         if (!didPop) _attemptBack(ref, context);
       },
       child: AppScaffold(
-        title: 'Configuració del sistema',
+        title: 'Configuració',
         onBack: () => _attemptBack(ref, context),
         body: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -56,7 +56,7 @@ class Ardmx4EvoSystemConfigScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               _Section(
-                title: 'Configuració',
+                title: 'Exportació/Importació de la configuració',
                 child: const _ExportImportSection(),
               ),
               const SizedBox(height: 8),
@@ -699,7 +699,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
     return Column(
       children: [
         const Text(
-          'Exporta o importa tota la configuració en un fitxer JSON.',
+          'Exporta o importa tota la configuració en un fitxer JSON',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12),
         ),

@@ -153,6 +153,7 @@ class _Ardmx4EvoParametersScreenState
                         ],
                         selected: scenesCount != null ? {scenesCount} : const {},
                         emptySelectionAllowed: true,
+                        showSelectedIcon: false,
                         onSelectionChanged: (selection) => ref
                             .read(appStateProvider.notifier)
                             .setActiveScenesCount(selection.first),
@@ -180,6 +181,7 @@ class _Ardmx4EvoParametersScreenState
                         ],
                         selected: songNumber != null ? {songNumber} : const {},
                         emptySelectionAllowed: true,
+                        showSelectedIcon: false,
                         onSelectionChanged: (selection) => ref
                             .read(appStateProvider.notifier)
                             .setSongNumber(selection.first),

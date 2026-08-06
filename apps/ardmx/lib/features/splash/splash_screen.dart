@@ -127,7 +127,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       await service.startBleScan();
     } catch (error) {
       if (!mounted) return;
-      setState(() => _errorMessage = 'Error escanejant BLE: $error');
+      setState(() => _errorMessage = friendlyBluetoothError(error.toString()));
     }
     // startBleScan()'s own timeout stops the underlying scan, but the app
     // still needs to flip the UI back out of "scanning" state itself.
