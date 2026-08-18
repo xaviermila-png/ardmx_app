@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants/v_map.dart';
-import '../features/ardmx4_evo/ardmx4_evo_cycle_programming_screen.dart';
-import '../features/ardmx4_evo/ardmx4_evo_main_menu_screen.dart';
-import '../features/ardmx4_evo/ardmx4_evo_parameters_screen.dart';
-import '../features/ardmx4_evo/ardmx4_evo_scene_channels_screen.dart';
-import '../features/ardmx4_evo/ardmx4_evo_system_config_screen.dart';
+import '../features/ardmx_evo/ardmx_evo_cycle_programming_screen.dart';
+import '../features/ardmx_evo/ardmx_evo_main_menu_screen.dart';
+import '../features/ardmx_evo/ardmx_evo_parameters_screen.dart';
+import '../features/ardmx_evo/ardmx_evo_scene_channels_screen.dart';
+import '../features/ardmx_evo/ardmx_evo_system_config_screen.dart';
 import '../features/ardmx_one/ardmx_one_config_screen.dart';
 import '../features/ardmx_one/ardmx_one_screen.dart';
 import '../features/ardmx_one/ardmx_one_system_config_screen.dart';
@@ -24,11 +24,11 @@ class AppRoutes {
   static const ardmxOneConfig = '/ardmx-one-config';
   static const ardmxOneSystemConfig = '/ardmx-one-system-config';
   static const rgbWheel = '/rgb-wheel';
-  static const ardmx4EvoMainMenu = '/ardmx4-evo-main-menu';
-  static const ardmx4EvoSceneChannels = '/ardmx4-evo-scenes';
-  static const ardmx4EvoCycleProgramming = '/ardmx4-evo-cycle-programming';
-  static const ardmx4EvoParameters = '/ardmx4-evo-parameters';
-  static const ardmx4EvoSystemConfig = '/ardmx4-evo-system-config';
+  static const ardmxEvoMainMenu = '/ardmx-evo-main-menu';
+  static const ardmxEvoSceneChannels = '/ardmx-evo-scenes';
+  static const ardmxEvoCycleProgramming = '/ardmx-evo-cycle-programming';
+  static const ardmxEvoParameters = '/ardmx-evo-parameters';
+  static const ardmxEvoSystemConfig = '/ardmx-evo-system-config';
   static const credits = '/credits';
 
   /// Offline navigation shortcut into a product's screen tree, reached via
@@ -42,10 +42,10 @@ class AppRoutes {
     splash: AppScreen.initial,
     rgbWheel: AppScreen.rgbWheel,
     credits: AppScreen.credits,
-    ardmx4EvoMainMenu: AppScreen.mainMenu,
-    ardmx4EvoSceneChannels: AppScreen.sceneChannels,
-    ardmx4EvoCycleProgramming: AppScreen.cycleProgramming,
-    ardmx4EvoParameters: AppScreen.parameters,
+    ardmxEvoMainMenu: AppScreen.mainMenu,
+    ardmxEvoSceneChannels: AppScreen.sceneChannels,
+    ardmxEvoCycleProgramming: AppScreen.cycleProgramming,
+    ardmxEvoParameters: AppScreen.parameters,
     // The firmware has no dedicated V50 value for this screen (it doesn't
     // exist on the Mega, whose V50 enum this mirrors) — mapped to the same
     // value as Paràmetres so `ConfiguracioParametres()` (gated by V50==4)
@@ -55,7 +55,7 @@ class AppRoutes {
     // Paràmetres anyway (the only way to reach this screen), but leaving it
     // implicit was fragile. See confirmReset()'s doc for the actual reset
     // race this screen's testing uncovered.
-    ardmx4EvoSystemConfig: AppScreen.parameters,
+    ardmxEvoSystemConfig: AppScreen.parameters,
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -67,16 +67,16 @@ class AppRoutes {
       rgbWheel => (BuildContext context) => const RgbWheelScreen(),
       credits => (BuildContext context) => const CreditsScreen(),
       debug => (BuildContext context) => const DebugScreen(),
-      ardmx4EvoMainMenu =>
-        (BuildContext context) => const Ardmx4EvoMainMenuScreen(),
-      ardmx4EvoSceneChannels =>
-        (BuildContext context) => const Ardmx4EvoSceneChannelsScreen(),
-      ardmx4EvoCycleProgramming =>
-        (BuildContext context) => const Ardmx4EvoCycleProgrammingScreen(),
-      ardmx4EvoParameters =>
-        (BuildContext context) => const Ardmx4EvoParametersScreen(),
-      ardmx4EvoSystemConfig =>
-        (BuildContext context) => const Ardmx4EvoSystemConfigScreen(),
+      ardmxEvoMainMenu =>
+        (BuildContext context) => const ArdmxEvoMainMenuScreen(),
+      ardmxEvoSceneChannels =>
+        (BuildContext context) => const ArdmxEvoSceneChannelsScreen(),
+      ardmxEvoCycleProgramming =>
+        (BuildContext context) => const ArdmxEvoCycleProgrammingScreen(),
+      ardmxEvoParameters =>
+        (BuildContext context) => const ArdmxEvoParametersScreen(),
+      ardmxEvoSystemConfig =>
+        (BuildContext context) => const ArdmxEvoSystemConfigScreen(),
       _ => (BuildContext context) => const SplashScreen(),
     };
     return MaterialPageRoute(builder: builder, settings: settings);

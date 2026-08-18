@@ -1,13 +1,13 @@
 import 'dart:convert';
 
-/// One exported/imported DMX channel on the ARDMX4 EVO: its 4 per-scene
+/// One exported/imported DMX channel on the ARDMX EVO: its 4 per-scene
 /// values (0-255), 4 per-scene transition modes (0=gradual, 1=initial,
 /// 2=final), and its editable name (up to 15 characters, V65-V67 for the 3
 /// currently-selected slots) — the EVO firmware has channel names like
 /// ARDMX One, unlike the Mega, so this mirrors `Ardmx4ChannelConfigEntry`
 /// (`features/parameters/config_json.dart`) plus a [name] field.
-class Ardmx4EvoChannelConfigEntry {
-  const Ardmx4EvoChannelConfigEntry({
+class ArdmxEvoChannelConfigEntry {
+  const ArdmxEvoChannelConfigEntry({
     required this.number,
     required this.valors,
     required this.modes,
@@ -26,13 +26,13 @@ class Ardmx4EvoChannelConfigEntry {
     'nom': name,
   };
 
-  factory Ardmx4EvoChannelConfigEntry.fromJson(
+  factory ArdmxEvoChannelConfigEntry.fromJson(
     int number,
     Map<String, dynamic> json,
   ) {
     final rawValors = json['valors'] as List? ?? const [];
     final rawModes = json['modes'] as List? ?? const [];
-    return Ardmx4EvoChannelConfigEntry(
+    return ArdmxEvoChannelConfigEntry(
       number: (json['canal'] as num?)?.toInt() ?? number,
       valors: List.generate(
         4,
@@ -51,15 +51,15 @@ class Ardmx4EvoChannelConfigEntry {
   }
 }
 
-/// The full ARDMX4 EVO configuration as exported/imported via JSON — the
+/// The full ARDMX EVO configuration as exported/imported via JSON — the
 /// Mega's own scenes/song/volume/period fields (see `Ardmx4ConfigData`) plus
 /// ARDMX One's pessebre/descripció fields, since the EVO firmware has both.
 /// Channel data is queried/set one channel at a time over V71 (see
 /// `handleChannelBulk()` in the EVO firmware's `main.cpp`), which — unlike
 /// the Mega's V63 — replies automatically to a write, so each round trip is
 /// a single frame.
-class Ardmx4EvoConfigData {
-  const Ardmx4EvoConfigData({
+class ArdmxEvoConfigData {
+  const ArdmxEvoConfigData({
     required this.numeroEscenes,
     required this.numeroCanals,
     required this.numeroMusica,
@@ -76,7 +76,7 @@ class Ardmx4EvoConfigData {
   /// Identifies this app screen's own device — compared against an
   /// imported file's [model] to reject files exported from a different
   /// ARDMX device (e.g. ARDMX4 or ARDMX One).
-  static const defaultModel = 'ARDMX4 EVO';
+  static const defaultModel = 'ARDMX EVO';
 
   final int numeroEscenes;
   final int numeroCanals;
@@ -85,7 +85,7 @@ class Ardmx4EvoConfigData {
   final List<double> periodes;
   final String pessebre;
   final String descripcio;
-  final List<Ardmx4EvoChannelConfigEntry> canals;
+  final List<ArdmxEvoChannelConfigEntry> canals;
   final String model;
   final String firmwareVersio;
   final DateTime? exportatEl;
@@ -106,10 +106,10 @@ class Ardmx4EvoConfigData {
 
   String toPrettyJson() => const JsonEncoder.withIndent('  ').convert(toJson());
 
-  factory Ardmx4EvoConfigData.fromJson(Map<String, dynamic> json) {
+  factory ArdmxEvoConfigData.fromJson(Map<String, dynamic> json) {
     final rawCanals = json['canals'] as List? ?? const [];
     final rawPeriodes = json['periodes'] as List? ?? const [];
-    return Ardmx4EvoConfigData(
+    return ArdmxEvoConfigData(
       model: json['model'] as String? ?? '',
       firmwareVersio: json['versio_firmware'] as String? ?? '',
       exportatEl: DateTime.tryParse(json['exportat_el'] as String? ?? ''),
@@ -127,7 +127,7 @@ class Ardmx4EvoConfigData {
       descripcio: json['descripcio'] as String? ?? '',
       canals: [
         for (var i = 0; i < rawCanals.length; i++)
-          Ardmx4EvoChannelConfigEntry.fromJson(
+          ArdmxEvoChannelConfigEntry.fromJson(
             i + 1,
             rawCanals[i] as Map<String, dynamic>,
           ),
@@ -135,6 +135,6 @@ class Ardmx4EvoConfigData {
     );
   }
 
-  factory Ardmx4EvoConfigData.fromPrettyJson(String raw) =>
-      Ardmx4EvoConfigData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+  factory ArdmxEvoConfigData.fromPrettyJson(String raw) =>
+      ArdmxEvoConfigData.fromJson(jsonDecode(raw) as Map<String, dynamic>);
 }

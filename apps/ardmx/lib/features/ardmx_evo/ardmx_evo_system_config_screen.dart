@@ -14,14 +14,14 @@ import '../../state/providers.dart';
 import '../../widgets/app_scaffold.dart';
 import 'config_json.dart';
 
-/// ARDMX4 EVO's "Configuració del sistema" screen — one level below
+/// ARDMX EVO's "Configuració del sistema" screen — one level below
 /// "Paràmetres" (reached via its own button, not the back arrow), same
 /// reasoning as ARDMX4's and ARDMX One's own split: everything here
 /// (Bluetooth rename, factory reset, full-config export/import) requires a
 /// real recovery step or is destructive, so it shouldn't be as casually
 /// reachable as the day-to-day controls on Paràmetres.
-class Ardmx4EvoSystemConfigScreen extends ConsumerWidget {
-  const Ardmx4EvoSystemConfigScreen({super.key});
+class ArdmxEvoSystemConfigScreen extends ConsumerWidget {
+  const ArdmxEvoSystemConfigScreen({super.key});
 
   // Same disarm-on-leave fix as ARDMX One's system config screen: if the
   // user unlocks the reset (ON) and leaves without confirming, disarm it
@@ -432,7 +432,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
     return (valors, modes, name);
   }
 
-  Future<bool> _assignChannelVerified(Ardmx4EvoChannelConfigEntry entry) async {
+  Future<bool> _assignChannelVerified(ArdmxEvoChannelConfigEntry entry) async {
     final fields = <String>[];
     for (var i = 0; i < 4; i++) {
       fields.add('${entry.valors[i]}');
@@ -494,7 +494,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
       }
 
       final canalsCount = numeroCanals.round();
-      final canals = <Ardmx4EvoChannelConfigEntry>[];
+      final canals = <ArdmxEvoChannelConfigEntry>[];
       setState(() {
         _progressTotal = canalsCount;
         _statusText = 'Llegint canals…';
@@ -502,7 +502,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
       for (var channel = 1; channel <= canalsCount; channel++) {
         final parsed = _parseChannelReply(await _channelRoundTrip('$channel'));
         canals.add(
-          Ardmx4EvoChannelConfigEntry(
+          ArdmxEvoChannelConfigEntry(
             number: channel,
             valors: parsed?.$1 ?? const [0, 0, 0, 0],
             modes: parsed?.$2 ?? const [0, 0, 0, 0],
@@ -513,7 +513,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
         setState(() => _progress = channel);
       }
 
-      final config = Ardmx4EvoConfigData(
+      final config = ArdmxEvoConfigData(
         numeroEscenes: numeroEscenes.round(),
         numeroCanals: canalsCount,
         numeroMusica: numeroMusica.round(),
@@ -526,17 +526,17 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
         exportatEl: DateTime.now(),
       );
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/ardmx4_evo_config.json');
+      final file = File('${dir.path}/ardmx_evo_config.json');
       await file.writeAsString(config.toPrettyJson());
       await SharePlus.instance.share(
-        ShareParams(files: [XFile(file.path)], text: 'Configuració ARDMX4 EVO'),
+        ShareParams(files: [XFile(file.path)], text: 'Configuració ARDMX EVO'),
       );
     } finally {
       if (mounted) setState(() => _running = false);
     }
   }
 
-  Future<bool> _confirmImport(Ardmx4EvoConfigData config) async {
+  Future<bool> _confirmImport(ArdmxEvoConfigData config) async {
     final exportatEl = config.exportatEl;
     final origen = [
       if (config.firmwareVersio.isNotEmpty) config.firmwareVersio,
@@ -581,9 +581,9 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
     final path = picked?.files.singleOrNull?.path;
     if (path == null) return;
 
-    final Ardmx4EvoConfigData config;
+    final ArdmxEvoConfigData config;
     try {
-      config = Ardmx4EvoConfigData.fromPrettyJson(
+      config = ArdmxEvoConfigData.fromPrettyJson(
         await File(path).readAsString(),
       );
     } catch (_) {
@@ -595,9 +595,9 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
       return;
     }
     if (config.model.isNotEmpty &&
-        config.model != Ardmx4EvoConfigData.defaultModel) {
+        config.model != ArdmxEvoConfigData.defaultModel) {
       _showMessage(
-        'Aquest fitxer és de "${config.model}", no d\'ARDMX4 EVO. '
+        'Aquest fitxer és de "${config.model}", no d\'ARDMX EVO. '
         'No s\'ha importat.',
       );
       return;

@@ -174,7 +174,7 @@ class AppStateNotifier extends Notifier<AppState> {
   /// to OFF) — but that meant two separate frames went out (V42=1, then
   /// V41=0), and depending on Bluetooth timing the firmware could process
   /// both before its loop ever saw them true *simultaneously*, so the reset
-  /// silently never fired. Confirmed on real hardware (ARDMX4 EVO): the same
+  /// silently never fired. Confirmed on real hardware (ARDMX EVO): the same
   /// user action would sometimes reset fine and sometimes hang forever with
   /// no observable cause, purely depending on which frame the firmware's
   /// loop happened to land between. Not writing V41=0 at all removes the

@@ -15,7 +15,7 @@ import 'connection_badge.dart';
 /// case inside this shared widget.
 ///
 /// [onExit] is null on every screen except the two device "home" screens
-/// (ARDMX One, ARDMX4 EVO Main Menu) — Sortir (disconnect + close the app)
+/// (ARDMX One, ARDMX EVO Main Menu) — Sortir (disconnect + close the app)
 /// is only ever offered there (and on Splash, which doesn't use this widget
 /// at all), not on every secondary screen; getting back to a home screen is
 /// just a matter of tapping the back arrow a few times.

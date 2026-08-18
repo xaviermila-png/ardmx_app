@@ -10,7 +10,7 @@ import '../../state/providers.dart';
 
 /// Which product a connected device is. [unknown] means neither the V64
 /// handshake nor the ARDMX4 name-prefix fallback recognized it.
-enum DeviceType { ardmx4, ardmx4Evo, ardmxOne, unknown }
+enum DeviceType { ardmx4, ardmxEvo, ardmxOne, unknown }
 
 /// Tells an ARDMX4 (Mega) and an ARDMX One (ESP32) apart after a connection
 /// is established, so the right screen tree can be shown — see
@@ -87,7 +87,7 @@ class DeviceIdentificationService extends Notifier<DeviceType?> {
       final doc = jsonDecode(json) as Map<String, dynamic>;
       return switch (doc['tipus']) {
         'ARDMX_ONE' => DeviceType.ardmxOne,
-        'ARDMX4_EVO' => DeviceType.ardmx4Evo,
+        'ARDMX_EVO' => DeviceType.ardmxEvo,
         'ARDMX4' => DeviceType.ardmx4,
         _ => DeviceType.unknown,
       };
@@ -97,13 +97,12 @@ class DeviceIdentificationService extends Notifier<DeviceType?> {
     }
   }
 
-  // Checked in order of specificity: the EVO's Bluetooth name
-  // ("ARDMX4EVO...") also starts with "ARDMX4", so the Mega's plain prefix
-  // must be checked second or every EVO whose handshake happened to fail
-  // would be silently misclassified as a Mega.
+  // No prefix ambiguity between these two (unlike the old "ARDMX4EVO"
+  // naming, which shared a prefix with the Mega's "ARDMX4") — order doesn't
+  // matter here, but kept in the same order as [_parseType] for consistency.
   DeviceType _nameFallback(String? deviceName) {
     final name = deviceName ?? '';
-    if (name.startsWith('ARDMX4EVO')) return DeviceType.ardmx4Evo;
+    if (name.startsWith('ARDMXEVO')) return DeviceType.ardmxEvo;
     if (name.startsWith('ARDMX4')) return DeviceType.ardmx4;
     return DeviceType.unknown;
   }
@@ -112,7 +111,7 @@ class DeviceIdentificationService extends Notifier<DeviceType?> {
     final prefs = await SharedPreferences.getInstance();
     return switch (prefs.getString('$_cacheKeyPrefix$address')) {
       'ardmxOne' => DeviceType.ardmxOne,
-      'ardmx4Evo' => DeviceType.ardmx4Evo,
+      'ardmxEvo' => DeviceType.ardmxEvo,
       'ardmx4' => DeviceType.ardmx4,
       _ => null,
     };

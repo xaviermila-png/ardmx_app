@@ -13,19 +13,19 @@ import '../scene_channels/widgets/channel_sliders.dart';
 import '../scene_channels/widgets/scene_navigator.dart';
 import '../scene_channels/widgets/transition_mode_selector.dart';
 
-/// Scene/Channels screen for the ARDMX4 EVO tree — same V1-V9/V31-V33
+/// Scene/Channels screen for the ARDMX EVO tree — same V1-V9/V31-V33
 /// protocol as the Mega's own [SceneChannelsScreen], plus [ChannelNameRow]
 /// (V65-V67), which the Mega doesn't have but ARDMX One and EVO both do.
-class Ardmx4EvoSceneChannelsScreen extends ConsumerStatefulWidget {
-  const Ardmx4EvoSceneChannelsScreen({super.key});
+class ArdmxEvoSceneChannelsScreen extends ConsumerStatefulWidget {
+  const ArdmxEvoSceneChannelsScreen({super.key});
 
   @override
-  ConsumerState<Ardmx4EvoSceneChannelsScreen> createState() =>
-      _Ardmx4EvoSceneChannelsScreenState();
+  ConsumerState<ArdmxEvoSceneChannelsScreen> createState() =>
+      _ArdmxEvoSceneChannelsScreenState();
 }
 
-class _Ardmx4EvoSceneChannelsScreenState
-    extends ConsumerState<Ardmx4EvoSceneChannelsScreen> {
+class _ArdmxEvoSceneChannelsScreenState
+    extends ConsumerState<ArdmxEvoSceneChannelsScreen> {
   static const _pollInterval = Duration(milliseconds: 400);
 
   Timer? _pollTimer;
@@ -91,7 +91,7 @@ class _Ardmx4EvoSceneChannelsScreenState
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 FloatingActionButton(
-                  heroTag: 'ardmx4EvoSceneChannelsRgbWheel',
+                  heroTag: 'ardmxEvoSceneChannelsRgbWheel',
                   onPressed: () =>
                       Navigator.of(context).pushNamed(AppRoutes.rgbWheel),
                   tooltip: 'Configuració RGB (roda de color)',

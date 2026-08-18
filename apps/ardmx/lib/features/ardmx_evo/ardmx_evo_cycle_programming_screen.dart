@@ -9,20 +9,20 @@ import '../../widgets/app_scaffold.dart';
 import '../../widgets/editable_value_chip.dart';
 import '../main_menu/widgets/volume_slider.dart';
 
-/// Cycle Programming screen for the ARDMX4 EVO tree — near-duplicate of the
+/// Cycle Programming screen for the ARDMX EVO tree — near-duplicate of the
 /// Mega's own [CycleProgrammingScreen] (same V10-V28/V50 protocol, ported
 /// verbatim into the EVO firmware), kept as its own copy per the project's
 /// separate-navigation-per-product decision.
-class Ardmx4EvoCycleProgrammingScreen extends ConsumerStatefulWidget {
-  const Ardmx4EvoCycleProgrammingScreen({super.key});
+class ArdmxEvoCycleProgrammingScreen extends ConsumerStatefulWidget {
+  const ArdmxEvoCycleProgrammingScreen({super.key});
 
   @override
-  ConsumerState<Ardmx4EvoCycleProgrammingScreen> createState() =>
-      _Ardmx4EvoCycleProgrammingScreenState();
+  ConsumerState<ArdmxEvoCycleProgrammingScreen> createState() =>
+      _ArdmxEvoCycleProgrammingScreenState();
 }
 
-class _Ardmx4EvoCycleProgrammingScreenState
-    extends ConsumerState<Ardmx4EvoCycleProgrammingScreen> {
+class _ArdmxEvoCycleProgrammingScreenState
+    extends ConsumerState<ArdmxEvoCycleProgrammingScreen> {
   static const _pollInterval = Duration(milliseconds: 400);
 
   static List<String> _phaseNamesFor(int sceneCount) {

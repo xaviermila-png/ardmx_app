@@ -36,9 +36,9 @@ class DebugScreen extends StatelessWidget {
                 width: 260,
                 child: FilledButton.icon(
                   onPressed: () =>
-                      Navigator.of(context).pushNamed(AppRoutes.ardmx4EvoMainMenu),
+                      Navigator.of(context).pushNamed(AppRoutes.ardmxEvoMainMenu),
                   icon: const Icon(Icons.arrow_forward),
-                  label: const Text('ARDMX4 EVO'),
+                  label: const Text('ARDMX EVO'),
                 ),
               ),
               const SizedBox(height: 12),

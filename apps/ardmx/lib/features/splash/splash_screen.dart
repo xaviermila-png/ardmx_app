@@ -146,8 +146,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void _goToArdmxOne() =>
       Navigator.of(context).pushReplacementNamed(AppRoutes.ardmxOne);
 
-  void _goToArdmx4Evo() =>
-      Navigator.of(context).pushReplacementNamed(AppRoutes.ardmx4EvoMainMenu);
+  void _goToArdmxEvo() =>
+      Navigator.of(context).pushReplacementNamed(AppRoutes.ardmxEvoMainMenu);
 
   /// Where the "Menú" button / auto-redirect on connect should go — asks
   /// [DeviceIdentificationService] which product this is (V64 handshake,
@@ -168,8 +168,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     switch (type) {
       case DeviceType.ardmxOne:
         _goToArdmxOne();
-      case DeviceType.ardmx4Evo:
-        _goToArdmx4Evo();
+      case DeviceType.ardmxEvo:
+        _goToArdmxEvo();
       case DeviceType.ardmx4:
       case DeviceType.unknown:
         break;

@@ -20,7 +20,7 @@ class ChannelNumberBar extends ConsumerWidget {
 
   /// Font size shared by "CANALS" and the 3 channel numbers below it —
   /// defaults to the original 34; a screen with a separate scene bar above
-  /// (e.g. ARDMX4 EVO's Scene/Channels) can pass a smaller value to match
+  /// (e.g. ARDMX EVO's Scene/Channels) can pass a smaller value to match
   /// its own "Escena N" text size and free up vertical space.
   final double fontSize;
 

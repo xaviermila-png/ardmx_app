@@ -16,7 +16,7 @@ class ConnectionBadge extends ConsumerWidget {
     final connection = ref.watch(bluetoothConnectionServiceProvider);
     // Connection-status colors (green/orange/red/grey) are intentionally
     // literal rather than theme-derived — like the on/off indicators in
-    // Ardmx4EvoCycleProgrammingScreen, they signal a universal
+    // ArdmxEvoCycleProgrammingScreen, they signal a universal
     // good/warning/bad state, not a brand/UI role, so they must stay fixed
     // regardless of the app's purple theme.
     return switch (connection.status) {

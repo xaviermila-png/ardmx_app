@@ -12,22 +12,22 @@ import '../../widgets/app_scaffold.dart';
 import '../main_menu/widgets/cycle_progress_bar.dart';
 import '../main_menu/widgets/dial_selector.dart';
 import '../main_menu/widgets/volume_slider.dart';
-import 'widgets/ardmx4_evo_config_submenu.dart';
+import 'widgets/ardmx_evo_config_submenu.dart';
 
-/// Home screen for the ARDMX4 EVO tree — same layout/logic as [MainMenuScreen]
+/// Home screen for the ARDMX EVO tree — same layout/logic as [MainMenuScreen]
 /// (same V0-V50 dial/cycle/volume protocol), duplicated per the project's own
 /// separate-navigation-per-product decision, pointing its "Configuració"
 /// submenu at the EVO tree's own routes via [DialSelector.submenuBuilder].
-class Ardmx4EvoMainMenuScreen extends ConsumerStatefulWidget {
-  const Ardmx4EvoMainMenuScreen({super.key});
+class ArdmxEvoMainMenuScreen extends ConsumerStatefulWidget {
+  const ArdmxEvoMainMenuScreen({super.key});
 
   @override
-  ConsumerState<Ardmx4EvoMainMenuScreen> createState() =>
-      _Ardmx4EvoMainMenuScreenState();
+  ConsumerState<ArdmxEvoMainMenuScreen> createState() =>
+      _ArdmxEvoMainMenuScreenState();
 }
 
-class _Ardmx4EvoMainMenuScreenState
-    extends ConsumerState<Ardmx4EvoMainMenuScreen> {
+class _ArdmxEvoMainMenuScreenState
+    extends ConsumerState<ArdmxEvoMainMenuScreen> {
   static const _pollInterval = Duration(milliseconds: 800);
 
   Timer? _pollTimer;
@@ -68,7 +68,7 @@ class _Ardmx4EvoMainMenuScreenState
   }
 
   static Widget _submenu(double squareSize, double spacing) =>
-      Ardmx4EvoConfigSubmenu(squareSize: squareSize, spacing: spacing);
+      ArdmxEvoConfigSubmenu(squareSize: squareSize, spacing: spacing);
 
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- BLE (GATT, ARDMX One / ARDMX4 EVO, both ESP32) is the only transport
+    <!-- BLE (GATT, ARDMX One / ARDMX EVO, both ESP32) is the only transport
          this app speaks — see BleBluetoothTransport. It actively scans
          (flutter_blue_plus, see BluetoothConnectionService.startBleScan); on
          API 31+ that's covered by BLUETOOTH_SCAN(neverForLocation) below, no

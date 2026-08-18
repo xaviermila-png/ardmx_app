@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
 
 /// BLE (GATT) transport — the only transport this app speaks (ARDMX One and
-/// ARDMX4 EVO, both ESP32). UUIDs must match those firmwares' own
+/// ARDMX EVO, both ESP32). UUIDs must match those firmwares' own
 /// `BLE_SERVICE_UUID`/`BLE_WRITE_CHAR_UUID`/`BLE_NOTIFY_CHAR_UUID` exactly
 /// (see either firmware's `main.cpp` header comment for the full GATT
 /// design/rationale — deliberately the same UUIDs on both, so one scan

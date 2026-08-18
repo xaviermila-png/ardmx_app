@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import '../../../routing/app_router.dart';
 
 /// Same look as the ARDMX4 tree's own `ConfigSubmenu`, but pointing at the
-/// ARDMX4 EVO tree's own routes — kept as its own copy (not a shared
+/// ARDMX EVO tree's own routes — kept as its own copy (not a shared
 /// parametrized widget beyond the route list) per the project's own
 /// decision: separate navigation per product, shared widgets/services
 /// underneath.
-class Ardmx4EvoConfigSubmenu extends StatelessWidget {
-  const Ardmx4EvoConfigSubmenu({
+class ArdmxEvoConfigSubmenu extends StatelessWidget {
+  const ArdmxEvoConfigSubmenu({
     super.key,
     required this.squareSize,
     required this.spacing,
@@ -18,9 +18,9 @@ class Ardmx4EvoConfigSubmenu extends StatelessWidget {
   final double spacing;
 
   static const _items = [
-    ('Escenes', AppRoutes.ardmx4EvoSceneChannels),
-    ('Cicle', AppRoutes.ardmx4EvoCycleProgramming),
-    ('Paràmetres', AppRoutes.ardmx4EvoParameters),
+    ('Escenes', AppRoutes.ardmxEvoSceneChannels),
+    ('Cicle', AppRoutes.ardmxEvoCycleProgramming),
+    ('Paràmetres', AppRoutes.ardmxEvoParameters),
   ];
 
   @override

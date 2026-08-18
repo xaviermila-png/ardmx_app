@@ -10,22 +10,22 @@ import '../../state/providers.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/editable_value_chip.dart';
 
-/// Parameters screen for the ARDMX4 EVO tree (V50=4): pessebre name and
+/// Parameters screen for the ARDMX EVO tree (V50=4): pessebre name and
 /// descripció (V68/V69, compact fields pinned at the top), number of active
 /// scenes, song to play, and number of manageable channels — same V0/V18/
 /// V39/V40 protocol as the Mega's own [ParametersScreen]. The Bluetooth
 /// name, factory reset and export/import live one level deeper in
 /// "Configuració del sistema" (reached via its own button).
-class Ardmx4EvoParametersScreen extends ConsumerStatefulWidget {
-  const Ardmx4EvoParametersScreen({super.key});
+class ArdmxEvoParametersScreen extends ConsumerStatefulWidget {
+  const ArdmxEvoParametersScreen({super.key});
 
   @override
-  ConsumerState<Ardmx4EvoParametersScreen> createState() =>
-      _Ardmx4EvoParametersScreenState();
+  ConsumerState<ArdmxEvoParametersScreen> createState() =>
+      _ArdmxEvoParametersScreenState();
 }
 
-class _Ardmx4EvoParametersScreenState
-    extends ConsumerState<Ardmx4EvoParametersScreen> {
+class _ArdmxEvoParametersScreenState
+    extends ConsumerState<ArdmxEvoParametersScreen> {
   static const _pollInterval = Duration(milliseconds: 400);
 
   Timer? _pollTimer;
@@ -235,10 +235,10 @@ class _Ardmx4EvoParametersScreenState
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 FloatingActionButton(
-                  heroTag: 'ardmx4EvoSystemConfig',
+                  heroTag: 'ardmxEvoSystemConfig',
                   onPressed: () => Navigator.of(
                     context,
-                  ).pushNamed(AppRoutes.ardmx4EvoSystemConfig),
+                  ).pushNamed(AppRoutes.ardmxEvoSystemConfig),
                   tooltip: 'Configuració del sistema',
                   child: const Icon(Icons.build),
                 ),

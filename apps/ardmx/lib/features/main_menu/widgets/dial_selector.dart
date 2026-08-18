@@ -17,8 +17,8 @@ class DialSelector extends ConsumerWidget {
 
   /// Builds the third row's submenu (Escenes/Cicle/Paràmetres), given the
   /// same square size/spacing used for the rest of the grid. This app only
-  /// has the ARDMX4 EVO tree using this widget, pointing at its own routes
-  /// ([Ardmx4EvoConfigSubmenu]) — required (no default) since there's no
+  /// has the ARDMX EVO tree using this widget, pointing at its own routes
+  /// ([ArdmxEvoConfigSubmenu]) — required (no default) since there's no
   /// shared "ARDMX4" submenu in this app to fall back to.
   final Widget Function(double squareSize, double spacing) submenuBuilder;
 

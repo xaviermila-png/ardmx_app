@@ -26,7 +26,7 @@ class DiscoveredDevice {
   int get hashCode => address.hashCode;
 }
 
-/// Owns the single BLE connection to a device (ARDMX One or ARDMX4 EVO —
+/// Owns the single BLE connection to a device (ARDMX One or ARDMX EVO —
 /// see [DeviceIdentificationService] for telling them apart once
 /// connected). This app has no other transport — see
 /// [BleBluetoothTransport]'s own doc comment for why there's no abstract
