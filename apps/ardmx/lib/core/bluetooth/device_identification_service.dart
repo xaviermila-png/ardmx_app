@@ -12,9 +12,10 @@ import '../../state/providers.dart';
 /// handshake nor the ARDMX4 name-prefix fallback recognized it.
 enum DeviceType { ardmx4, ardmxEvo, ardmxOne, unknown }
 
-/// Tells an ARDMX4 (Mega) and an ARDMX One (ESP32) apart after a connection
-/// is established, so the right screen tree can be shown — see
-/// [identify] for the two-tier strategy (handshake, then name fallback).
+/// Tells an ARDMX4 (Mega), ARDMX One and ARDMX EVO apart after a connection
+/// is established, so the right screen tree can be shown — see [identify]
+/// for the two-tier strategy (handshake, then name fallback) — and whether
+/// the device requires a connection PIN (see [requiresPin], [verifyPin]).
 ///
 /// Deliberately does not run itself on connect: the app never auto-connects
 /// (see [BluetoothConnectionService]/SplashScreen), so nothing should
@@ -22,39 +23,105 @@ enum DeviceType { ardmx4, ardmxEvo, ardmxOne, unknown }
 /// SplashScreen) calls [identify] explicitly once connected.
 class DeviceIdentificationService extends Notifier<DeviceType?> {
   static const _identifyVIndex = 64;
+  static const _pinVerifyVIndex = 73;
+  static const _pinSetVIndex = 74;
+  static const _pinResetVIndex = 75;
   static const _identifyTimeout = Duration(seconds: 2);
   static const _cacheKeyPrefix = 'device_type_';
+
+  /// Set by the most recent [identify] call — whether the device asked for
+  /// a PIN before it'll answer anything else. Deliberately re-checked fresh
+  /// on every [identify] call (never read from the type cache below): a PIN
+  /// requirement can change at any time (the owner sets/clears one from
+  /// Configuració), and this is the one thing here that actually gates
+  /// access, so it must never be stale.
+  bool requiresPin = false;
 
   @override
   DeviceType? build() => null;
 
-  /// Identifies the currently connected device. Checks the cached
-  /// MAC→type association first (see class doc); only when that's missing
-  /// does it perform the V64 handshake, falling back to the ARDMX4
-  /// name-prefix heuristic if the handshake times out (for the ARDMX4 Mega
-  /// firmware, which is frozen and doesn't answer V64 — see
-  /// firmware/ardmx_one/src/main.cpp for the ARDMX One side, which does).
+  /// Identifies the currently connected device and refreshes [requiresPin].
+  /// Always performs the V64 handshake (never skips it on a cached-type
+  /// hit like an earlier version of this class did) — harmless in practice
+  /// since this app is BLE-only and both ARDMX One/EVO firmware always
+  /// answer V64 promptly; the cached MAC→type association is only a
+  /// fallback for when the handshake itself fails (falls back further still
+  /// to the ARDMX4 name-prefix heuristic, for the frozen Mega firmware,
+  /// which never answers V64 — see firmware/ardmx_one/src/main.cpp for the
+  /// ARDMX One side, which does).
   Future<DeviceType> identify() async {
     final connection = ref.read(bluetoothConnectionServiceProvider);
     final address = connection.deviceAddress;
 
-    if (address != null) {
-      final cached = await _readCache(address);
-      if (cached != null) {
-        state = cached;
-        return cached;
-      }
-    }
-
     final json = await _requestIdentifyJson();
-    final result = json != null
-        ? _parseType(json)
-        : _nameFallback(connection.deviceName);
+    DeviceType result;
+    if (json != null) {
+      result = _parseType(json);
+      requiresPin = _parsePinRequired(json);
+    } else {
+      requiresPin = false;
+      result = (address != null ? await _readCache(address) : null) ??
+          _nameFallback(connection.deviceName);
+    }
 
     state = result;
     if (address != null && result != DeviceType.unknown) {
       await _writeCache(address, result);
     }
+    return result;
+  }
+
+  /// Sends [pin] (already validated to be 4 digits by the caller's input
+  /// field) for verification — true if the device accepted it. The
+  /// firmware ignores every other V/T index until this succeeds once per
+  /// connection (see main.cpp's `gated` check), so nothing else in the app
+  /// should be attempted before this returns true.
+  Future<bool> verifyPin(String pin) async {
+    final result = await _writeAndAwaitReply(_pinVerifyVIndex, pin);
+    return result == 'OK';
+  }
+
+  /// Sets a new PIN (Configuració screens) — only takes effect device-side
+  /// if already authenticated (or no PIN was set yet), same rule as any
+  /// other write while gated.
+  Future<bool> setPin(String pin) async {
+    final ok = await _writeAndAwaitReply(_pinSetVIndex, pin) == 'OK';
+    if (ok) requiresPin = true;
+    return ok;
+  }
+
+  /// Clears the device's PIN entirely (back to "no PIN") — the firmware
+  /// always accepts this regardless of authentication state, by design
+  /// (see main.cpp) — this is both the in-Configuració "treure PIN" action
+  /// and the "Restablir PIN" recovery path reached via long-press on the
+  /// Splash logo, for when the PIN itself is forgotten.
+  Future<bool> resetPin() async {
+    final ok = await _writeAndAwaitReply(_pinResetVIndex, '1') == 'OK';
+    if (ok) requiresPin = false;
+    return ok;
+  }
+
+  Future<String?> _writeAndAwaitReply(int index, String value) async {
+    final protocol = ref.read(protocolProvider);
+    final completer = Completer<String?>();
+    late final StreamSubscription<VirtuinoUpdate> subscription;
+
+    subscription = protocol.updates.listen((update) {
+      if (update is VirtuinoTUpdate &&
+          update.index == index &&
+          !completer.isCompleted) {
+        completer.complete(update.text);
+      }
+    });
+
+    protocol.writeText(index, value);
+    final result = await completer.future
+        .timeout(_identifyTimeout, onTimeout: () => null)
+        .catchError((Object error) {
+          debugPrint('DeviceIdentificationService: V$index reply error: $error');
+          return null;
+        });
+    await subscription.cancel();
     return result;
   }
 
@@ -94,6 +161,15 @@ class DeviceIdentificationService extends Notifier<DeviceType?> {
     } catch (error) {
       debugPrint('DeviceIdentificationService: malformed V64 JSON: $error');
       return DeviceType.unknown;
+    }
+  }
+
+  bool _parsePinRequired(String json) {
+    try {
+      final doc = jsonDecode(json) as Map<String, dynamic>;
+      return doc['pin'] == true;
+    } catch (_) {
+      return false;
     }
   }
 

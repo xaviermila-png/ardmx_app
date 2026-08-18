@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/bluetooth/device_identification_service.dart';
 import '../../core/constants/v_map.dart';
 import '../../core/protocol/virtuino_update.dart';
 import '../../state/providers.dart';
@@ -56,6 +57,11 @@ class ArdmxEvoSystemConfigScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               _Section(
+                title: 'PIN de connexió',
+                child: const _PinSection(),
+              ),
+              const SizedBox(height: 8),
+              _Section(
                 title: 'Exportació/Importació de la configuració',
                 child: const _ExportImportSection(),
               ),
@@ -65,6 +71,110 @@ class ArdmxEvoSystemConfigScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Sets or clears the device's connection PIN (V74 to set, V75 to clear —
+/// see [DeviceIdentificationService], which also handles V64's "pin"
+/// flag and V73's verify-on-connect). Never shows the current PIN back
+/// (it's never sent to the app for reading, only whether one is set —
+/// [DeviceIdentificationService.requiresPin], already known from the
+/// identify() call made to reach this screen in the first place).
+class _PinSection extends ConsumerStatefulWidget {
+  const _PinSection();
+
+  @override
+  ConsumerState<_PinSection> createState() => _PinSectionState();
+}
+
+class _PinSectionState extends ConsumerState<_PinSection> {
+  final _controller = TextEditingController();
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool get _hasPin =>
+      ref.read(deviceIdentificationServiceProvider.notifier).requiresPin;
+
+  Future<void> _setPin() async {
+    final pin = _controller.text;
+    if (pin.length != 4) return;
+    setState(() => _busy = true);
+    final ok = await ref
+        .read(deviceIdentificationServiceProvider.notifier)
+        .setPin(pin);
+    if (!mounted) return;
+    _controller.clear();
+    setState(() => _busy = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok ? 'PIN activat.' : "No s'ha pogut desar el PIN."),
+      ),
+    );
+  }
+
+  Future<void> _removePin() async {
+    setState(() => _busy = true);
+    final ok = await ref
+        .read(deviceIdentificationServiceProvider.notifier)
+        .resetPin();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok ? 'PIN desactivat.' : "No s'ha pogut treure el PIN."),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          _hasPin
+              ? 'Activat: cal aquest PIN per connectar-s\'hi.'
+              : "Desactivat: qualsevol es pot connectar-hi sense PIN.",
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 13),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _controller,
+          textAlign: TextAlign.center,
+          keyboardType: TextInputType.number,
+          maxLength: 4,
+          obscureText: true,
+          enabled: !_busy,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(
+            counterText: '',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FilledButton(
+              onPressed: _busy ? null : _setPin,
+              child: Text(_hasPin ? 'Canviar PIN' : 'Activar PIN'),
+            ),
+            if (_hasPin) ...[
+              const SizedBox(width: 12),
+              OutlinedButton(
+                onPressed: _busy ? null : _removePin,
+                child: const Text('Treure PIN'),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }

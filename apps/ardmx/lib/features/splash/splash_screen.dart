@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/bluetooth/bluetooth_connection_state.dart';
 import '../../core/bluetooth/bluetooth_error_messages.dart';
 import '../../core/bluetooth/bluetooth_permissions.dart';
+import '../../core/bluetooth/device_identification_service.dart';
 import '../../core/constants/app_version.dart';
 import '../../routing/app_router.dart';
 import '../../state/providers.dart';
@@ -41,6 +42,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   DiscoveredDevice? _selectedDevice;
   String? _lastKnownAddress;
   StreamSubscription<List<DiscoveredDevice>>? _bleScanSubscription;
+
+  /// Set while the long-press-on-logo "restablir PIN" flow is driving a
+  /// connection itself — without this, the normal auto-redirect-on-connect
+  /// listener below would race it and immediately navigate into the
+  /// device's screens the moment the connection succeeds, instead of
+  /// letting that flow show its own "Restablir PIN" dialog first.
+  bool _suppressAutoRedirect = false;
 
   @override
   void initState() {
@@ -161,10 +169,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   /// changes the outcome, but is kept for symmetry with the auto-redirect
   /// call site).
   Future<void> _goToDeviceHome({required bool isManualTap}) async {
-    final type = await ref
-        .read(deviceIdentificationServiceProvider.notifier)
-        .identify();
+    final service = ref.read(deviceIdentificationServiceProvider.notifier);
+    final type = await service.identify();
     if (!mounted) return;
+
+    if (service.requiresPin) {
+      final verified = await _promptForPin(service);
+      if (!mounted || !verified) return;
+    }
+
     switch (type) {
       case DeviceType.ardmxOne:
         _goToArdmxOne();
@@ -174,6 +187,159 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       case DeviceType.unknown:
         break;
     }
+  }
+
+  /// Shows a blocking PIN dialog and verifies it against the connected
+  /// device (V73) — returns whether it was accepted. Cancelling, or the
+  /// dialog closing without a correct PIN for any other reason, disconnects
+  /// again: this app never leaves a connection sitting around
+  /// unauthenticated (the firmware would ignore everything on it anyway,
+  /// see main.cpp's `gated` check, but staying "connected" with nothing
+  /// usable is just confusing).
+  Future<bool> _promptForPin(DeviceIdentificationService service) async {
+    final controller = TextEditingController();
+    var verified = false;
+    var checking = false;
+    String? error;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          Future<void> submit() async {
+            setDialogState(() {
+              checking = true;
+              error = null;
+            });
+            final ok = await service.verifyPin(controller.text);
+            if (ok) {
+              verified = true;
+              if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+            } else {
+              setDialogState(() {
+                checking = false;
+                error = 'PIN incorrecte.';
+              });
+            }
+          }
+
+          return AlertDialog(
+            title: const Text('PIN de connexió'),
+            content: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              autofocus: true,
+              obscureText: true,
+              enabled: !checking,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(
+                counterText: '',
+                errorText: error,
+                border: const OutlineInputBorder(),
+              ),
+              onSubmitted: (_) => submit(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: checking
+                    ? null
+                    : () => Navigator.of(dialogContext).pop(),
+                child: const Text('Cancel·la'),
+              ),
+              FilledButton(
+                onPressed: checking ? null : submit,
+                child: checking
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Entrar'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (!verified) {
+      await _disconnect();
+    }
+    return verified;
+  }
+
+  /// Long-press-on-logo entry point: tries connecting to whatever's
+  /// selected in the picker so the PIN can be reset (see
+  /// [DeviceIdentificationService.resetPin]) even if it's been forgotten —
+  /// the firmware always accepts a PIN reset regardless of authentication
+  /// state (see main.cpp), so no PIN prompt happens here. Falls back to the
+  /// offline navigation shortcut ([AppRoutes.debug]) when there's nothing
+  /// to connect to, or the connection attempt fails — same as this
+  /// long-press always did before PINs existed.
+  Future<void> _onLogoLongPress() async {
+    final alreadyConnected =
+        ref.read(bluetoothConnectionServiceProvider).status ==
+        BluetoothConnectionStatus.connected;
+    if (_selectedDevice == null || alreadyConnected) {
+      Navigator.of(context).pushNamed(AppRoutes.debug);
+      return;
+    }
+
+    setState(() => _suppressAutoRedirect = true);
+    await _connect(_selectedDevice!);
+    if (!mounted) return;
+
+    final connected =
+        ref.read(bluetoothConnectionServiceProvider).status ==
+        BluetoothConnectionStatus.connected;
+    if (!connected) {
+      setState(() => _suppressAutoRedirect = false);
+      Navigator.of(context).pushNamed(AppRoutes.debug);
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restablir PIN'),
+        content: const Text(
+          "Vols esborrar el PIN de connexió d'aquest dispositiu? Es podrà "
+          "tornar a connectar sense PIN fins que en posis un de nou des de "
+          'Configuració.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel·la'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Restablir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final ok = await ref
+          .read(deviceIdentificationServiceProvider.notifier)
+          .resetPin();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              ok ? 'PIN restablert.' : "No s'ha pogut restablir el PIN.",
+            ),
+          ),
+        );
+      }
+    }
+
+    await _disconnect();
+    if (!mounted) return;
+    setState(() => _suppressAutoRedirect = false);
   }
 
   void _goToCredits() => Navigator.of(context).pushNamed(AppRoutes.credits);
@@ -301,6 +467,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // this auto-redirect and yank the user out from under it.
     ref.listen(bluetoothConnectionServiceProvider, (previous, next) {
       if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      if (_suppressAutoRedirect) return;
       final wasConnected =
           previous?.status == BluetoothConnectionStatus.connected;
       final isConnected = next.status == BluetoothConnectionStatus.connected;
@@ -370,13 +537,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         ),
                         const SizedBox(height: 16),
                         GestureDetector(
-                          // Hidden entry point to the offline nav shortcut
-                          // (DebugScreen) — not shown anywhere in the UI on
-                          // purpose, so it doesn't clutter the production
-                          // flow, but kept reachable for demoing screen
-                          // navigation without a device nearby.
-                          onLongPress: () =>
-                              Navigator.of(context).pushNamed(AppRoutes.debug),
+                          // Hidden entry point — not shown anywhere in the
+                          // UI on purpose, so it doesn't clutter the
+                          // production flow. Tries connecting to whatever's
+                          // selected to offer a PIN reset; falls back to the
+                          // offline nav shortcut (DebugScreen) when there's
+                          // nothing to connect to — see _onLogoLongPress.
+                          onLongPress: _onLogoLongPress,
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(28),
                             child: Image.asset(
