@@ -75,12 +75,12 @@ class ArdmxEvoSystemConfigScreen extends ConsumerWidget {
   }
 }
 
-/// Sets or clears the device's connection PIN (V74 to set, V75 to clear —
-/// see [DeviceIdentificationService], which also handles V64's "pin"
-/// flag and V73's verify-on-connect). Never shows the current PIN back
-/// (it's never sent to the app for reading, only whether one is set —
-/// [DeviceIdentificationService.requiresPin], already known from the
-/// identify() call made to reach this screen in the first place).
+/// Sets or clears the device's connection PIN (V74 to set/read, V75 to
+/// clear — see [DeviceIdentificationService], which also handles V64's
+/// "pin" flag and V73's verify-on-connect). Reading V74 back is only
+/// reachable once already authenticated (or when no PIN is set), same
+/// gating as any other index — see main.cpp's `gated` check — so showing
+/// it here doesn't expose anything the app hasn't already proven it knows.
 class _PinSection extends ConsumerStatefulWidget {
   const _PinSection();
 
@@ -89,11 +89,31 @@ class _PinSection extends ConsumerStatefulWidget {
 }
 
 class _PinSectionState extends ConsumerState<_PinSection> {
+  // Índex de lectura del PIN actual — deliberadament diferent del 74 (que
+  // és l'índex d'escriptura/ACK de setPin, vegeu DeviceIdentificationService):
+  // si es fes servir el mateix, l'ACK "OK"/"ERROR" d'una desada arribaria
+  // per aquest mateix listener i es mostraria com si fos el PIN.
+  static const _pinReadVIndex = 76;
+
   final _controller = TextEditingController();
+  StreamSubscription<VirtuinoUpdate>? _subscription;
   bool _busy = false;
+  bool _obscure = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscription = ref.read(protocolProvider).updates.listen((update) {
+      if (update is VirtuinoTUpdate && update.index == _pinReadVIndex) {
+        _controller.text = update.text;
+      }
+    });
+    ref.read(protocolProvider).requestT(_pinReadVIndex);
+  }
 
   @override
   void dispose() {
+    _subscription?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -109,7 +129,6 @@ class _PinSectionState extends ConsumerState<_PinSection> {
         .read(deviceIdentificationServiceProvider.notifier)
         .setPin(pin);
     if (!mounted) return;
-    _controller.clear();
     setState(() => _busy = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -124,6 +143,7 @@ class _PinSectionState extends ConsumerState<_PinSection> {
         .read(deviceIdentificationServiceProvider.notifier)
         .resetPin();
     if (!mounted) return;
+    if (ok) _controller.clear();
     setState(() => _busy = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -149,12 +169,16 @@ class _PinSectionState extends ConsumerState<_PinSection> {
           textAlign: TextAlign.center,
           keyboardType: TextInputType.number,
           maxLength: 4,
-          obscureText: true,
+          obscureText: _obscure,
           enabled: !_busy,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             counterText: '',
-            border: OutlineInputBorder(),
+            border: const OutlineInputBorder(),
+            suffixIcon: IconButton(
+              icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+              onPressed: () => setState(() => _obscure = !_obscure),
+            ),
           ),
         ),
         const SizedBox(height: 4),

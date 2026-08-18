@@ -176,6 +176,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     if (service.requiresPin) {
       final verified = await _promptForPin(service);
       if (!mounted || !verified) return;
+      // AppStateNotifier's own requestInitialSnapshot() already fired the
+      // instant the BLE link connected — before this PIN prompt even
+      // showed — so while gated the firmware silently dropped every one of
+      // those requests (see main.cpp's `gated` check). Nothing else
+      // re-issues them once authenticated, so without this the device's
+      // screens open with stale/default state until a non-PIN reconnect.
+      ref.read(appStateProvider.notifier).requestInitialSnapshot();
     }
 
     switch (type) {
@@ -217,6 +224,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               verified = true;
               if (dialogContext.mounted) Navigator.of(dialogContext).pop();
             } else {
+              controller.clear();
               setDialogState(() {
                 checking = false;
                 error = 'PIN incorrecte.';
