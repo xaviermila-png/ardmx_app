@@ -95,6 +95,10 @@ class _ArdmxOneScreenState extends ConsumerState<ArdmxOneScreen> {
         title: 'ARDMX One',
         onBack: () => _goToConnectionScreen(context),
         onExit: () => _exit(ref),
+        // Els sliders de sota no tenen marge per encongir-se quan surt el
+        // teclat en editar un nom de canal — millor que el teclat tapi la
+        // part de baix que no pas que la trenqui (RenderFlex overflow).
+        resizeToAvoidBottomInset: false,
         body: Column(
           children: [
             const ChannelNumberBar(),

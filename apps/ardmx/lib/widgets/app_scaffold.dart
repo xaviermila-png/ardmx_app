@@ -26,6 +26,7 @@ class AppScaffold extends StatelessWidget {
     required this.body,
     required this.onBack,
     this.onExit,
+    this.resizeToAvoidBottomInset,
   });
 
   final String title;
@@ -33,9 +34,17 @@ class AppScaffold extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback? onExit;
 
+  /// Set to `false` on screens whose body is a rigid Expanded/fixed-height
+  /// layout (e.g. channel sliders below an editable name field) — letting
+  /// Scaffold shrink that body to make room for the keyboard causes a
+  /// RenderFlex overflow instead of anything useful, since there's nothing
+  /// left to give up. `null` keeps Scaffold's own default (resizes).
+  final bool? resizeToAvoidBottomInset;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: resizeToAvoidBottomInset,
       appBar: AppBar(
         title: Text(title),
         leading: IconButton(

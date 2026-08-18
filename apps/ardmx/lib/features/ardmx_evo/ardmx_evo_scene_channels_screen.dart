@@ -65,6 +65,10 @@ class _ArdmxEvoSceneChannelsScreenState
     return AppScaffold(
       title: 'Escena / Canals',
       onBack: () => Navigator.of(context).pop(),
+      // Els sliders de sota no tenen marge per encongir-se quan surt el
+      // teclat en editar un nom de canal — millor que el teclat tapi la
+      // part de baix que no pas que la trenqui (RenderFlex overflow).
+      resizeToAvoidBottomInset: false,
       body: Column(
         children: [
           const SceneNavigator(),
