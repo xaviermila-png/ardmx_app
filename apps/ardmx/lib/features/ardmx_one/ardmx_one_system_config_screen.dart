@@ -79,7 +79,7 @@ class _BluetoothNameSection extends ConsumerStatefulWidget {
 
 class _BluetoothNameSectionState extends ConsumerState<_BluetoothNameSection> {
   static const _btNameVIndex = 63;
-  static const _maxLength = 12;
+  static const _maxLength = 15;
 
   final _controller = TextEditingController();
   StreamSubscription<VirtuinoUpdate>? _subscription;
@@ -134,7 +134,7 @@ class _BluetoothNameSectionState extends ConsumerState<_BluetoothNameSection> {
     return Column(
       children: [
         const Text(
-          'Fins a 12 caràcters: lletres, xifres i "_".',
+          'Fins a 15 caràcters: lletres, xifres i "_".',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 13),
         ),
