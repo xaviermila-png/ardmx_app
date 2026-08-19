@@ -1,12 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../core/bluetooth/device_identification_service.dart';
 import '../../core/constants/v_map.dart';
@@ -463,6 +462,15 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
   static const _channelBulkVIndex = 71;
   static const _roundTripTimeout = Duration(milliseconds: 800);
 
+  // The Baixades/Downloads document tree on Android's default (primary)
+  // storage volume, addressed the way the Storage Access Framework expects
+  // for EXTRA_INITIAL_URI — not a filesystem path. Not guaranteed to exist
+  // on every OEM skin, but it's the standard convention and file_picker
+  // just no-ops (falls back to the system's own last-used location) if it
+  // doesn't resolve, so there's nothing to fall back to manually here.
+  static const _androidDownloadsUri =
+      'content://com.android.externalstorage.documents/document/primary:Download';
+
   bool _running = false;
   String? _statusText;
   int _progress = 0;
@@ -659,15 +667,40 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
         firmwareVersio: firmwareVersio,
         exportatEl: DateTime.now(),
       );
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/ardmx_evo_config.json');
-      await file.writeAsString(config.toPrettyJson());
-      await SharePlus.instance.share(
-        ShareParams(files: [XFile(file.path)], text: 'Configuració ARDMX EVO'),
+      final savedPath = await FilePicker.saveFile(
+        fileName: _suggestedFileName(pessebre),
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        // Best-effort only — the Android SAF picker this opens ignores
+        // initialDirectory unless it can resolve to a real content:// tree
+        // URI (a plain path like getExternalStoragePublicDirectory's won't
+        // do), so this is the one document-provider URI that reliably
+        // resolves to Baixades/Downloads on stock Android. Once the user
+        // saves here once, Android's own "recent location" memory tends to
+        // keep both this and _import()'s picker opening there afterwards
+        // even where this hint doesn't apply (desktop only, per file_picker
+        // docs — irrelevant here, this app is Android-only, kept anyway for
+        // parity with _import()'s use of the same constant).
+        initialDirectory: _androidDownloadsUri,
+        bytes: Uint8List.fromList(utf8.encode(config.toPrettyJson())),
       );
+      if (savedPath != null) _showMessage('Configuració desada.');
     } finally {
       if (mounted) setState(() => _running = false);
     }
+  }
+
+  /// `"ardmx_evo_<pessebre>.json"` so multiple pessebres' exports don't
+  /// collide/overwrite each other by filename alone — falls back to the
+  /// bare name when there's no pessebre name set. Strips characters invalid
+  /// in a filename on Android/Windows rather than rejecting them, since the
+  /// pessebre name itself has no such restriction.
+  String _suggestedFileName(String pessebre) {
+    final clean = pessebre
+        .trim()
+        .replaceAll(RegExp(r'[<>:"/\\|?*\x00-\x1F]'), '')
+        .replaceAll(RegExp(r'\s+'), '_');
+    return clean.isEmpty ? 'ardmx_evo.json' : 'ardmx_evo_$clean.json';
   }
 
   Future<bool> _confirmImport(ArdmxEvoConfigData config) async {
@@ -711,6 +744,12 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
     final picked = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
+      // No effect on Android (file_picker only wires initialDirectory
+      // through on desktop for pickFiles — see _androidDownloadsUri's own
+      // comment on _export()), kept for symmetry/desktop parity. On Android
+      // this picker tends to open wherever was last used anyway, which in
+      // practice is Baixades/Downloads once _export() has been used once.
+      initialDirectory: _androidDownloadsUri,
     );
     final path = picked?.files.singleOrNull?.path;
     if (path == null) return;
