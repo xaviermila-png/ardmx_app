@@ -13,7 +13,11 @@ import '../../../state/providers.dart';
 /// Automàtic/Manual — now unified on-brand). Configuració also reveals a
 /// third row of submenu buttons: Escenes/Cicle/Paràmetres/Crèdits.
 class DialSelector extends ConsumerWidget {
-  const DialSelector({super.key, required this.submenuBuilder});
+  const DialSelector({
+    super.key,
+    required this.submenuBuilder,
+    this.showManual = true,
+  });
 
   /// Builds the third row's submenu (Escenes/Cicle/Paràmetres), given the
   /// same square size/spacing used for the rest of the grid. This app only
@@ -21,6 +25,14 @@ class DialSelector extends ConsumerWidget {
   /// ([ArdmxEvoConfigSubmenu]) — required (no default) since there's no
   /// shared "ARDMX4" submenu in this app to fall back to.
   final Widget Function(double squareSize, double spacing) submenuBuilder;
+
+  /// Whether to show the "Manual" (Trigger) button in the second row —
+  /// defaults to `true`, EVO's existing behavior with zero change at its
+  /// call site. ARDMX One v2 passes `false`: that mode needs a physical
+  /// trigger pin the One hardware doesn't have (see
+  /// ardmx-one-firmware/src/main.cpp), so the firmware never implements
+  /// `EstatSelector==2` for it either.
+  final bool showManual;
 
   static const _spacing = 8.0;
 
@@ -31,9 +43,14 @@ class DialSelector extends ConsumerWidget {
     MainSelectorMode.scene4,
   ];
 
-  static const _otherModes = [
+  static const _otherModesWithManual = [
     MainSelectorMode.automatic,
     MainSelectorMode.manual,
+    MainSelectorMode.configuration,
+  ];
+
+  static const _otherModesWithoutManual = [
+    MainSelectorMode.automatic,
     MainSelectorMode.configuration,
   ];
 
@@ -76,11 +93,15 @@ class DialSelector extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final current = ref.watch(appStateProvider.select((s) => s.mainSelector));
     final isConfiguration = current == MainSelectorMode.configuration.vValue;
+    final otherModes =
+        showManual ? _otherModesWithManual : _otherModesWithoutManual;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final squareSize = (constraints.maxWidth - 3 * _spacing) / 4;
-        final rectWidth = (constraints.maxWidth - 2 * _spacing) / 3;
+        final rectWidth =
+            (constraints.maxWidth - (otherModes.length - 1) * _spacing) /
+            otherModes.length;
 
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -102,11 +123,11 @@ class DialSelector extends ConsumerWidget {
             const SizedBox(height: _spacing),
             Row(
               children: [
-                for (var i = 0; i < _otherModes.length; i++) ...[
+                for (var i = 0; i < otherModes.length; i++) ...[
                   if (i > 0) const SizedBox(width: _spacing),
                   _modeButton(
                     ref: ref,
-                    mode: _otherModes[i],
+                    mode: otherModes[i],
                     current: current,
                     width: rectWidth,
                     height: squareSize,
