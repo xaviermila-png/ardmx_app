@@ -48,9 +48,22 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
   Timer? _throttleCooldown;
   bool _pendingDuringCooldown = false;
 
+  final _textController1 = TextEditingController();
+  final _textController2 = TextEditingController();
+  final _textController3 = TextEditingController();
+  final _focusNode1 = FocusNode();
+  final _focusNode2 = FocusNode();
+  final _focusNode3 = FocusNode();
+
   @override
   void dispose() {
     _throttleCooldown?.cancel();
+    _textController1.dispose();
+    _textController2.dispose();
+    _textController3.dispose();
+    _focusNode1.dispose();
+    _focusNode2.dispose();
+    _focusNode3.dispose();
     super.dispose();
   }
 
@@ -119,6 +132,22 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
         );
   }
 
+  /// Commits whatever's typed in the numeric field for [slot] — clamped
+  /// (not rejected) to 0-255, same tolerance as dragging the slider past
+  /// its own track. Mirrors [_onChangeEnd]'s exact call sequence so the
+  /// field and slider always agree afterward and both hand display back to
+  /// the polled remote value once the write is sent.
+  void _commitText(int slot) {
+    final controller = switch (slot) {
+      1 => _textController1,
+      2 => _textController2,
+      _ => _textController3,
+    };
+    final parsed = int.tryParse(controller.text);
+    if (parsed == null) return;
+    _onChangeEnd(slot, parsed.clamp(0, 255).toDouble());
+  }
+
   @override
   Widget build(BuildContext context) {
     final remote1 =
@@ -136,16 +165,44 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
     final v2 = (_local2 ?? remote2).clamp(0.0, 255.0);
     final v3 = (_local3 ?? remote3).clamp(0.0, 255.0);
 
+    // Keep the numeric field in sync with the slider — but only while the
+    // user isn't actively typing in it, same guard as ChannelNameRow's
+    // equivalent text field, so a live poll reply never overwrites what
+    // they're mid-way through entering.
+    if (!_focusNode1.hasFocus) _textController1.text = v1.round().toString();
+    if (!_focusNode2.hasFocus) _textController2.text = v2.round().toString();
+    if (!_focusNode3.hasFocus) _textController3.text = v3.round().toString();
+
     return Row(
       children: [
-        Expanded(child: _slider(1, v1, ch1, Colors.red)),
-        Expanded(child: _slider(2, v2, ch2, Colors.green)),
-        Expanded(child: _slider(3, v3, ch3, Colors.blue)),
+        Expanded(
+          child: _slider(1, v1, ch1, Colors.red, _textController1, _focusNode1),
+        ),
+        Expanded(
+          child: _slider(
+            2,
+            v2,
+            ch2,
+            Colors.green,
+            _textController2,
+            _focusNode2,
+          ),
+        ),
+        Expanded(
+          child: _slider(3, v3, ch3, Colors.blue, _textController3, _focusNode3),
+        ),
       ],
     );
   }
 
-  Widget _slider(int slot, double value, int? channelNumber, Color color) {
+  Widget _slider(
+    int slot,
+    double value,
+    int? channelNumber,
+    Color color,
+    TextEditingController textController,
+    FocusNode focusNode,
+  ) {
     // The channel color is carried by the border and the slider track —
     // it's deliberately not used for the value/channel-number *text*
     // (Colors.red/green especially fell as low as ~2.5:1 against a light
@@ -165,12 +222,29 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
       ),
       child: Column(
         children: [
-          Text(
-            value.round().toString(),
-            style: TextStyle(
-              color: onSurface,
-              fontSize: widget.valueFontSize,
-              fontWeight: FontWeight.bold,
+          SizedBox(
+            width: widget.valueFontSize * 2.2,
+            child: TextField(
+              controller: textController,
+              focusNode: focusNode,
+              textAlign: TextAlign.center,
+              keyboardType: TextInputType.number,
+              maxLength: 3,
+              style: TextStyle(
+                color: onSurface,
+                fontSize: widget.valueFontSize,
+                fontWeight: FontWeight.bold,
+              ),
+              decoration: const InputDecoration(
+                counterText: '',
+                isDense: true,
+                border: InputBorder.none,
+              ),
+              onSubmitted: (_) => _commitText(slot),
+              onTapOutside: (_) {
+                FocusManager.instance.primaryFocus?.unfocus();
+                _commitText(slot);
+              },
             ),
           ),
           Expanded(
