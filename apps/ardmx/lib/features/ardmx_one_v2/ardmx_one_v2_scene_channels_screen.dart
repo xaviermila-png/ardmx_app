@@ -64,10 +64,13 @@ class _ArdmxOneV2SceneChannelsScreenState
     return AppScaffold(
       title: 'Escena / Canals',
       onBack: () => Navigator.of(context).pop(),
-      // Mateix motiu que a l'EVO: deixa que el cos s'encongeixi quan surt
-      // el teclat (per defecte), així el camp que s'està editant (nom de
-      // canal a dalt, o el % de salt de ChannelTransitionEditor a baix)
-      // es manté per sobre del teclat en lloc de quedar-hi tapat.
+      // Mateix motiu que a l'EVO: les barres de dalt queden fixes, nomes
+      // s'encongeix/desplaça la zona de sliders+editor de transicions quan
+      // surt el teclat (ChannelSliders amb alçada fixa dins d'un
+      // SingleChildScrollView, no Expanded — un Expanded no pot demanar a
+      // l'Slider que faci menys de la seva alçada mínima, i confirmat en
+      // maquinari real que aixo provocava un petit overflow amb el teclat
+      // obert; amb scroll, simplement es desplaça el camp enfocat).
       body: Column(
         children: [
           const SceneNavigator(),
@@ -78,21 +81,32 @@ class _ArdmxOneV2SceneChannelsScreenState
           ),
           const ChannelNameRow(),
           const SizedBox(height: 8),
-          const Expanded(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: ChannelSliders(thumbSize: 48, cornerRadius: 10),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
-            child: ChannelTransitionEditor(
-              // Mateix motiu que a l'EVO: allibera l'espai vertical que la
-              // fila dedicada del FAB (~80px) treia als sliders de sobre.
-              trailing: RgbWheelButton(
-                heroTag: 'ardmxOneV2SceneChannelsRgbWheel',
-                onPressed: () =>
-                    Navigator.of(context).pushNamed(AppRoutes.rgbWheel),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(
+                    height: 240,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: ChannelSliders(thumbSize: 48, cornerRadius: 10),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+                    child: ChannelTransitionEditor(
+                      // Mateix motiu que a l'EVO: allibera l'espai vertical
+                      // que la fila dedicada del FAB (~80px) treia als
+                      // sliders de sobre.
+                      trailing: RgbWheelButton(
+                        heroTag: 'ardmxOneV2SceneChannelsRgbWheel',
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pushNamed(AppRoutes.rgbWheel),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

@@ -65,11 +65,16 @@ class _ArdmxEvoSceneChannelsScreenState
     return AppScaffold(
       title: 'Escena / Canals',
       onBack: () => Navigator.of(context).pop(),
-      // Deixa que el cos s'encongeixi quan surt el teclat (per defecte, no
-      // cal passar-ho explícit) — ChannelSliders (Expanded) absorbeix
-      // l'encongiment, així el camp que s'està editant (nom de canal a
-      // dalt, o el % de salt de ChannelTransitionEditor a baix) es manté
-      // per sobre del teclat en lloc de quedar-hi tapat.
+      // The nav bars up top stay pinned; only the sliders+transition editor
+      // below scroll. Letting the Scaffold resize (default, no override
+      // here any more) shrinks the Expanded scroll area when the keyboard
+      // opens — ChannelSliders now has a FIXED height (not Expanded) inside
+      // that scroll area, so when the shrunk area can't fit everything
+      // (editing the %salt field low down), it scrolls the focused field
+      // into view instead of overflowing (confirmed on real hardware: the
+      // old Expanded-fills-everything version overflowed by a few px under
+      // the keyboard, since Expanded can't ask a Slider to render smaller
+      // than its own minimum).
       body: Column(
         children: [
           const SceneNavigator(),
@@ -80,23 +85,33 @@ class _ArdmxEvoSceneChannelsScreenState
           ),
           const ChannelNameRow(),
           const SizedBox(height: 8),
-          const Expanded(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: ChannelSliders(thumbSize: 48, cornerRadius: 10),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
-            child: ChannelTransitionEditor(
-              // Sits alongside the "Transició Escena N → Escena M" title
-              // instead of its own row underneath — that dedicated FAB row
-              // took ~80px that the sliders above needed more (they were
-              // visibly getting squeezed).
-              trailing: RgbWheelButton(
-                heroTag: 'ardmxEvoSceneChannelsRgbWheel',
-                onPressed: () =>
-                    Navigator.of(context).pushNamed(AppRoutes.rgbWheel),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(
+                    height: 240,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: ChannelSliders(thumbSize: 48, cornerRadius: 10),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+                    child: ChannelTransitionEditor(
+                      // Sits alongside the "Transició Escena N → Escena M"
+                      // title instead of its own row underneath — that
+                      // dedicated FAB row took ~80px the sliders above
+                      // needed more (they were visibly getting squeezed).
+                      trailing: RgbWheelButton(
+                        heroTag: 'ardmxEvoSceneChannelsRgbWheel',
+                        onPressed: () => Navigator.of(
+                          context,
+                        ).pushNamed(AppRoutes.rgbWheel),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
