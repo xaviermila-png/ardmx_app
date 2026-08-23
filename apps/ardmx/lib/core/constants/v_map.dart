@@ -38,16 +38,14 @@ class VIndex {
   static const int resetConfirm2 = 42;
   static const int activeScreen = 50;
 
-  /// Bulk query/assign of one channel's 4 scene values + name — ARDMX One v2
-  /// and EVO only. Query `"N"`; assign `"N|v1|v2|v3|v4|nom"`; reply (both)
-  /// `"v1|v2|v3|v4|nom"`.
+  /// Bulk query/assign of ONE channel's complete state — its 4 scene values,
+  /// its own 4 transitions (type + salt%, per-channel, not shared with other
+  /// channels), and its name — ARDMX One v2 and EVO only. Query `"N"`;
+  /// assign `"N|v1|v2|v3|v4|t1|s1|t2|s2|t3|s3|t4|s4|nom"`
+  /// (t=[TransitionType] index, s=0-100); reply (both) the same
+  /// `"v1|v2|v3|v4|t1|s1|t2|s2|t3|s3|t4|s4|nom"` format. Writes are atomic —
+  /// there is no partial-field update, the whole blob is always sent.
   static const int channelBulk4Scene = 71;
-
-  /// Bulk query/assign of the 4 global transitions (type + salt%) — ARDMX
-  /// One v2 and EVO only. Query `"?"`; assign
-  /// `"t1|s1|t2|s2|t3|s3|t4|s4"` (t=[TransitionType] index, s=0-100); reply
-  /// (both) the same 8-field format.
-  static const int transitionsBulk = 72;
 
   /// V-index this array position corresponds to, for the 8 period durations.
   static int periodDuration(int periodOffset) =>
@@ -92,11 +90,12 @@ enum MainSelectorMode {
   final int vValue;
 }
 
-/// Type of a global transition between two consecutive scenes (V72's `t`
-/// fields) — applies to every channel at once, unlike the old per-channel
-/// gradual/initial/final mode it replaced. Only [salt] uses a percentage
-/// (the point in time, 0-100, where the instant jump happens); the rest
-/// ignore it.
+/// Type of a channel's own transition between two consecutive scenes (one
+/// of V71's `t` fields) — per-channel, not shared: two channels can use
+/// different types (and, for [salt], different percentages) during the
+/// same scene-to-scene transition. Only [salt] uses a percentage (the
+/// point in time, 0-100, where the instant jump happens); the rest ignore
+/// it.
 enum TransitionType {
   lineal(0),
   salt(1),

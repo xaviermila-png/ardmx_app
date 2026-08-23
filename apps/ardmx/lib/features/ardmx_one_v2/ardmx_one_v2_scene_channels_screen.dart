@@ -10,12 +10,12 @@ import '../../widgets/app_scaffold.dart';
 import '../ardmx_one/widgets/channel_name_row.dart';
 import '../ardmx_one/widgets/channel_number_bar.dart';
 import '../scene_channels/widgets/channel_sliders.dart';
-import '../scene_channels/widgets/global_transition_editor.dart';
+import '../scene_channels/widgets/channel_transition_editor.dart';
 import '../scene_channels/widgets/rgb_wheel_button.dart';
 import '../scene_channels/widgets/scene_navigator.dart';
 
 /// Scene/Channels screen for the ARDMX One v2 tree — same composition as
-/// the ARDMX EVO tree's own [ArdmxEvoSceneChannelsScreen] (V1-V9/V71/V72),
+/// the ARDMX EVO tree's own [ArdmxEvoSceneChannelsScreen] (V1-V9/V71),
 /// reusing every widget verbatim since the underlying protocol is
 /// identical by design (see ardmx-one-firmware/src/main.cpp).
 class ArdmxOneV2SceneChannelsScreen extends ConsumerStatefulWidget {
@@ -85,7 +85,7 @@ class _ArdmxOneV2SceneChannelsScreenState
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
-            child: GlobalTransitionEditor(
+            child: ChannelTransitionEditor(
               // Mateix motiu que a l'EVO: allibera l'espai vertical que la
               // fila dedicada del FAB (~80px) treia als sliders de sobre.
               trailing: RgbWheelButton(

@@ -561,64 +561,41 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
     return null;
   }
 
-  (List<int>, String)? _parseChannelReply(String? reply) {
+  /// V71's reply now carries a channel's own 4 transitions (per-channel,
+  /// not shared — see [ChannelTransitionEditor]) alongside its 4 values,
+  /// 13 fields total before the name (which may itself contain `|`, hence
+  /// `sublist(12).join('|')` rather than just indexing part 12).
+  (List<int>, List<TransicioConfigEntry>, String)? _parseChannelReply(
+    String? reply,
+  ) {
     if (reply == null) return null;
     final parts = reply.split('|');
-    if (parts.length < 5) return null;
+    if (parts.length < 13) return null;
     final valors = [for (var i = 0; i < 4; i++) int.tryParse(parts[i]) ?? 0];
-    final name = parts.sublist(4).join('|');
-    return (valors, name);
-  }
-
-  /// V72 round trip (same convention as [GlobalTransitionEditor]): `"Q"` to
-  /// query, `"t1|s1|t2|s2|t3|s3|t4|s4"` to assign (never `"?"` — that
-  /// collides with the wire protocol's own universal read-request
-  /// convention, see main.cpp's processFrame()).
-  Future<String?> _transitionsRoundTrip(String payload) async {
-    final protocol = ref.read(protocolProvider);
-    for (var attempt = 0; attempt < 3; attempt++) {
-      final completer = Completer<String?>();
-      late final StreamSubscription<VirtuinoUpdate> sub;
-      sub = protocol.updates.listen((update) {
-        if (update is VirtuinoTUpdate &&
-            update.index == VIndex.transitionsBulk &&
-            !completer.isCompleted) {
-          completer.complete(update.text);
-        }
-      });
-      protocol.writeText(VIndex.transitionsBulk, payload);
-      final reply = await completer.future.timeout(
-        _roundTripTimeout,
-        onTimeout: () => null,
-      );
-      await sub.cancel();
-      if (reply != null) return reply;
-    }
-    return null;
-  }
-
-  List<TransicioConfigEntry>? _parseTransitionsReply(String? reply) {
-    if (reply == null) return null;
-    final parts = reply.split('|');
-    if (parts.length < 8) return null;
-    return [
-      for (var i = 0; i < 8; i += 2)
+    final transicions = [
+      for (var i = 0; i < 4; i++)
         TransicioConfigEntry(
-          tipus: int.tryParse(parts[i]) ?? 0,
-          saltPercent: int.tryParse(parts[i + 1]) ?? 0,
+          tipus: int.tryParse(parts[4 + i * 2]) ?? 0,
+          saltPercent: int.tryParse(parts[4 + i * 2 + 1]) ?? 0,
         ),
     ];
+    final name = parts.sublist(12).join('|');
+    return (valors, transicions, name);
   }
 
   Future<bool> _assignChannelVerified(ArdmxEvoChannelConfigEntry entry) async {
+    final transicionsPart = [
+      for (final t in entry.transicions) '${t.tipus}|${t.saltPercent}',
+    ].join('|');
     final payload =
-        '${entry.number}|${entry.valors.join('|')}|${entry.name}';
+        '${entry.number}|${entry.valors.join('|')}|$transicionsPart|${entry.name}';
 
     for (var attempt = 0; attempt < 6; attempt++) {
       final parsed = _parseChannelReply(await _channelRoundTripOnce(payload));
       if (parsed != null &&
           _listEquals(parsed.$1, entry.valors) &&
-          parsed.$2 == entry.name) {
+          _transitionsEqual(parsed.$2, entry.transicions) &&
+          parsed.$3 == entry.name) {
         return true;
       }
       await Future.delayed(const Duration(milliseconds: 400));
@@ -630,6 +607,19 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
       if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  bool _transitionsEqual(
+    List<TransicioConfigEntry> a,
+    List<TransicioConfigEntry> b,
+  ) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].tipus != b[i].tipus || a[i].saltPercent != b[i].saltPercent) {
+        return false;
+      }
     }
     return true;
   }
@@ -666,10 +656,6 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
         periodes.add(await _readValue(VIndex.periodDuration(i)) ?? 0);
       }
 
-      final transicions = _parseTransitionsReply(
-        await _transitionsRoundTrip('Q'),
-      );
-
       final canalsCount = numeroCanals.round();
       final canals = <ArdmxEvoChannelConfigEntry>[];
       setState(() {
@@ -682,7 +668,15 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
           ArdmxEvoChannelConfigEntry(
             number: channel,
             valors: parsed?.$1 ?? const [0, 0, 0, 0],
-            name: parsed?.$2 ?? '',
+            transicions:
+                parsed?.$2 ??
+                const [
+                  TransicioConfigEntry.defaultLineal,
+                  TransicioConfigEntry.defaultLineal,
+                  TransicioConfigEntry.defaultLineal,
+                  TransicioConfigEntry.defaultLineal,
+                ],
+            name: parsed?.$3 ?? '',
           ),
         );
         if (!mounted) return;
@@ -698,7 +692,6 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
         pessebre: pessebre,
         descripcio: descripcio,
         canals: canals,
-        transicions: transicions ?? const [],
         firmwareVersio: firmwareVersio,
         exportatEl: DateTime.now(),
       );
@@ -756,9 +749,8 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
         content: Text(
           "Es sobreescriuran el nombre d'escenes, la cançó, el volum, el "
           'nombre de canals, els temps de transició, el pessebre, la '
-          'descripció i els valors/noms de ${config.canals.length} canals '
-          '${config.transicions.length == 4 ? 'i les 4 transicions globals ' : ''}'
-          'amb el contingut del fitxer.'
+          'descripció i els valors/transicions/noms de '
+          '${config.canals.length} canals amb el contingut del fitxer.'
           '${origen.isNotEmpty ? '\n\nFitxer: $origen' : ''}',
         ),
         actions: [
@@ -814,7 +806,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
 
     if (!await _confirmImport(config)) return;
 
-    const paramStepCount = 15;
+    const paramStepCount = 14;
     setState(() {
       _running = true;
       _statusText = 'Aplicant configuració…';
@@ -854,18 +846,6 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
       protocol.writeText(_descripcioVIndex, config.descripcio);
       if (mounted) setState(() => _progress++);
 
-      // Fitxers exportats abans que aquest camp existís porten una llista
-      // buida — es deixen les transicions del dispositiu tal com estan en
-      // lloc de sobreescriure-les amb valors de fàbrica.
-      var transitionsFailed = false;
-      if (config.transicions.length == 4) {
-        final payload = [
-          for (final t in config.transicions) '${t.tipus}|${t.saltPercent}',
-        ].join('|');
-        transitionsFailed = await _transitionsRoundTrip(payload) == null;
-      }
-      if (mounted) setState(() => _progress++);
-
       // Marge d'assentament abans del bombardeig de canals — mateix motiu
       // que ARDMX4: si el nombre d'escenes/canals acaba de canviar, el
       // firmware pot trigar a assentar-se abans de respondre amb fiabilitat.
@@ -882,7 +862,6 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
       final problems = [
         if (paramFailures.isNotEmpty)
           'paràmetres no confirmats: ${paramFailures.join(', ')}',
-        if (transitionsFailed) 'transicions no confirmades',
         if (failedChannels.isNotEmpty)
           '${failedChannels.length} canal(s) no confirmats: '
               '${failedChannels.join(', ')}',
