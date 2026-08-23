@@ -223,7 +223,12 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
       child: Column(
         children: [
           SizedBox(
-            width: widget.valueFontSize * 2.2,
+            // 3 digits ("255") at a bold fontSize needs noticeably more
+            // room than a plain Text of the same size did — a TextField
+            // has its own internal caret/hit-test padding on top of the
+            // glyphs. Confirmed too narrow (digits clipped/overlapping) on
+            // real hardware at the old 2.2x multiplier.
+            width: (widget.valueFontSize * 3.4).clamp(56.0, 120.0),
             child: TextField(
               controller: textController,
               focusNode: focusNode,
@@ -238,6 +243,7 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
               decoration: const InputDecoration(
                 counterText: '',
                 isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 2),
                 border: InputBorder.none,
               ),
               onSubmitted: (_) => _commitText(slot),

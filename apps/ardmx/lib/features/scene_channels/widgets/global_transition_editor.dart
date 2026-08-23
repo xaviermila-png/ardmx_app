@@ -12,7 +12,10 @@ import 'nav_arrow_button.dart';
 /// carried through [AppStateProvider]: like V71 (channel bulk export), V72
 /// is an out-of-band text index, round-tripped directly (see
 /// `_ExportImportSectionState` in the EVO/One v2 system config screens for
-/// the same pattern applied to channel data).
+/// the same pattern applied to channel data). Query payload is `"Q"`, not
+/// `"?"` — the latter collides with the wire protocol's own universal
+/// read-request convention (`!Vxx=?$`), which the firmware's processFrame()
+/// intercepts before it ever reaches the V72 handler.
 typedef _TransitionEntry = ({TransitionType type, int saltPercent});
 
 const _defaultTransition = (type: TransitionType.lineal, saltPercent: 0);
@@ -86,7 +89,12 @@ class _GlobalTransitionEditorState
   }
 
   Future<void> _refresh() async {
-    final parsed = _parse(await _roundTrip('?'));
+    // "Q" (query), not "?": processFrame() on the firmware treats any
+    // rhs=="?" as a generic read-request BEFORE it ever reaches
+    // handleTransitionsBulk(), so a literal "?" here would silently never
+    // get a reply (confirmed on real hardware — this editor got stuck on
+    // its loading spinner forever). "Q" carries no such collision.
+    final parsed = _parse(await _roundTrip('Q'));
     if (!mounted || parsed == null) return;
     setState(() {
       _transitions = parsed;
