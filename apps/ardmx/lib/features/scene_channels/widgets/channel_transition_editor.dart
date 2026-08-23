@@ -73,6 +73,23 @@ class _ChannelTransitionEditorState
   int _selectedTransition = 0;
   Timer? _pollTimer;
 
+  /// Serializes every V71 round trip (across all 3 slots) so at most one
+  /// is ever in flight — the wire protocol has no request/response
+  /// correlation, `protocol.updates` is a broadcast stream every listener
+  /// sees, and each round trip's listener just grabs the FIRST reply it
+  /// sees on this index. Running 3 fetches concurrently (e.g. all 3
+  /// visible channels changing at once after "advance group") meant all 3
+  /// listeners raced for the same first-arriving reply and could all end
+  /// up with the SAME channel's data — confirmed on real hardware: after
+  /// advancing and coming back, all 3 columns showed channel 1's SALT 50%.
+  Future<void> _requestQueue = Future.value();
+
+  Future<String?> _queuedRoundTrip(String payload) {
+    final result = _requestQueue.then((_) => _roundTripOnce(payload));
+    _requestQueue = result.then((_) {}, onError: (_) {});
+    return result;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -108,7 +125,7 @@ class _ChannelTransitionEditorState
     }
   }
 
-  Future<String?> _roundTrip(String payload) async {
+  Future<String?> _roundTripOnce(String payload) async {
     final protocol = ref.read(protocolProvider);
     final completer = Completer<String?>();
     late final StreamSubscription<VirtuinoUpdate> subscription;
@@ -150,7 +167,7 @@ class _ChannelTransitionEditorState
   }
 
   Future<void> _fetchSlot(int slot, int channelNumber) async {
-    final parsed = _parse(await _roundTrip('$channelNumber'));
+    final parsed = _parse(await _queuedRoundTrip('$channelNumber'));
     if (!mounted || parsed == null) return;
     setState(() => _channels[slot] = parsed);
   }
@@ -176,7 +193,7 @@ class _ChannelTransitionEditorState
         '$channelNumber|${current.valors.join('|')}|'
         '${[for (final t in newTransicions) '${t.type.vValue}|${t.saltPercent}'].join('|')}'
         '|${current.name}';
-    final parsed = _parse(await _roundTrip(payload));
+    final parsed = _parse(await _queuedRoundTrip(payload));
     if (mounted && parsed != null) setState(() => _channels[slot] = parsed);
   }
 
