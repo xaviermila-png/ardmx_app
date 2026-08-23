@@ -182,46 +182,73 @@ class _GlobalTransitionEditorState
             )
           else ...[
             SegmentedButton<TransitionType>(
+              // No check icon on the selected segment — the fill/border
+              // color swap alone (below) is enough to show which is
+              // selected, and dropping it frees up meaningful width for
+              // the label text (was wrapping mid-word — "Lineal" split
+              // into "Linea"/"l" — before this and the FittedBox below).
+              showSelectedIcon: false,
               segments: [
                 for (final type in TransitionType.values)
-                  ButtonSegment(value: type, label: Text(_typeLabel(type))),
+                  ButtonSegment(
+                    value: type,
+                    label: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(_typeLabel(type), maxLines: 1),
+                    ),
+                  ),
               ],
               selected: {current.type},
               onSelectionChanged: (selection) =>
                   _updateSelected((type: selection.first, saltPercent: current.saltPercent)),
-              style: const ButtonStyle(
+              style: SegmentedButton.styleFrom(
                 visualDensity: VisualDensity.compact,
+                selectedBackgroundColor: scheme.primaryContainer,
+                selectedForegroundColor: scheme.onPrimaryContainer,
               ),
             ),
-            if (current.type == TransitionType.salt)
-              Row(
-                children: [
-                  const SizedBox(width: 8),
-                  const Text('Salt al', style: TextStyle(fontSize: 13)),
-                  Expanded(
-                    child: Slider(
-                      value: current.saltPercent.toDouble(),
-                      min: 0,
-                      max: 100,
-                      divisions: 100,
-                      label: '${current.saltPercent}%',
-                      onChanged: (v) => setState(() {
-                        _transitions = [
-                          for (var i = 0; i < 4; i++)
-                            i == _selected
-                                ? (type: current.type, saltPercent: v.round())
-                                : _transitions[i],
-                        ];
-                      }),
-                      onChangeEnd: (v) => _updateSelected(
-                        (type: current.type, saltPercent: v.round()),
+            if (current.type == TransitionType.salt) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: scheme.primary.withValues(alpha: 0.6),
+                    width: 2,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    const Text('Salt al', style: TextStyle(fontSize: 13)),
+                    Expanded(
+                      child: Slider(
+                        value: current.saltPercent.toDouble(),
+                        min: 0,
+                        max: 100,
+                        divisions: 100,
+                        label: '${current.saltPercent}%',
+                        onChanged: (v) => setState(() {
+                          _transitions = [
+                            for (var i = 0; i < 4; i++)
+                              i == _selected
+                                  ? (type: current.type, saltPercent: v.round())
+                                  : _transitions[i],
+                          ];
+                        }),
+                        onChangeEnd: (v) => _updateSelected(
+                          (type: current.type, saltPercent: v.round()),
+                        ),
                       ),
                     ),
-                  ),
-                  Text('${current.saltPercent}%', style: const TextStyle(fontSize: 13)),
-                  const SizedBox(width: 8),
-                ],
+                    Text(
+                      '${current.saltPercent}%',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ],
+                ),
               ),
+            ],
           ],
         ],
       ),

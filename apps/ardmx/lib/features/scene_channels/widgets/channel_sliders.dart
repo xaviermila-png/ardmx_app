@@ -1,10 +1,22 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../state/providers.dart';
 import '../../../widgets/rounded_square_thumb_shape.dart';
+
+/// Rejects any edit that would leave the field showing more than 255 —
+/// [FilteringTextInputFormatter.digitsOnly] already blocks '-'/'.' (so
+/// negative/decimal values can't be typed at all), this catches the
+/// remaining case (a value too large) live, rather than only clamping
+/// after the field loses focus.
+final _max255Formatter = TextInputFormatter.withFunction((old, next) {
+  if (next.text.isEmpty) return next;
+  final parsed = int.tryParse(next.text);
+  return (parsed == null || parsed > 255) ? old : next;
+});
 
 /// The 3 R/G/B vertical sliders (V1-V3, 0-255), inverted (max at top,
 /// matching a physical DMX fader). Writes are throttled (not debounced)
@@ -235,6 +247,10 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
               textAlign: TextAlign.center,
               keyboardType: TextInputType.number,
               maxLength: 3,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                _max255Formatter,
+              ],
               style: TextStyle(
                 color: onSurface,
                 fontSize: widget.valueFontSize,
