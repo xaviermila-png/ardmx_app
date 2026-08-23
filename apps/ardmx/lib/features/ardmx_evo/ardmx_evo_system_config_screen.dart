@@ -528,10 +528,11 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
   }
 
   /// Sends a V71 payload (`"N"` to query channel N, or
-  /// `"N|v1|m1|v2|m2|v3|m3|v4|m4|nom"` to assign it) and awaits the matching
-  /// `"v1|m1|v2|m2|v3|m3|v4|m4|nom"` reply — a single frame, since the EVO
-  /// firmware's custom parser replies to a write automatically (unlike the
-  /// Mega's V63/VirtuinoCM, which only replies to a subsequent read).
+  /// `"N|v1|v2|v3|v4|nom"` to assign it) and awaits the matching
+  /// `"v1|v2|v3|v4|nom"` reply — a single frame, since the EVO firmware's
+  /// custom parser replies to a write automatically (unlike the Mega's
+  /// V63/VirtuinoCM, which only replies to a subsequent read). No mode
+  /// fields any more — transitions are global now (V72), not per channel.
   Future<String?> _channelRoundTripOnce(String payload) async {
     final protocol = ref.read(protocolProvider);
     final completer = Completer<String?>();
@@ -560,34 +561,24 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
     return null;
   }
 
-  (List<int>, List<int>, String)? _parseChannelReply(String? reply) {
+  (List<int>, String)? _parseChannelReply(String? reply) {
     if (reply == null) return null;
     final parts = reply.split('|');
-    if (parts.length < 9) return null;
-    final valors = <int>[];
-    final modes = <int>[];
-    for (var i = 0; i < 8; i += 2) {
-      valors.add(int.tryParse(parts[i]) ?? 0);
-      modes.add(int.tryParse(parts[i + 1]) ?? 0);
-    }
-    final name = parts.sublist(8).join('|');
-    return (valors, modes, name);
+    if (parts.length < 5) return null;
+    final valors = [for (var i = 0; i < 4; i++) int.tryParse(parts[i]) ?? 0];
+    final name = parts.sublist(4).join('|');
+    return (valors, name);
   }
 
   Future<bool> _assignChannelVerified(ArdmxEvoChannelConfigEntry entry) async {
-    final fields = <String>[];
-    for (var i = 0; i < 4; i++) {
-      fields.add('${entry.valors[i]}');
-      fields.add('${entry.modes[i]}');
-    }
-    final payload = '${entry.number}|${fields.join('|')}|${entry.name}';
+    final payload =
+        '${entry.number}|${entry.valors.join('|')}|${entry.name}';
 
     for (var attempt = 0; attempt < 6; attempt++) {
       final parsed = _parseChannelReply(await _channelRoundTripOnce(payload));
       if (parsed != null &&
           _listEquals(parsed.$1, entry.valors) &&
-          _listEquals(parsed.$2, entry.modes) &&
-          parsed.$3 == entry.name) {
+          parsed.$2 == entry.name) {
         return true;
       }
       await Future.delayed(const Duration(milliseconds: 400));
@@ -647,8 +638,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
           ArdmxEvoChannelConfigEntry(
             number: channel,
             valors: parsed?.$1 ?? const [0, 0, 0, 0],
-            modes: parsed?.$2 ?? const [0, 0, 0, 0],
-            name: parsed?.$3 ?? '',
+            name: parsed?.$2 ?? '',
           ),
         );
         if (!mounted) return;
@@ -721,7 +711,7 @@ class _ExportImportSectionState extends ConsumerState<_ExportImportSection> {
         content: Text(
           "Es sobreescriuran el nombre d'escenes, la cançó, el volum, el "
           'nombre de canals, els temps de transició, el pessebre, la '
-          'descripció i els valors/modes/noms de ${config.canals.length} '
+          'descripció i els valors/noms de ${config.canals.length} '
           'canals amb el contingut del fitxer.'
           '${origen.isNotEmpty ? '\n\nFitxer: $origen' : ''}',
         ),

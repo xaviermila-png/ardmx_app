@@ -1,28 +1,27 @@
 import 'dart:convert';
 
 /// One exported/imported DMX channel on the ARDMX EVO: its 4 per-scene
-/// values (0-255), 4 per-scene transition modes (0=gradual, 1=initial,
-/// 2=final), and its editable name (up to 15 characters, V65-V67 for the 3
-/// currently-selected slots) — the EVO firmware has channel names like
-/// ARDMX One, unlike the Mega, so this mirrors `Ardmx4ChannelConfigEntry`
-/// (`features/parameters/config_json.dart`) plus a [name] field.
+/// values (0-255) and its editable name (up to 15 characters, V65-V67 for
+/// the 3 currently-selected slots) — the EVO firmware has channel names
+/// like ARDMX One, unlike the Mega, so this mirrors
+/// `Ardmx4ChannelConfigEntry` (`features/parameters/config_json.dart`) plus
+/// a [name] field. No longer carries a per-scene transition mode (that was
+/// replaced by 4 GLOBAL transitions, not exported/imported here — see
+/// `GlobalTransitionEditor`/V72).
 class ArdmxEvoChannelConfigEntry {
   const ArdmxEvoChannelConfigEntry({
     required this.number,
     required this.valors,
-    required this.modes,
     required this.name,
   });
 
   final int number;
   final List<int> valors;
-  final List<int> modes;
   final String name;
 
   Map<String, dynamic> toJson() => {
     'canal': number,
     'valors': valors,
-    'modes': modes,
     'nom': name,
   };
 
@@ -31,19 +30,12 @@ class ArdmxEvoChannelConfigEntry {
     Map<String, dynamic> json,
   ) {
     final rawValors = json['valors'] as List? ?? const [];
-    final rawModes = json['modes'] as List? ?? const [];
     return ArdmxEvoChannelConfigEntry(
       number: (json['canal'] as num?)?.toInt() ?? number,
       valors: List.generate(
         4,
         (i) => i < rawValors.length
             ? ((rawValors[i] as num?) ?? 0).toInt().clamp(0, 255)
-            : 0,
-      ),
-      modes: List.generate(
-        4,
-        (i) => i < rawModes.length
-            ? ((rawModes[i] as num?) ?? 0).toInt().clamp(0, 2)
             : 0,
       ),
       name: json['nom'] as String? ?? '',
