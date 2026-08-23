@@ -162,12 +162,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   /// cached per-MAC after the first time — see that class) rather than
   /// looking at the Bluetooth name directly. This app is BLE-only, so an
   /// ARDMX4 (Mega, Bluetooth Classic) can never actually be the connected
-  /// device here — [DeviceType.ardmx4] is kept in the shared enum but is
-  /// unreachable in practice, treated the same as [DeviceType.unknown]:
-  /// nothing to navigate to, so the user just stays on Splash (both for the
-  /// auto-redirect and for a manual "Menú" tap — [isManualTap] no longer
-  /// changes the outcome, but is kept for symmetry with the auto-redirect
-  /// call site).
+  /// device here in practice — [DeviceType.ardmx4] is kept in the shared
+  /// enum only for the (very unlikely, since Classic devices don't even
+  /// show up in a BLE scan) case someone still ends up here with one; it
+  /// gets an explanatory dialog rather than silently doing nothing, so it
+  /// doesn't look like the app is just broken.
   Future<void> _goToDeviceHome({required bool isManualTap}) async {
     final service = ref.read(deviceIdentificationServiceProvider.notifier);
     final type = await service.identify();
@@ -191,9 +190,32 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       case DeviceType.ardmxEvo:
         _goToArdmxEvo();
       case DeviceType.ardmx4:
+        _showManagedByClassicDialog();
       case DeviceType.unknown:
         break;
     }
+  }
+
+  /// Shown when a Mega (ARDMX4, Bluetooth Classic) is somehow identified —
+  /// see [_goToDeviceHome]'s doc comment for why this is unreachable in
+  /// normal use but still worth handling explicitly rather than silently.
+  void _showManagedByClassicDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Dispositiu no compatible'),
+        content: const Text(
+          "Aquest dispositiu es gestiona des de l'app ARDMX Classic, no "
+          "des d'aquesta.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("D'acord"),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Shows a blocking PIN dialog and verifies it against the connected

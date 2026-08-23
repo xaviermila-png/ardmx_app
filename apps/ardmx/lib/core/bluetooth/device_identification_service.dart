@@ -37,18 +37,31 @@ class DeviceIdentificationService extends Notifier<DeviceType?> {
   /// access, so it must never be stale.
   bool requiresPin = false;
 
+  /// Set by the most recent [identify] call, only when [DeviceType.ardmxOne]
+  /// — the major version parsed from the V64 handshake's `firmware` semver
+  /// string (e.g. "2.0.0" → 2). `null` when unparseable/missing, or when the
+  /// last identified device wasn't an ARDMX One at all. Deliberately never
+  /// cached (same reasoning as [requiresPin]): a stale value here would
+  /// misroute a real device to the wrong screen tree. Callers should treat
+  /// anything other than `>= 2` as v1 — the conservative default, since real
+  /// ARDMX One v1 units in the field are frozen and must always land on the
+  /// v1 screens they've always used, even if this can't be determined for
+  /// some reason (`tipus` alone doesn't distinguish v1 from v2, both report
+  /// "ARDMX_ONE" — see ardmx-one-firmware/src/main.cpp's buildIdentifyJson()).
+  int? ardmxOneMajorVersion;
+
   @override
   DeviceType? build() => null;
 
-  /// Identifies the currently connected device and refreshes [requiresPin].
-  /// Always performs the V64 handshake (never skips it on a cached-type
-  /// hit like an earlier version of this class did) — harmless in practice
-  /// since this app is BLE-only and both ARDMX One/EVO firmware always
-  /// answer V64 promptly; the cached MAC→type association is only a
-  /// fallback for when the handshake itself fails (falls back further still
-  /// to the ARDMX4 name-prefix heuristic, for the frozen Mega firmware,
-  /// which never answers V64 — see firmware/ardmx_one/src/main.cpp for the
-  /// ARDMX One side, which does).
+  /// Identifies the currently connected device and refreshes [requiresPin]/
+  /// [ardmxOneMajorVersion]. Always performs the V64 handshake (never skips
+  /// it on a cached-type hit like an earlier version of this class did) —
+  /// harmless in practice since this app is BLE-only and both ARDMX One/EVO
+  /// firmware always answer V64 promptly; the cached MAC→type association is
+  /// only a fallback for when the handshake itself fails (falls back further
+  /// still to the ARDMX4 name-prefix heuristic, for the frozen Mega
+  /// firmware, which never answers V64 — see firmware/ardmx_one/src/main.cpp
+  /// for the ARDMX One side, which does).
   Future<DeviceType> identify() async {
     final connection = ref.read(bluetoothConnectionServiceProvider);
     final address = connection.deviceAddress;
@@ -58,8 +71,11 @@ class DeviceIdentificationService extends Notifier<DeviceType?> {
     if (json != null) {
       result = _parseType(json);
       requiresPin = _parsePinRequired(json);
+      ardmxOneMajorVersion =
+          result == DeviceType.ardmxOne ? _parseMajorVersion(json) : null;
     } else {
       requiresPin = false;
+      ardmxOneMajorVersion = null;
       result = (address != null ? await _readCache(address) : null) ??
           _nameFallback(connection.deviceName);
     }
@@ -170,6 +186,20 @@ class DeviceIdentificationService extends Notifier<DeviceType?> {
       return doc['pin'] == true;
     } catch (_) {
       return false;
+    }
+  }
+
+  /// Parses just the major version out of the `firmware` semver string
+  /// (e.g. "2.0.0" → 2) — `null` on anything unparseable, which callers
+  /// must treat as v1 (see [ardmxOneMajorVersion]'s own doc).
+  int? _parseMajorVersion(String json) {
+    try {
+      final doc = jsonDecode(json) as Map<String, dynamic>;
+      final firmware = doc['firmware'];
+      if (firmware is! String) return null;
+      return int.tryParse(firmware.split('.').first);
+    } catch (_) {
+      return null;
     }
   }
 
