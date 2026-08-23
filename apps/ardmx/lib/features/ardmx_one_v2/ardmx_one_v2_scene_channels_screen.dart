@@ -11,6 +11,7 @@ import '../ardmx_one/widgets/channel_name_row.dart';
 import '../ardmx_one/widgets/channel_number_bar.dart';
 import '../scene_channels/widgets/channel_sliders.dart';
 import '../scene_channels/widgets/global_transition_editor.dart';
+import '../scene_channels/widgets/rgb_wheel_button.dart';
 import '../scene_channels/widgets/scene_navigator.dart';
 
 /// Scene/Channels screen for the ARDMX One v2 tree — same composition as
@@ -82,50 +83,16 @@ class _ArdmxOneV2SceneChannelsScreenState
               child: ChannelSliders(thumbSize: 48, cornerRadius: 10),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: GlobalTransitionEditor(),
-          ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                FloatingActionButton(
-                  heroTag: 'ardmxOneV2SceneChannelsRgbWheel',
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(AppRoutes.rgbWheel),
-                  tooltip: 'Configuració RGB (roda de color)',
-                  child: SizedBox(
-                    width: 56,
-                    height: 56,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        ClipOval(
-                          child: Image.asset(
-                            'assets/imatges/RGB.png',
-                            fit: BoxFit.cover,
-                            width: 56,
-                            height: 56,
-                          ),
-                        ),
-                        const Text(
-                          'RGB',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            shadows: [
-                              Shadow(blurRadius: 4, color: Colors.white),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+            child: GlobalTransitionEditor(
+              // Mateix motiu que a l'EVO: allibera l'espai vertical que la
+              // fila dedicada del FAB (~80px) treia als sliders de sobre.
+              trailing: RgbWheelButton(
+                heroTag: 'ardmxOneV2SceneChannelsRgbWheel',
+                onPressed: () =>
+                    Navigator.of(context).pushNamed(AppRoutes.rgbWheel),
+              ),
             ),
           ),
         ],

@@ -29,7 +29,14 @@ const _defaultTransition = (type: TransitionType.lineal, saltPercent: 0);
 /// changing the transition's own type/percentage does (a full V72 bulk
 /// write of all 4 transitions each time, simplest given the wire format).
 class GlobalTransitionEditor extends ConsumerStatefulWidget {
-  const GlobalTransitionEditor({super.key});
+  const GlobalTransitionEditor({super.key, this.trailing});
+
+  /// Rendered at the end of the header row, alongside the "Transició
+  /// Escena N → Escena M" title — the RGB-wheel button on both Scene/
+  /// Channels screens sits here rather than in its own row underneath, to
+  /// claw back vertical space for the channel sliders above (which were
+  /// getting visibly squeezed with a dedicated FAB row taking ~80px).
+  final Widget? trailing;
 
   @override
   ConsumerState<GlobalTransitionEditor> createState() =>
@@ -172,6 +179,10 @@ class _GlobalTransitionEditorState
                 onPressed: () =>
                     setState(() => _selected = (_selected + 1) % 4),
               ),
+              if (widget.trailing != null) ...[
+                const SizedBox(width: 6),
+                widget.trailing!,
+              ],
             ],
           ),
           const SizedBox(height: 4),
