@@ -253,9 +253,20 @@ class _ChannelColumn extends StatefulWidget {
   State<_ChannelColumn> createState() => _ChannelColumnState();
 }
 
+final _max100Formatter = TextInputFormatter.withFunction((old, next) {
+  if (next.text.isEmpty) return next;
+  final parsed = int.tryParse(next.text);
+  return (parsed == null || parsed > 100) ? old : next;
+});
+
 class _ChannelColumnState extends State<_ChannelColumn> {
   final _percentController = TextEditingController();
   final _percentFocus = FocusNode();
+
+  /// Overrides the displayed percent while the slider is being dragged, so
+  /// dragging doesn't spam a V71 write per pixel — only [onChangeEnd]
+  /// commits to the wire, same throttle-on-release idea as [ChannelSliders].
+  int? _localPercent;
 
   @override
   void dispose() {
@@ -277,18 +288,24 @@ class _ChannelColumnState extends State<_ChannelColumn> {
     }
   }
 
-  void _commitPercent() {
+  void _commitPercent(int percent) {
     final current = widget.entry ?? _defaultTransition;
+    setState(() => _localPercent = null);
+    widget.onChanged((type: current.type, saltPercent: percent.clamp(0, 100)));
+  }
+
+  void _commitPercentFromText() {
     final parsed = int.tryParse(_percentController.text);
     if (parsed == null) return;
-    widget.onChanged((type: current.type, saltPercent: parsed.clamp(0, 100)));
+    _commitPercent(parsed);
   }
 
   @override
   Widget build(BuildContext context) {
     final current = widget.entry ?? _defaultTransition;
+    final displayedPercent = _localPercent ?? current.saltPercent;
     if (!_percentFocus.hasFocus) {
-      _percentController.text = '${current.saltPercent}';
+      _percentController.text = '$displayedPercent';
     }
 
     return Container(
@@ -345,43 +362,63 @@ class _ChannelColumnState extends State<_ChannelColumn> {
                     },
                   ),
                 ),
-                if (current.type == TransitionType.salt)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 34,
-                          child: TextField(
-                            controller: _percentController,
-                            focusNode: _percentFocus,
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.number,
-                            maxLength: 3,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            style: const TextStyle(fontSize: 12),
-                            decoration: const InputDecoration(
-                              counterText: '',
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 2,
-                              ),
-                              border: OutlineInputBorder(),
-                            ),
-                            onSubmitted: (_) => _commitPercent(),
-                            onTapOutside: (_) {
-                              FocusManager.instance.primaryFocus?.unfocus();
-                              _commitPercent();
-                            },
-                          ),
-                        ),
-                        const Text('%', style: TextStyle(fontSize: 11)),
-                      ],
+                if (current.type == TransitionType.salt) ...[
+                  SliderTheme(
+                    data: const SliderThemeData(
+                      trackHeight: 3,
+                      thumbShape: RoundSliderThumbShape(
+                        enabledThumbRadius: 7,
+                      ),
+                      overlayShape: RoundSliderOverlayShape(
+                        overlayRadius: 14,
+                      ),
+                    ),
+                    child: Slider(
+                      value: displayedPercent.toDouble(),
+                      min: 0,
+                      max: 100,
+                      divisions: 100,
+                      label: '$displayedPercent%',
+                      onChanged: (v) =>
+                          setState(() => _localPercent = v.round()),
+                      onChangeEnd: (v) => _commitPercent(v.round()),
                     ),
                   ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 34,
+                        child: TextField(
+                          controller: _percentController,
+                          focusNode: _percentFocus,
+                          textAlign: TextAlign.center,
+                          keyboardType: TextInputType.number,
+                          maxLength: 3,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            _max100Formatter,
+                          ],
+                          style: const TextStyle(fontSize: 12),
+                          decoration: const InputDecoration(
+                            counterText: '',
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 2,
+                            ),
+                            border: OutlineInputBorder(),
+                          ),
+                          onSubmitted: (_) => _commitPercentFromText(),
+                          onTapOutside: (_) {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            _commitPercentFromText();
+                          },
+                        ),
+                      ),
+                      const Text('%', style: TextStyle(fontSize: 11)),
+                    ],
+                  ),
+                ],
               ],
             ),
     );
