@@ -1,5 +1,25 @@
 import 'dart:convert';
 
+/// One of the 4 global transitions (V72, see `GlobalTransitionEditor`) —
+/// [tipus] is a raw `TransitionType.vValue` (0-3), kept as a plain int here
+/// rather than importing the enum, matching how
+/// [ArdmxOneV2ChannelConfigEntry] stores raw wire values throughout this
+/// file.
+class TransicioConfigEntry {
+  const TransicioConfigEntry({required this.tipus, required this.saltPercent});
+
+  final int tipus;
+  final int saltPercent;
+
+  Map<String, dynamic> toJson() => {'tipus': tipus, 'salt_percent': saltPercent};
+
+  factory TransicioConfigEntry.fromJson(Map<String, dynamic> json) =>
+      TransicioConfigEntry(
+        tipus: ((json['tipus'] as num?) ?? 0).toInt().clamp(0, 3),
+        saltPercent: ((json['salt_percent'] as num?) ?? 0).toInt().clamp(0, 100),
+      );
+}
+
 /// One exported/imported DMX channel on the ARDMX One v2: its 4 per-scene
 /// values (0-255) and its editable name — same shape as the ARDMX EVO
 /// tree's own `ArdmxEvoChannelConfigEntry`, kept as its own copy (separate
@@ -55,6 +75,7 @@ class ArdmxOneV2ConfigData {
     required this.pessebre,
     required this.descripcio,
     required this.canals,
+    this.transicions = const [],
     this.model = defaultModel,
     this.firmwareVersio = '',
     this.exportatEl,
@@ -71,6 +92,12 @@ class ArdmxOneV2ConfigData {
   final String pessebre;
   final String descripcio;
   final List<ArdmxOneV2ChannelConfigEntry> canals;
+
+  /// The 4 global transitions (V72) — empty on files exported before this
+  /// field existed, which `_ExportImportSectionState._import` treats as
+  /// "don't touch the device's current transitions" rather than clobbering
+  /// them with defaults.
+  final List<TransicioConfigEntry> transicions;
   final String model;
   final String firmwareVersio;
   final DateTime? exportatEl;
@@ -85,6 +112,7 @@ class ArdmxOneV2ConfigData {
     'pessebre': pessebre,
     'descripcio': descripcio,
     'canals': [for (final c in canals) c.toJson()],
+    'transicions': [for (final t in transicions) t.toJson()],
   };
 
   String toPrettyJson() => const JsonEncoder.withIndent('  ').convert(toJson());
@@ -92,6 +120,7 @@ class ArdmxOneV2ConfigData {
   factory ArdmxOneV2ConfigData.fromJson(Map<String, dynamic> json) {
     final rawCanals = json['canals'] as List? ?? const [];
     final rawPeriodes = json['periodes'] as List? ?? const [];
+    final rawTransicions = json['transicions'] as List? ?? const [];
     return ArdmxOneV2ConfigData(
       model: json['model'] as String? ?? '',
       firmwareVersio: json['versio_firmware'] as String? ?? '',
@@ -112,6 +141,10 @@ class ArdmxOneV2ConfigData {
             i + 1,
             rawCanals[i] as Map<String, dynamic>,
           ),
+      ],
+      transicions: [
+        for (final t in rawTransicions)
+          TransicioConfigEntry.fromJson(t as Map<String, dynamic>),
       ],
     );
   }

@@ -1,13 +1,31 @@
 import 'dart:convert';
 
+/// One of the 4 global transitions (V72, see `GlobalTransitionEditor`) —
+/// [tipus] is a raw [TransitionType.vValue] (0-3), kept as a plain int here
+/// rather than importing the enum, matching how [ArdmxEvoChannelConfigEntry]
+/// stores raw wire values throughout this file.
+class TransicioConfigEntry {
+  const TransicioConfigEntry({required this.tipus, required this.saltPercent});
+
+  final int tipus;
+  final int saltPercent;
+
+  Map<String, dynamic> toJson() => {'tipus': tipus, 'salt_percent': saltPercent};
+
+  factory TransicioConfigEntry.fromJson(Map<String, dynamic> json) =>
+      TransicioConfigEntry(
+        tipus: ((json['tipus'] as num?) ?? 0).toInt().clamp(0, 3),
+        saltPercent: ((json['salt_percent'] as num?) ?? 0).toInt().clamp(0, 100),
+      );
+}
+
 /// One exported/imported DMX channel on the ARDMX EVO: its 4 per-scene
 /// values (0-255) and its editable name (up to 15 characters, V65-V67 for
 /// the 3 currently-selected slots) — the EVO firmware has channel names
 /// like ARDMX One, unlike the Mega, so this mirrors
 /// `Ardmx4ChannelConfigEntry` (`features/parameters/config_json.dart`) plus
 /// a [name] field. No longer carries a per-scene transition mode (that was
-/// replaced by 4 GLOBAL transitions, not exported/imported here — see
-/// `GlobalTransitionEditor`/V72).
+/// replaced by 4 GLOBAL transitions — see [TransicioConfigEntry]/V72).
 class ArdmxEvoChannelConfigEntry {
   const ArdmxEvoChannelConfigEntry({
     required this.number,
@@ -60,6 +78,7 @@ class ArdmxEvoConfigData {
     required this.pessebre,
     required this.descripcio,
     required this.canals,
+    this.transicions = const [],
     this.model = defaultModel,
     this.firmwareVersio = '',
     this.exportatEl,
@@ -78,6 +97,12 @@ class ArdmxEvoConfigData {
   final String pessebre;
   final String descripcio;
   final List<ArdmxEvoChannelConfigEntry> canals;
+
+  /// The 4 global transitions (V72) — empty on files exported before this
+  /// field existed, which [_ExportImportSectionState._import] treats as
+  /// "don't touch the device's current transitions" rather than clobbering
+  /// them with defaults.
+  final List<TransicioConfigEntry> transicions;
   final String model;
   final String firmwareVersio;
   final DateTime? exportatEl;
@@ -94,6 +119,7 @@ class ArdmxEvoConfigData {
     'pessebre': pessebre,
     'descripcio': descripcio,
     'canals': [for (final c in canals) c.toJson()],
+    'transicions': [for (final t in transicions) t.toJson()],
   };
 
   String toPrettyJson() => const JsonEncoder.withIndent('  ').convert(toJson());
@@ -101,6 +127,7 @@ class ArdmxEvoConfigData {
   factory ArdmxEvoConfigData.fromJson(Map<String, dynamic> json) {
     final rawCanals = json['canals'] as List? ?? const [];
     final rawPeriodes = json['periodes'] as List? ?? const [];
+    final rawTransicions = json['transicions'] as List? ?? const [];
     return ArdmxEvoConfigData(
       model: json['model'] as String? ?? '',
       firmwareVersio: json['versio_firmware'] as String? ?? '',
@@ -123,6 +150,10 @@ class ArdmxEvoConfigData {
             i + 1,
             rawCanals[i] as Map<String, dynamic>,
           ),
+      ],
+      transicions: [
+        for (final t in rawTransicions)
+          TransicioConfigEntry.fromJson(t as Map<String, dynamic>),
       ],
     );
   }
