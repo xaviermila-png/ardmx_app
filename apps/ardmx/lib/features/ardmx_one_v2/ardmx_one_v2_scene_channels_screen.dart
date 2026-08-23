@@ -64,9 +64,10 @@ class _ArdmxOneV2SceneChannelsScreenState
     return AppScaffold(
       title: 'Escena / Canals',
       onBack: () => Navigator.of(context).pop(),
-      // Mateix motiu que a l'EVO: el teclat en editar un nom de canal no té
-      // marge per encongir els sliders de sota sense trencar el layout.
-      resizeToAvoidBottomInset: false,
+      // Mateix motiu que a l'EVO: deixa que el cos s'encongeixi quan surt
+      // el teclat (per defecte), així el camp que s'està editant (nom de
+      // canal a dalt, o el % de salt de ChannelTransitionEditor a baix)
+      // es manté per sobre del teclat en lloc de quedar-hi tapat.
       body: Column(
         children: [
           const SceneNavigator(),
