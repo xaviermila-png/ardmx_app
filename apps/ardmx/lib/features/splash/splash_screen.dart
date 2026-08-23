@@ -154,6 +154,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void _goToArdmxOne() =>
       Navigator.of(context).pushReplacementNamed(AppRoutes.ardmxOne);
 
+  void _goToArdmxOneV2() =>
+      Navigator.of(context).pushReplacementNamed(AppRoutes.ardmxOneV2MainMenu);
+
   void _goToArdmxEvo() =>
       Navigator.of(context).pushReplacementNamed(AppRoutes.ardmxEvoMainMenu);
 
@@ -186,7 +189,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     switch (type) {
       case DeviceType.ardmxOne:
-        _goToArdmxOne();
+        // Both v1 and v2 report tipus:"ARDMX_ONE" — only the firmware
+        // semver (parsed by DeviceIdentificationService) tells them apart.
+        // Defensive default to v1 (the frozen, field-deployed devices) on
+        // anything other than a confirmed major version >= 2.
+        if ((service.ardmxOneMajorVersion ?? 1) >= 2) {
+          _goToArdmxOneV2();
+        } else {
+          _goToArdmxOne();
+        }
       case DeviceType.ardmxEvo:
         _goToArdmxEvo();
       case DeviceType.ardmx4:

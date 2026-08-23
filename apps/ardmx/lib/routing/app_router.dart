@@ -10,6 +10,11 @@ import '../features/ardmx_evo/ardmx_evo_system_config_screen.dart';
 import '../features/ardmx_one/ardmx_one_config_screen.dart';
 import '../features/ardmx_one/ardmx_one_screen.dart';
 import '../features/ardmx_one/ardmx_one_system_config_screen.dart';
+import '../features/ardmx_one_v2/ardmx_one_v2_cycle_programming_screen.dart';
+import '../features/ardmx_one_v2/ardmx_one_v2_main_menu_screen.dart';
+import '../features/ardmx_one_v2/ardmx_one_v2_parameters_screen.dart';
+import '../features/ardmx_one_v2/ardmx_one_v2_scene_channels_screen.dart';
+import '../features/ardmx_one_v2/ardmx_one_v2_system_config_screen.dart';
 import '../features/credits/credits_screen.dart';
 import '../features/debug/debug_screen.dart';
 import '../features/rgb_wheel/rgb_wheel_screen.dart';
@@ -29,6 +34,11 @@ class AppRoutes {
   static const ardmxEvoCycleProgramming = '/ardmx-evo-cycle-programming';
   static const ardmxEvoParameters = '/ardmx-evo-parameters';
   static const ardmxEvoSystemConfig = '/ardmx-evo-system-config';
+  static const ardmxOneV2MainMenu = '/ardmx-one-v2-main-menu';
+  static const ardmxOneV2SceneChannels = '/ardmx-one-v2-scenes';
+  static const ardmxOneV2CycleProgramming = '/ardmx-one-v2-cycle-programming';
+  static const ardmxOneV2Parameters = '/ardmx-one-v2-parameters';
+  static const ardmxOneV2SystemConfig = '/ardmx-one-v2-system-config';
   static const credits = '/credits';
 
   /// Offline navigation shortcut into a product's screen tree, reached via
@@ -56,6 +66,15 @@ class AppRoutes {
     // implicit was fragile. See confirmReset()'s doc for the actual reset
     // race this screen's testing uncovered.
     ardmxEvoSystemConfig: AppScreen.parameters,
+    ardmxOneV2MainMenu: AppScreen.mainMenu,
+    ardmxOneV2SceneChannels: AppScreen.sceneChannels,
+    ardmxOneV2CycleProgramming: AppScreen.cycleProgramming,
+    ardmxOneV2Parameters: AppScreen.parameters,
+    // Same reasoning as ardmxEvoSystemConfig above — no dedicated V50 value
+    // of its own, mapped to Paràmetres so ConfiguracioParametres()-style
+    // reactive polling keeps running (V41/V42 reset, Nom Bluetooth) while
+    // this screen is open.
+    ardmxOneV2SystemConfig: AppScreen.parameters,
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -77,6 +96,16 @@ class AppRoutes {
         (BuildContext context) => const ArdmxEvoParametersScreen(),
       ardmxEvoSystemConfig =>
         (BuildContext context) => const ArdmxEvoSystemConfigScreen(),
+      ardmxOneV2MainMenu =>
+        (BuildContext context) => const ArdmxOneV2MainMenuScreen(),
+      ardmxOneV2SceneChannels =>
+        (BuildContext context) => const ArdmxOneV2SceneChannelsScreen(),
+      ardmxOneV2CycleProgramming =>
+        (BuildContext context) => const ArdmxOneV2CycleProgrammingScreen(),
+      ardmxOneV2Parameters =>
+        (BuildContext context) => const ArdmxOneV2ParametersScreen(),
+      ardmxOneV2SystemConfig =>
+        (BuildContext context) => const ArdmxOneV2SystemConfigScreen(),
       _ => (BuildContext context) => const SplashScreen(),
     };
     return MaterialPageRoute(builder: builder, settings: settings);
