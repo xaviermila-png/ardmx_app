@@ -263,10 +263,21 @@ class _ChannelColumnState extends State<_ChannelColumn> {
   final _percentController = TextEditingController();
   final _percentFocus = FocusNode();
 
-  /// Overrides the displayed percent while the slider is being dragged, so
-  /// dragging doesn't spam a V71 write per pixel — only [onChangeEnd]
-  /// commits to the wire, same throttle-on-release idea as [ChannelSliders].
-  int? _localPercent;
+  @override
+  void initState() {
+    super.initState();
+    // Select the whole number on focus, so typing immediately replaces it
+    // instead of the user having to manually clear/backspace first — same
+    // as ChannelSliders' own numeric fields.
+    _percentFocus.addListener(() {
+      if (_percentFocus.hasFocus) {
+        _percentController.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: _percentController.text.length,
+        );
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -288,24 +299,20 @@ class _ChannelColumnState extends State<_ChannelColumn> {
     }
   }
 
-  void _commitPercent(int percent) {
-    final current = widget.entry ?? _defaultTransition;
-    setState(() => _localPercent = null);
-    widget.onChanged((type: current.type, saltPercent: percent.clamp(0, 100)));
-  }
-
   void _commitPercentFromText() {
+    final current = widget.entry ?? _defaultTransition;
     final parsed = int.tryParse(_percentController.text);
     if (parsed == null) return;
-    _commitPercent(parsed);
+    widget.onChanged(
+      (type: current.type, saltPercent: parsed.clamp(0, 100)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final current = widget.entry ?? _defaultTransition;
-    final displayedPercent = _localPercent ?? current.saltPercent;
     if (!_percentFocus.hasFocus) {
-      _percentController.text = '$displayedPercent';
+      _percentController.text = '${current.saltPercent}';
     }
 
     return Container(
@@ -362,63 +369,49 @@ class _ChannelColumnState extends State<_ChannelColumn> {
                     },
                   ),
                 ),
-                if (current.type == TransitionType.salt) ...[
-                  SliderTheme(
-                    data: const SliderThemeData(
-                      trackHeight: 3,
-                      thumbShape: RoundSliderThumbShape(
-                        enabledThumbRadius: 7,
-                      ),
-                      overlayShape: RoundSliderOverlayShape(
-                        overlayRadius: 14,
-                      ),
-                    ),
-                    child: Slider(
-                      value: displayedPercent.toDouble(),
-                      min: 0,
-                      max: 100,
-                      divisions: 100,
-                      label: '$displayedPercent%',
-                      onChanged: (v) =>
-                          setState(() => _localPercent = v.round()),
-                      onChangeEnd: (v) => _commitPercent(v.round()),
-                    ),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 34,
-                        child: TextField(
-                          controller: _percentController,
-                          focusNode: _percentFocus,
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          maxLength: 3,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            _max100Formatter,
-                          ],
-                          style: const TextStyle(fontSize: 12),
-                          decoration: const InputDecoration(
-                            counterText: '',
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 2,
+                if (current.type == TransitionType.salt)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          // Wide enough that 3 digits stay fully visible
+                          // while typing — a narrower field here clipped
+                          // the digits, same issue ChannelSliders' own
+                          // numeric field had before it was widened.
+                          width: 44,
+                          child: TextField(
+                            controller: _percentController,
+                            focusNode: _percentFocus,
+                            textAlign: TextAlign.center,
+                            keyboardType: TextInputType.number,
+                            maxLength: 3,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              _max100Formatter,
+                            ],
+                            style: const TextStyle(fontSize: 13),
+                            decoration: const InputDecoration(
+                              counterText: '',
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 2,
+                                vertical: 6,
+                              ),
+                              border: OutlineInputBorder(),
                             ),
-                            border: OutlineInputBorder(),
+                            onSubmitted: (_) => _commitPercentFromText(),
+                            onTapOutside: (_) {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              _commitPercentFromText();
+                            },
                           ),
-                          onSubmitted: (_) => _commitPercentFromText(),
-                          onTapOutside: (_) {
-                            FocusManager.instance.primaryFocus?.unfocus();
-                            _commitPercentFromText();
-                          },
                         ),
-                      ),
-                      const Text('%', style: TextStyle(fontSize: 11)),
-                    ],
+                        const Text('%', style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
                   ),
-                ],
               ],
             ),
     );

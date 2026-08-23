@@ -68,6 +68,27 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
   final _focusNode3 = FocusNode();
 
   @override
+  void initState() {
+    super.initState();
+    // Select the whole number on focus, so typing immediately replaces it
+    // instead of the user having to manually clear/backspace first.
+    for (final entry in [
+      (_focusNode1, _textController1),
+      (_focusNode2, _textController2),
+      (_focusNode3, _textController3),
+    ]) {
+      entry.$1.addListener(() {
+        if (entry.$1.hasFocus) {
+          entry.$2.selection = TextSelection(
+            baseOffset: 0,
+            extentOffset: entry.$2.text.length,
+          );
+        }
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _throttleCooldown?.cancel();
     _textController1.dispose();
