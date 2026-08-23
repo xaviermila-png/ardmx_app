@@ -90,7 +90,7 @@ class _ArdmxEvoSceneChannelsScreenState
               child: Column(
                 children: [
                   const SizedBox(
-                    height: 340,
+                    height: 400,
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 8),
                       child: ChannelSliders(thumbSize: 48, cornerRadius: 10),

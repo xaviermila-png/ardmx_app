@@ -15,6 +15,18 @@ typedef _ChannelFull =
 
 const _defaultTransition = (type: TransitionType.lineal, saltPercent: 0);
 
+/// Display order for the type picker — deliberately NOT
+/// `TransitionType.values`' declaration order (which matches the fixed
+/// wire `vValue`s and must never change): Lineal, Out suau (EASE_OUT), In
+/// suau (EASE_IN), Salt. Keep any other place in the app that lists all 4
+/// types in sync with this order/labelling.
+const _displayOrder = [
+  TransitionType.lineal,
+  TransitionType.easeOut,
+  TransitionType.easeIn,
+  TransitionType.salt,
+];
+
 /// "Transició Escena N -> Escena M" editor, ONE COLUMN PER VISIBLE CHANNEL
 /// (matching [ChannelSliders]' 3-way layout) — replaces both the very old
 /// per-channel [TransitionModeSelector] (gradual/inicial/final) and this
@@ -290,12 +302,12 @@ class _ChannelColumnState extends State<_ChannelColumn> {
     switch (type) {
       case TransitionType.lineal:
         return 'Lineal';
+      case TransitionType.easeOut:
+        return 'Out suau';
+      case TransitionType.easeIn:
+        return 'In suau';
       case TransitionType.salt:
         return 'Salt';
-      case TransitionType.easeIn:
-        return 'Ease in';
-      case TransitionType.easeOut:
-        return 'Ease out';
     }
   }
 
@@ -317,7 +329,7 @@ class _ChannelColumnState extends State<_ChannelColumn> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 3),
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       decoration: BoxDecoration(
         border: Border.all(color: widget.color.withValues(alpha: 0.6), width: 2),
         borderRadius: BorderRadius.circular(10),
@@ -345,8 +357,13 @@ class _ChannelColumnState extends State<_ChannelColumn> {
                       fontSize: 12,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
+                    // selectedItemBuilder's list must stay index-aligned
+                    // with items' — both iterate _displayOrder (not
+                    // TransitionType.values, whose declaration order
+                    // matches the fixed wire vValues and must not change)
+                    // so the picker shows Lineal/Out suau/In suau/Salt.
                     selectedItemBuilder: (context) => [
-                      for (final t in TransitionType.values)
+                      for (final t in _displayOrder)
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
@@ -357,7 +374,7 @@ class _ChannelColumnState extends State<_ChannelColumn> {
                         ),
                     ],
                     items: [
-                      for (final t in TransitionType.values)
+                      for (final t in _displayOrder)
                         DropdownMenuItem(value: t, child: Text(_typeLabel(t))),
                     ],
                     onChanged: (t) {
@@ -369,49 +386,60 @@ class _ChannelColumnState extends State<_ChannelColumn> {
                     },
                   ),
                 ),
-                if (current.type == TransitionType.salt)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 3),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          // Wide enough that 3 digits stay fully visible
-                          // while typing — a narrower field here clipped
-                          // the digits, same issue ChannelSliders' own
-                          // numeric field had before it was widened.
-                          width: 44,
-                          child: TextField(
-                            controller: _percentController,
-                            focusNode: _percentFocus,
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.number,
-                            maxLength: 3,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                              _max100Formatter,
-                            ],
-                            style: const TextStyle(fontSize: 13),
-                            decoration: const InputDecoration(
-                              counterText: '',
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 2,
-                                vertical: 6,
-                              ),
-                              border: OutlineInputBorder(),
-                            ),
-                            onSubmitted: (_) => _commitPercentFromText(),
-                            onTapOutside: (_) {
-                              FocusManager.instance.primaryFocus?.unfocus();
-                              _commitPercentFromText();
-                            },
+                // maintainSize (not just an `if`): reserves the same
+                // height whether SALT is selected or not, so every
+                // column's box stays the same size instead of the ones
+                // without a percent field looking shorter.
+                Visibility(
+                  visible: current.type == TransitionType.salt,
+                  maintainSize: true,
+                  maintainAnimation: true,
+                  maintainState: true,
+                  child: Padding(
+                    // Keeps the field clear of the colored border on every
+                    // side, not just the top — it was touching the box
+                    // edge before.
+                    padding: const EdgeInsets.fromLTRB(4, 5, 4, 3),
+                    child: SizedBox(
+                      // Wide enough that "100%" stays fully visible while
+                      // typing — a narrower field here clipped the digits,
+                      // same issue ChannelSliders' own numeric field had
+                      // before it was widened.
+                      width: 64,
+                      child: TextField(
+                        controller: _percentController,
+                        focusNode: _percentFocus,
+                        textAlign: TextAlign.center,
+                        keyboardType: TextInputType.number,
+                        maxLength: 3,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          _max100Formatter,
+                        ],
+                        style: const TextStyle(fontSize: 13),
+                        decoration: const InputDecoration(
+                          // "%" lives inside the field's own box (suffix)
+                          // instead of as a separate Text glued right next
+                          // to it.
+                          suffixText: '%',
+                          suffixStyle: TextStyle(fontSize: 12),
+                          counterText: '',
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 6,
                           ),
+                          border: OutlineInputBorder(),
                         ),
-                        const Text('%', style: TextStyle(fontSize: 12)),
-                      ],
+                        onSubmitted: (_) => _commitPercentFromText(),
+                        onTapOutside: (_) {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          _commitPercentFromText();
+                        },
+                      ),
                     ),
                   ),
+                ),
               ],
             ),
     );
