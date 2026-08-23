@@ -10,12 +10,14 @@ import '../../widgets/app_scaffold.dart';
 import '../ardmx_one/widgets/channel_name_row.dart';
 import '../ardmx_one/widgets/channel_number_bar.dart';
 import '../scene_channels/widgets/channel_sliders.dart';
+import '../scene_channels/widgets/global_transition_editor.dart';
 import '../scene_channels/widgets/scene_navigator.dart';
-import '../scene_channels/widgets/transition_mode_selector.dart';
 
-/// Scene/Channels screen for the ARDMX EVO tree — same V1-V9/V31-V33
-/// protocol as the Mega's own [SceneChannelsScreen], plus [ChannelNameRow]
-/// (V65-V67), which the Mega doesn't have but ARDMX One and EVO both do.
+/// Scene/Channels screen for the ARDMX EVO tree — same V1-V9 protocol as
+/// the Mega's own [SceneChannelsScreen], plus [ChannelNameRow] (V65-V67,
+/// which the Mega doesn't have but ARDMX One and EVO both do) and
+/// [GlobalTransitionEditor] (V72, the 4 global transitions — replaces the
+/// old per-channel V31-V33 [TransitionModeSelector]).
 class ArdmxEvoSceneChannelsScreen extends ConsumerStatefulWidget {
   const ArdmxEvoSceneChannelsScreen({super.key});
 
@@ -54,9 +56,6 @@ class _ArdmxEvoSceneChannelsScreenState
       VIndex.channel1Value,
       VIndex.channel2Value,
       VIndex.channel3Value,
-      VIndex.transitionModeChannel1,
-      VIndex.transitionModeChannel2,
-      VIndex.transitionModeChannel3,
     ]);
   }
 
@@ -87,7 +86,7 @@ class _ArdmxEvoSceneChannelsScreenState
           ),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: TransitionModeSelector(),
+            child: GlobalTransitionEditor(),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),

@@ -1,9 +1,10 @@
 /// Named indices into the Arduino's `V[0..59]` float array and its three
-/// text pins T61-T63. This is the single source of truth for the wire
-/// protocol shape — nothing else in the app should use raw index literals.
-///
-/// The Arduino sketch (V4.15) is frozen: these indices and their meanings
-/// must never change.
+/// text pins T61-T63, plus the handful of text-bulk indices (≥70) that
+/// diverge per product (ARDMX4/One/EVO each give a different meaning to
+/// indices in that range — see each product's own firmware `main.cpp` for
+/// the exact V71/V72 payload format used there). This is the single source
+/// of truth for the wire protocol shape — nothing else in the app should
+/// use raw index literals.
 class VIndex {
   const VIndex._();
 
@@ -30,15 +31,23 @@ class VIndex {
   static const int periodDurationsStart = 21;
   static const int periodDurationsCount = 8;
 
-  static const int transitionModeChannel1 = 31;
-  static const int transitionModeChannel2 = 32;
-  static const int transitionModeChannel3 = 33;
   static const int sceneChangeOrder = 35;
   static const int maxChannels = 39;
   static const int activeChannelsCount = 40;
   static const int resetConfirm1 = 41;
   static const int resetConfirm2 = 42;
   static const int activeScreen = 50;
+
+  /// Bulk query/assign of one channel's 4 scene values + name — ARDMX One v2
+  /// and EVO only. Query `"N"`; assign `"N|v1|v2|v3|v4|nom"`; reply (both)
+  /// `"v1|v2|v3|v4|nom"`.
+  static const int channelBulk4Scene = 71;
+
+  /// Bulk query/assign of the 4 global transitions (type + salt%) — ARDMX
+  /// One v2 and EVO only. Query `"?"`; assign
+  /// `"t1|s1|t2|s2|t3|s3|t4|s4"` (t=[TransitionType] index, s=0-100); reply
+  /// (both) the same 8-field format.
+  static const int transitionsBulk = 72;
 
   /// V-index this array position corresponds to, for the 8 period durations.
   static int periodDuration(int periodOffset) =>
@@ -83,12 +92,17 @@ enum MainSelectorMode {
   final int vValue;
 }
 
-/// Per-channel transition mode (V[31..33]).
-enum TransitionMode {
-  gradual(0),
-  initial(1),
-  finalMode(2);
+/// Type of a global transition between two consecutive scenes (V72's `t`
+/// fields) — applies to every channel at once, unlike the old per-channel
+/// gradual/initial/final mode it replaced. Only [salt] uses a percentage
+/// (the point in time, 0-100, where the instant jump happens); the rest
+/// ignore it.
+enum TransitionType {
+  lineal(0),
+  salt(1),
+  easeIn(2),
+  easeOut(3);
 
-  const TransitionMode(this.vValue);
+  const TransitionType(this.vValue);
   final int vValue;
 }

@@ -131,16 +131,6 @@ class AppStateNotifier extends Notifier<AppState> {
     VIndex.channel3Value: channel3,
   });
 
-  void setTransitionModes({
-    required TransitionMode channel1,
-    required TransitionMode channel2,
-    required TransitionMode channel3,
-  }) => _writeBatchAndApply({
-    VIndex.transitionModeChannel1: channel1.vValue.toDouble(),
-    VIndex.transitionModeChannel2: channel2.vValue.toDouble(),
-    VIndex.transitionModeChannel3: channel3.vValue.toDouble(),
-  });
-
   void setPlaying(bool playing) =>
       _writeAndApply(VIndex.playStop, playing ? 1 : 0);
 

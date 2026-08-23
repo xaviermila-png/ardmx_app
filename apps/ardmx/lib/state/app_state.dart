@@ -41,10 +41,6 @@ class AppState {
   int? get channel2Number => intAt(VIndex.channel2Number);
   int? get channel3Number => intAt(VIndex.channel3Number);
 
-  int? get transitionModeChannel1 => intAt(VIndex.transitionModeChannel1);
-  int? get transitionModeChannel2 => intAt(VIndex.transitionModeChannel2);
-  int? get transitionModeChannel3 => intAt(VIndex.transitionModeChannel3);
-
   int? get maxChannels => intAt(VIndex.maxChannels);
   int? get activeChannelsCount => intAt(VIndex.activeChannelsCount);
 
