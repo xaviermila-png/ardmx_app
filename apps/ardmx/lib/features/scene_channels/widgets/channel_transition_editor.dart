@@ -17,9 +17,9 @@ const _defaultTransition = (type: TransitionType.lineal, saltPercent: 0);
 
 /// Display order for the type picker — deliberately NOT
 /// `TransitionType.values`' declaration order (which matches the fixed
-/// wire `vValue`s and must never change): Lineal, Out suau (EASE_OUT), In
-/// suau (EASE_IN), Salt. Keep any other place in the app that lists all 4
-/// types in sync with this order/labelling.
+/// wire `vValue`s and must never change): Lineal, Fi suau (EASE_OUT),
+/// Inici suau (EASE_IN), Salt. Keep any other place in the app that lists
+/// all 4 types in sync with this order/labelling.
 const _displayOrder = [
   TransitionType.lineal,
   TransitionType.easeOut,
@@ -303,9 +303,9 @@ class _ChannelColumnState extends State<_ChannelColumn> {
       case TransitionType.lineal:
         return 'Lineal';
       case TransitionType.easeOut:
-        return 'Out suau';
+        return 'Fi suau';
       case TransitionType.easeIn:
-        return 'In suau';
+        return 'Inici suau';
       case TransitionType.salt:
         return 'Salt';
     }
@@ -361,7 +361,7 @@ class _ChannelColumnState extends State<_ChannelColumn> {
                     // with items' — both iterate _displayOrder (not
                     // TransitionType.values, whose declaration order
                     // matches the fixed wire vValues and must not change)
-                    // so the picker shows Lineal/Out suau/In suau/Salt.
+                    // so the picker shows Lineal/Fi suau/Inici suau/Salt.
                     selectedItemBuilder: (context) => [
                       for (final t in _displayOrder)
                         Align(
