@@ -78,7 +78,7 @@ class _ArdmxOneV2MainMenuScreenState
                     firmwareVersion,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 17,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
