@@ -77,6 +77,11 @@ class _ArdmxEvoMainMenuScreenState
     );
     final currentLabel = DialSelector.labelFor(currentMode) ?? '';
     final songNumber = ref.watch(appStateProvider.select((s) => s.songNumber));
+    // Already requested on every connect by AppStateNotifier's own
+    // requestInitialSnapshot() (T62) — same value shown on Crèdits, shown
+    // here too so it's obvious at a glance which firmware/product this
+    // Main Menu belongs to (v1/v2/EVO all look similar otherwise).
+    final firmwareVersion = ref.watch(appStateProvider.select((s) => s.t62));
 
     return PopScope(
       canPop: false,
@@ -91,6 +96,18 @@ class _ArdmxEvoMainMenuScreenState
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           child: Column(
             children: [
+              if (firmwareVersion != null && firmwareVersion.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    firmwareVersion,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
               Text(
                 currentLabel,
                 textAlign: TextAlign.center,
