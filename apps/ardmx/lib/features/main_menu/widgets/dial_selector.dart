@@ -142,6 +142,17 @@ class DialSelector extends ConsumerWidget {
                     current: current,
                     width: rectWidth,
                     height: squareSize,
+                    // Automàtic (cycling) and Manual (Trigger, EVO only)
+                    // both need at least 2 scenes to mean anything — with
+                    // only 1 there's nothing to cycle/trigger between.
+                    // Firmware already refuses to run automatic mode in
+                    // that case (kicks V11 back to "Escena 1"), so this
+                    // just makes the limit visible instead of a button
+                    // that visibly reverts itself right after tapping.
+                    enabled:
+                        !((otherModes[i] == MainSelectorMode.automatic ||
+                                otherModes[i] == MainSelectorMode.manual) &&
+                            activeScenesCount == 1),
                   ),
                 ],
               ],
