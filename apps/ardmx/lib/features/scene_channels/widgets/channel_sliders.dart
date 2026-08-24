@@ -290,6 +290,7 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
               },
             ),
           ),
+          const SizedBox(height: 10),
           Expanded(
             child: RotatedBox(
               quarterTurns: 3,
