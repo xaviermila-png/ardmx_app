@@ -214,16 +214,39 @@ class _ChannelTransitionEditorState
       for (var i = 0; i < 4; i++)
         i == _selectedTransition ? entry : current.transicions[i],
     ];
+
+    // The active scene's level can be live-edited by ChannelSliders (a
+    // sibling widget, via V01-03) completely independently of this
+    // editor's own V71 cache — which only gets refetched when the
+    // channel NUMBER changes, not on every slider drag. Sending back
+    // current.valors as-is here would silently overwrite whatever the
+    // user just dragged the slider to with this now-stale cached value
+    // (confirmed on real hardware: set a level to 255, change the
+    // transition type, and the level snapped back to 0). Since V71
+    // writes are atomic (the whole channel, all 4 scenes, at once), the
+    // fix is to fold the live value for the active scene back in right
+    // before building the payload.
+    final state = ref.read(appStateProvider);
+    final activeScene = state.activeScene;
+    final liveValues = [
+      state.channel1Value,
+      state.channel2Value,
+      state.channel3Value,
+    ];
+    final live = liveValues[slot];
+    final valors = [
+      for (var i = 0; i < 4; i++)
+        (activeScene != null && activeScene - 1 == i && live != null)
+            ? live.round()
+            : current.valors[i],
+    ];
+
     setState(() {
-      _channels[slot] = (
-        valors: current.valors,
-        transicions: newTransicions,
-        name: current.name,
-      );
+      _channels[slot] = (valors: valors, transicions: newTransicions, name: current.name);
     });
 
     final payload =
-        '$channelNumber|${current.valors.join('|')}|'
+        '$channelNumber|${valors.join('|')}|'
         '${[for (final t in newTransicions) '${t.type.vValue}|${t.saltPercent}'].join('|')}'
         '|${current.name}';
     final parsed = _parse(await _roundTrip(payload));
