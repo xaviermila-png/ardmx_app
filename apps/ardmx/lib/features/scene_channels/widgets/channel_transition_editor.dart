@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -72,27 +73,35 @@ class _ChannelTransitionEditorState
   final List<int?> _fetchedFor = List.filled(_channelCount, null);
   int _selectedTransition = 0;
   Timer? _pollTimer;
+  StreamSubscription<VirtuinoUpdate>? _repliesSubscription;
 
-  /// Serializes every V71 round trip (across all 3 slots) so at most one
-  /// is ever in flight — the wire protocol has no request/response
-  /// correlation, `protocol.updates` is a broadcast stream every listener
-  /// sees, and each round trip's listener just grabs the FIRST reply it
-  /// sees on this index. Running 3 fetches concurrently (e.g. all 3
-  /// visible channels changing at once after "advance group") meant all 3
-  /// listeners raced for the same first-arriving reply and could all end
-  /// up with the SAME channel's data — confirmed on real hardware: after
-  /// advancing and coming back, all 3 columns showed channel 1's SALT 50%.
-  Future<void> _requestQueue = Future.value();
-
-  Future<String?> _queuedRoundTrip(String payload) {
-    final result = _requestQueue.then((_) => _roundTripOnce(payload));
-    _requestQueue = result.then((_) {}, onError: (_) {});
-    return result;
-  }
+  /// FIFO-matches V71 replies to pending requests instead of running them
+  /// one at a time. A single BLE characteristic delivers writes in order,
+  /// and both firmwares' `processFrame()` handles one frame fully
+  /// (including sending its reply) before reading the next, so replies
+  /// always come back in the same order the requests were sent — even
+  /// with several in flight together. That means the OLDEST still-
+  /// unanswered request is always at the front of this queue, so this
+  /// single persistent listener can just pop-and-complete it whenever a
+  /// V71 reply arrives, and multiple slots can refetch concurrently
+  /// (latency ~1 round trip) instead of stacking (~3 round trips, which
+  /// is what made switching channel groups feel noticeably laggy).
+  ///
+  /// An earlier version matched replies by "whichever listener sees a
+  /// reply first" (one listener per request) — broke under concurrency:
+  /// 3 requests in flight, the first reply completed all 3, so all 3
+  /// columns ended up showing the same channel's data (confirmed on real
+  /// hardware). Fully serializing fixed that but cost 3x the latency.
+  /// FIFO correlation keeps both properties.
+  final Queue<Completer<String?>> _pendingReplies = Queue<Completer<String?>>();
 
   @override
   void initState() {
     super.initState();
+    _repliesSubscription = ref
+        .read(protocolProvider)
+        .updates
+        .listen(_onProtocolUpdate);
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkChannels());
     _pollTimer = Timer.periodic(_pollInterval, (_) => _checkChannels());
   }
@@ -100,7 +109,16 @@ class _ChannelTransitionEditorState
   @override
   void dispose() {
     _pollTimer?.cancel();
+    _repliesSubscription?.cancel();
     super.dispose();
+  }
+
+  void _onProtocolUpdate(VirtuinoUpdate update) {
+    if (update is VirtuinoTUpdate &&
+        update.index == VIndex.channelBulk4Scene &&
+        _pendingReplies.isNotEmpty) {
+      _pendingReplies.removeFirst().complete(update.text);
+    }
   }
 
   /// Detects a change in which DMX channel each of the 3 sliders points
@@ -125,25 +143,30 @@ class _ChannelTransitionEditorState
     }
   }
 
-  Future<String?> _roundTripOnce(String payload) async {
-    final protocol = ref.read(protocolProvider);
+  Future<String?> _roundTrip(String payload) async {
     final completer = Completer<String?>();
-    late final StreamSubscription<VirtuinoUpdate> subscription;
+    _pendingReplies.addLast(completer);
+    ref.read(protocolProvider).writeText(VIndex.channelBulk4Scene, payload);
 
-    subscription = protocol.updates.listen((update) {
-      if (update is VirtuinoTUpdate &&
-          update.index == VIndex.channelBulk4Scene &&
-          !completer.isCompleted) {
-        completer.complete(update.text);
-      }
-    });
-
-    protocol.writeText(VIndex.channelBulk4Scene, payload);
     final reply = await completer.future.timeout(
       _roundTripTimeout,
       onTimeout: () => null,
     );
-    await subscription.cancel();
+
+    if (!completer.isCompleted) {
+      // Timed out — this request's reply, if it ever shows up late, would
+      // get misattributed to whatever the next request turns out to be
+      // (the FIFO is now desynced). Drop everything else pending too
+      // rather than risk silently handing one slot's data to another —
+      // 2s is generous, this should only happen on a real connection
+      // hiccup, and any slot left unfetched just retries on the next poll
+      // tick that finds its channel number changed.
+      _pendingReplies.remove(completer);
+      for (final pending in _pendingReplies) {
+        if (!pending.isCompleted) pending.complete(null);
+      }
+      _pendingReplies.clear();
+    }
     return reply;
   }
 
@@ -167,7 +190,7 @@ class _ChannelTransitionEditorState
   }
 
   Future<void> _fetchSlot(int slot, int channelNumber) async {
-    final parsed = _parse(await _queuedRoundTrip('$channelNumber'));
+    final parsed = _parse(await _roundTrip('$channelNumber'));
     if (!mounted || parsed == null) return;
     setState(() => _channels[slot] = parsed);
   }
@@ -193,7 +216,7 @@ class _ChannelTransitionEditorState
         '$channelNumber|${current.valors.join('|')}|'
         '${[for (final t in newTransicions) '${t.type.vValue}|${t.saltPercent}'].join('|')}'
         '|${current.name}';
-    final parsed = _parse(await _queuedRoundTrip(payload));
+    final parsed = _parse(await _roundTrip(payload));
     if (mounted && parsed != null) setState(() => _channels[slot] = parsed);
   }
 
