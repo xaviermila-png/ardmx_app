@@ -189,6 +189,7 @@ class AppStateNotifier extends Notifier<AppState> {
       VIndex.activeScreen,
       VIndex.mainSelector,
       VIndex.activeScene,
+      VIndex.activeScenesCount,
       VIndex.volume,
       VIndex.channel1Value,
       VIndex.channel2Value,
