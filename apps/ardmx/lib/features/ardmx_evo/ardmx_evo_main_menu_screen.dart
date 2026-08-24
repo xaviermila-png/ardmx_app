@@ -92,38 +92,54 @@ class _ArdmxEvoMainMenuScreenState
         title: 'Menú Principal',
         onBack: () => _goToConnectionScreen(context),
         onExit: () => _exit(ref),
-        body: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-          child: Column(
-            children: [
-              if (firmwareVersion != null && firmwareVersion.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    firmwareVersion,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 17,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+        // Same structure as ArdmxEvoCycleProgrammingScreen: scrollable
+        // content above, VolumeSlider pinned at the true bottom of the
+        // screen instead of just trailing a fixed (non-scrolling) Column —
+        // that previous layout used Spacer(flex:1) on both sides to center
+        // things, which doesn't work inside a scroll view, so a
+        // SingleChildScrollView + fixed gaps replaces it here.
+        body: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Column(
+                  children: [
+                    if (firmwareVersion != null && firmwareVersion.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          firmwareVersion,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 17,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    Text(
+                      currentLabel,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ),
-              Text(
-                currentLabel,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+                    const SizedBox(height: 20),
+                    const CycleProgressBar(),
+                    const SizedBox(height: 20),
+                    const Divider(thickness: 1, height: 1),
+                    const SizedBox(height: 20),
+                    const DialSelector(submenuBuilder: _submenu),
+                  ],
                 ),
               ),
-              const Spacer(flex: 1),
-              const CycleProgressBar(),
-              const SizedBox(height: 20),
-              const Divider(thickness: 1, height: 1),
-              const SizedBox(height: 20),
-              const DialSelector(submenuBuilder: _submenu),
-              const SizedBox(height: 24),
-              VolumeSlider(
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+              child: VolumeSlider(
                 titleFontSize: 14,
                 titleAlignment: Alignment.bottomRight,
                 leadingAlignment: Alignment.bottomLeft,
@@ -139,9 +155,8 @@ class _ArdmxEvoMainMenuScreenState
                   ),
                 ),
               ),
-              const Spacer(flex: 1),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
