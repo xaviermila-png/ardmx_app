@@ -271,9 +271,21 @@ class _ChannelTransitionEditorState
       }
     });
 
+    // Bounds the browsable transitions to however many scenes are actually
+    // active — with e.g. 2 active scenes there are only 2 real transitions
+    // (1→2 and 2→1, cyclic), not 4; slots 3/4 are unconfigured leftovers
+    // from the fixed-size-4 struct. Firmware's own wraparound now matches
+    // this (see actualizarCanalTransicio() in either main.cpp: `% 4` ->
+    // `% NumeroEscenes`).
+    final activeScenesCount =
+        ref.watch(appStateProvider.select((s) => s.activeScenesCount)) ?? 4;
+    if (_selectedTransition >= activeScenesCount) {
+      _selectedTransition = activeScenesCount - 1;
+    }
+
     final scheme = Theme.of(context).colorScheme;
     final from = _selectedTransition + 1;
-    final to = (_selectedTransition + 1) % 4 + 1;
+    final to = (_selectedTransition + 1) % activeScenesCount + 1;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -290,7 +302,9 @@ class _ChannelTransitionEditorState
               NavArrowButton(
                 icon: Icons.arrow_back,
                 onPressed: () => setState(
-                  () => _selectedTransition = (_selectedTransition + 3) % 4,
+                  () => _selectedTransition =
+                      (_selectedTransition + activeScenesCount - 1) %
+                      activeScenesCount,
                 ),
               ),
               Expanded(
@@ -306,7 +320,8 @@ class _ChannelTransitionEditorState
               NavArrowButton(
                 icon: Icons.arrow_forward,
                 onPressed: () => setState(
-                  () => _selectedTransition = (_selectedTransition + 1) % 4,
+                  () => _selectedTransition =
+                      (_selectedTransition + 1) % activeScenesCount,
                 ),
               ),
               if (widget.trailing != null) ...[

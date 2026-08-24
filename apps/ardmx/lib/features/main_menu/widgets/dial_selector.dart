@@ -79,13 +79,16 @@ class DialSelector extends ConsumerWidget {
     required int? current,
     required double width,
     required double height,
+    bool enabled = true,
   }) {
     return _ModeButton(
       label: _labels[mode]!,
       width: width,
       height: height,
       selected: current == mode.vValue,
-      onTap: () => ref.read(appStateProvider.notifier).selectMainMode(mode),
+      onTap: enabled
+          ? () => ref.read(appStateProvider.notifier).selectMainMode(mode)
+          : null,
     );
   }
 
@@ -95,6 +98,13 @@ class DialSelector extends ConsumerWidget {
     final isConfiguration = current == MainSelectorMode.configuration.vValue;
     final otherModes =
         showManual ? _otherModesWithManual : _otherModesWithoutManual;
+    // Firmware clamps V9 (active scene) to [1, NumeroEscenes] (see
+    // Escenes() in either main.cpp) and also won't accept an out-of-range
+    // fixed-scene selector — disabling here just makes that limit visible
+    // up front instead of the button silently doing nothing.
+    final activeScenesCount = ref.watch(
+      appStateProvider.select((s) => s.activeScenesCount),
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -116,6 +126,7 @@ class DialSelector extends ConsumerWidget {
                     current: current,
                     width: squareSize,
                     height: squareSize,
+                    enabled: activeScenesCount == null || i < activeScenesCount,
                   ),
                 ],
               ],
@@ -166,7 +177,7 @@ class _ModeButton extends StatelessWidget {
   final double width;
   final double height;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -188,6 +199,18 @@ class _ModeButton extends StatelessWidget {
             foregroundColor: selected
                 ? scheme.onPrimaryContainer
                 : scheme.onSurfaceVariant,
+            // FilledButton.styleFrom treats a flat backgroundColor/
+            // foregroundColor as applying to every state including
+            // disabled, unless these are given too — without them, a
+            // disabled scene button (beyond the configured active scene
+            // count) would look identical to an enabled one, just
+            // silently unresponsive to taps.
+            disabledBackgroundColor: scheme.surfaceContainerHighest.withValues(
+              alpha: 0.4,
+            ),
+            disabledForegroundColor: scheme.onSurfaceVariant.withValues(
+              alpha: 0.38,
+            ),
             elevation: selected ? 4 : 1,
             // The selected state isn't color/elevation alone: a visible
             // border and bold text carry the same information non-visually

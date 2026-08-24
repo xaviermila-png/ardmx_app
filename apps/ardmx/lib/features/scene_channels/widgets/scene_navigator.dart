@@ -15,6 +15,19 @@ class SceneNavigator extends ConsumerWidget {
     final activeScene = ref.watch(
       appStateProvider.select((s) => s.activeScene),
     );
+    final activeScenesCount = ref.watch(
+      appStateProvider.select((s) => s.activeScenesCount),
+    );
+
+    // Firmware already clamps V9 to [1, NumeroEscenes] (see Escenes() in
+    // either main.cpp), so this is defense-in-depth for a nicer UX —
+    // disabling the arrow reads as "there's nothing past here" instead of
+    // silently no-oping on tap.
+    final canGoBack = activeScene != null && activeScene > 1;
+    final canGoForward =
+        activeScene != null &&
+        activeScenesCount != null &&
+        activeScene < activeScenesCount;
 
     final scheme = Theme.of(context).colorScheme;
     return Container(
@@ -28,8 +41,9 @@ class SceneNavigator extends ConsumerWidget {
           NavArrowButton(
             icon: Icons.arrow_back,
             foregroundColor: scheme.onSecondary,
-            onPressed: () =>
-                ref.read(appStateProvider.notifier).changeScene(-1),
+            onPressed: canGoBack
+                ? () => ref.read(appStateProvider.notifier).changeScene(-1)
+                : null,
           ),
           Expanded(
             child: Text(
@@ -45,7 +59,9 @@ class SceneNavigator extends ConsumerWidget {
           NavArrowButton(
             icon: Icons.arrow_forward,
             foregroundColor: scheme.onSecondary,
-            onPressed: () => ref.read(appStateProvider.notifier).changeScene(1),
+            onPressed: canGoForward
+                ? () => ref.read(appStateProvider.notifier).changeScene(1)
+                : null,
           ),
         ],
       ),

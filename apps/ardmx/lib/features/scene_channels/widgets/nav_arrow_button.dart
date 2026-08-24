@@ -18,7 +18,7 @@ class NavArrowButton extends StatelessWidget {
   });
 
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final Color? foregroundColor;
 
   @override
@@ -30,6 +30,11 @@ class NavArrowButton extends StatelessWidget {
       style: IconButton.styleFrom(
         backgroundColor: fg.withValues(alpha: 0.25),
         foregroundColor: fg,
+        // Explicit disabled colors — passing null to onPressed (e.g. at
+        // the first/last scene) needs to visibly read as unavailable,
+        // not just silently stop responding to taps.
+        disabledBackgroundColor: fg.withValues(alpha: 0.08),
+        disabledForegroundColor: fg.withValues(alpha: 0.3),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         padding: const EdgeInsets.all(10),
         // Visually this is ~44dp (24dp icon + 10dp padding); explicit
