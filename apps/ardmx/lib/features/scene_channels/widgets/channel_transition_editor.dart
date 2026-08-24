@@ -98,6 +98,16 @@ class _ChannelTransitionEditorState
   @override
   void initState() {
     super.initState();
+    // Starts showing the transition that leaves whichever scene is
+    // currently active (V9) — that's the transition this scene's own
+    // "Escena N → Escena M" title refers to (see the header doc: transition
+    // i is scene i+1's OUTGOING one). The editor's own arrows can still
+    // browse to a different one afterward; see the ref.listen in build()
+    // for what happens when the active scene changes again while browsing.
+    final activeScene = ref.read(appStateProvider).activeScene;
+    if (activeScene != null && activeScene >= 1 && activeScene <= 4) {
+      _selectedTransition = activeScene - 1;
+    }
     _repliesSubscription = ref
         .read(protocolProvider)
         .updates
@@ -224,6 +234,20 @@ class _ChannelTransitionEditorState
 
   @override
   Widget build(BuildContext context) {
+    // Re-syncs to the newly active scene's outgoing transition whenever it
+    // changes on the device (top scene navigator's arrows, or the cycle
+    // auto-advancing) — mirrors the initState() seed above. Only fires on
+    // an actual change, so it never fights with the editor's own arrows
+    // while the active scene stays the same.
+    ref.listen<int?>(appStateProvider.select((s) => s.activeScene), (
+      previous,
+      next,
+    ) {
+      if (next != null && next >= 1 && next <= 4) {
+        setState(() => _selectedTransition = next - 1);
+      }
+    });
+
     final scheme = Theme.of(context).colorScheme;
     final from = _selectedTransition + 1;
     final to = (_selectedTransition + 1) % 4 + 1;
