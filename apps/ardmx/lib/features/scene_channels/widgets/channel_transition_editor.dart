@@ -308,12 +308,22 @@ class _ChannelTransitionEditorState
                 ),
               ),
               Expanded(
-                child: Text(
-                  'Transició Escena $from → Escena $to',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                // FittedBox instead of letting Text wrap: on a narrow
+                // screen, "Transició Escena N → Escena M" plus the two
+                // nav arrows and the RGB button left too little width,
+                // so the title split across two lines. Shrinking it to
+                // fit one line (like DialSelector's own button labels)
+                // reads better than a wrap.
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Transició Escena $from → Escena $to',
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
