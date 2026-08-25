@@ -1,5 +1,5 @@
 name: ardmx_classic
-description: "A new Flutter project."
+description: "Control per Bluetooth Classic (SPP) de l'ARDMX4 (Arduino Mega)."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

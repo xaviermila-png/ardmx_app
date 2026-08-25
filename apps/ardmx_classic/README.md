@@ -1,17 +1,15 @@
 # ardmx_classic
 
-A new Flutter project.
+App Flutter (Android) de control de l'**ARDMX4** (Arduino Mega) per
+**Bluetooth Classic (SPP)**. Producte separat d'[`apps/ardmx`](../ardmx/README.md)
+(BLE, per a l'ARDMX One i l'ARDMX EVO) perquè Bluetooth Classic no és
+accessible des d'apps de tercers a iOS sense certificació MFi.
 
-## Getting Started
+Mateix protocol de text `!Vxx=valor$` que les apps BLE, sobre un socket SPP
+en lloc d'una característica GATT.
 
-This project is a starting point for a Flutter application.
+## Firmware relacionat
+[`ardmx4-firmware`](https://github.com/xaviermila-png/ardmx4-firmware) (Arduino Mega).
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Llicència
+Creative Commons Atribució-NoComercial-CompartirIgual 4.0 (CC BY-NC-SA 4.0).
