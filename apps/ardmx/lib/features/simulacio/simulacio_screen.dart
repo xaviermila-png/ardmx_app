@@ -470,14 +470,19 @@ class _TopBar extends StatelessWidget {
           backgroundColor: scheme.primaryContainer,
           foregroundColor: scheme.onPrimaryContainer,
         ),
-        const SizedBox(width: 6),
-        _CircleIconButton(
-          icon: Icons.stop,
-          onPressed: onStop,
-          tooltip: 'Stop',
-          backgroundColor: scheme.errorContainer,
-          foregroundColor: scheme.onErrorContainer,
-        ),
+        // Stop only makes sense once something's actually playing — it
+        // resets the cycle back to the start, there's nothing to reset
+        // from a stopped state.
+        if (isPlaying) ...[
+          const SizedBox(width: 6),
+          _CircleIconButton(
+            icon: Icons.stop,
+            onPressed: onStop,
+            tooltip: 'Stop',
+            backgroundColor: scheme.errorContainer,
+            foregroundColor: scheme.onErrorContainer,
+          ),
+        ],
         const SizedBox(width: 8),
         Container(
           width: 60,
