@@ -82,8 +82,24 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
   @override
   void dispose() {
     _pollTimer?.cancel();
+    // Safety net only — the real fix for the "screen briefly flashes with
+    // portrait-sized layout while still physically landscape" glitch is
+    // _goBack() awaiting this *before* popping (below). dispose() itself
+    // can't be async/delay the pop that triggered it, so by the time this
+    // runs, the previous screen (still built for portrait) may already be
+    // on screen at landscape dimensions for a frame or two — confirmed on
+    // real hardware as a transient "BOTTOM OVERFLOWED" flash on Main Menu.
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     super.dispose();
+  }
+
+  /// Restores portrait *before* popping, not after (see dispose()'s own
+  /// comment on why the difference matters) — awaiting the platform call
+  /// gives Android a chance to actually resize the window to portrait
+  /// dimensions first, so Main Menu never gets a frame at the wrong size.
+  Future<void> _goBack() async {
+    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    if (mounted) Navigator.of(context).pop();
   }
 
   void _poll() {
@@ -309,7 +325,7 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) Navigator.of(context).pop();
+        if (!didPop) _goBack();
       },
       child: Scaffold(
         backgroundColor: scheme.surface,
@@ -335,7 +351,7 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
                   },
                   onStop: () =>
                       ref.read(appStateProvider.notifier).setPlaying(false),
-                  onBack: () => Navigator.of(context).pop(),
+                  onBack: _goBack,
                   rangeLabel: totalChannels == null
                       ? '$firstChannel-$lastChannel'
                       : '$firstChannel-${lastChannel.clamp(firstChannel, totalChannels)}',
