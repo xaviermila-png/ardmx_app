@@ -359,10 +359,11 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
                 ),
                 const SizedBox(height: 4),
                 SizedBox(
-                  // 2 rows now (6 columns, see ChannelLegend), not 3 —
-                  // shorter box both fixes the clipped 3rd row and frees
-                  // more vertical space for the chart above.
-                  height: 56,
+                  // 2 rows now (6 columns, see ChannelLegend), not 3 — 56
+                  // still clipped the 2nd row on real hardware (its actual
+                  // row height, from crossAxisCount+childAspectRatio, came
+                  // out a bit taller than that), 68 has margin to spare.
+                  height: 68,
                   child: ChannelLegend(
                     entries: [
                       for (var slot = 0; slot < _pageSize; slot++)

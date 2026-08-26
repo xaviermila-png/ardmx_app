@@ -38,18 +38,35 @@ class ChannelLegend extends StatelessWidget {
   final List<LegendEntry> entries;
   final ValueChanged<int> onToggle;
 
+  static const _crossAxisCount = 6;
+
+  /// GridView.builder fills left-to-right, top-to-bottom by construction
+  /// (built-index == row*crossAxisCount+col) — there's no delegate option
+  /// for column-major order, so this remaps the built index to "reading
+  /// order top-to-bottom within a column, then next column" instead:
+  /// channel 1 top-left, channel 2 directly below it, channel 3 starts the
+  /// next column, etc., rather than channels 1-6 filling the first row.
+  int _columnMajorIndex(int builtIndex, int rows) {
+    final row = builtIndex ~/ _crossAxisCount;
+    final col = builtIndex % _crossAxisCount;
+    return col * rows + row;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final rows = (entries.length / _crossAxisCount).ceil().clamp(1, 1 << 30);
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 6,
-        childAspectRatio: 3.4,
+        crossAxisCount: _crossAxisCount,
+        childAspectRatio: 3.6,
       ),
       itemCount: entries.length,
-      itemBuilder: (context, index) {
+      itemBuilder: (context, builtIndex) {
+        final index = _columnMajorIndex(builtIndex, rows);
+        if (index >= entries.length) return const SizedBox.shrink();
         final entry = entries[index];
         return InkWell(
           onTap: () => onToggle(index),
