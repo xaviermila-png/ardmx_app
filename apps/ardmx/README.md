@@ -1,5 +1,8 @@
 # ardmx
 
+Versió actual: **V1.03** (`lib/core/constants/app_version.dart`, mostrada a
+les pantalles de connexió i Crèdits).
+
 App Flutter (Android) de control per **Bluetooth Low Energy (BLE)** dels
 productes ARDMX basats en ESP32:
 
