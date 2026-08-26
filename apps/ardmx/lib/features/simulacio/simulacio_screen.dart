@@ -436,6 +436,7 @@ class _TopBar extends StatelessWidget {
           tooltip: 'Enrere',
           visualDensity: VisualDensity.compact,
         ),
+        const SizedBox(width: 16),
         _CircleIconButton(
           icon: showPlay ? Icons.play_arrow : Icons.pause,
           onPressed: onPlayPause,
