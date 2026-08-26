@@ -392,13 +392,21 @@ class _ChannelColumnState extends State<_ChannelColumn> {
     super.initState();
     // Select the whole number on focus, so typing immediately replaces it
     // instead of the user having to manually clear/backspace first — same
-    // as ChannelSliders' own numeric fields.
+    // as ChannelSliders' own numeric fields. Also commits on losing focus
+    // for ANY reason, not just onTapOutside — jumping directly from this
+    // field to a sibling one (another channel's %salt field, or the type
+    // dropdown) does NOT fire onTapOutside, since Flutter groups sibling
+    // TextFields into the same implicit TextFieldTapRegion. Confirmed on
+    // real hardware: editing the % then tapping straight into the next
+    // channel's field lost the edit.
     _percentFocus.addListener(() {
       if (_percentFocus.hasFocus) {
         _percentController.selection = TextSelection(
           baseOffset: 0,
           extentOffset: _percentController.text.length,
         );
+      } else {
+        _commitPercentFromText();
       }
     });
   }

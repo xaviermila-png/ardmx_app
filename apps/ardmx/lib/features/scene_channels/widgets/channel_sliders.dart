@@ -71,18 +71,28 @@ class _ChannelSlidersState extends ConsumerState<ChannelSliders> {
   void initState() {
     super.initState();
     // Select the whole number on focus, so typing immediately replaces it
-    // instead of the user having to manually clear/backspace first.
+    // instead of the user having to manually clear/backspace first. Also
+    // commits on losing focus for ANY reason (not just onTapOutside, see
+    // that handler's own doc below) — jumping directly from one of these
+    // fields to another (e.g. slot 1's value field straight to slot 2's)
+    // does NOT fire onTapOutside: Flutter groups sibling TextFields into
+    // the same implicit TextFieldTapRegion, so a tap landing on one
+    // doesn't count as "outside" the other — confirmed on real hardware:
+    // typing a new value then tapping straight into the next field lost
+    // the edit. A focus-lost listener fires regardless of why focus left.
     for (final entry in [
-      (_focusNode1, _textController1),
-      (_focusNode2, _textController2),
-      (_focusNode3, _textController3),
+      (1, _focusNode1, _textController1),
+      (2, _focusNode2, _textController2),
+      (3, _focusNode3, _textController3),
     ]) {
-      entry.$1.addListener(() {
-        if (entry.$1.hasFocus) {
-          entry.$2.selection = TextSelection(
+      entry.$2.addListener(() {
+        if (entry.$2.hasFocus) {
+          entry.$3.selection = TextSelection(
             baseOffset: 0,
-            extentOffset: entry.$2.text.length,
+            extentOffset: entry.$3.text.length,
           );
+        } else {
+          _commitText(entry.$1);
         }
       });
     }

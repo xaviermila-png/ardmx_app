@@ -70,6 +70,18 @@ class _ChannelNameFieldState extends ConsumerState<_ChannelNameField> {
         _controller.text = update.text;
       }
     });
+    // Commits on losing focus for ANY reason, not just onTapOutside below —
+    // jumping directly from this field to a sibling one (another channel's
+    // name field) does NOT fire onTapOutside: Flutter groups sibling
+    // TextFields into the same implicit TextFieldTapRegion, so a tap
+    // landing on one doesn't count as "outside" the other. Confirmed on
+    // real hardware: editing a name then tapping straight into the next
+    // channel's name field (without pressing the keyboard's Done/Enter)
+    // lost the edit. A focus-lost listener fires regardless of why focus
+    // left, so it catches this case too.
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) _submit(_controller.text);
+    });
     _requestName();
   }
 
