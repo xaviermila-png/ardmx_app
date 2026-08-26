@@ -321,6 +321,8 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
                 _TopBar(
                   isPlaying: isPlaying,
                   isPaused: isPaused,
+                  currentTime: currentTime,
+                  totalTime: totalTime,
                   onPlayPause: () {
                     final notifier = ref.read(appStateProvider.notifier);
                     if (!isPlaying) {
@@ -396,6 +398,8 @@ class _TopBar extends StatelessWidget {
   const _TopBar({
     required this.isPlaying,
     required this.isPaused,
+    required this.currentTime,
+    required this.totalTime,
     required this.onPlayPause,
     required this.onStop,
     required this.onBack,
@@ -409,6 +413,12 @@ class _TopBar extends StatelessWidget {
 
   final bool isPlaying;
   final bool isPaused;
+
+  /// Elapsed/total cycle time (s) — same V14/V15 the Cycle Programming
+  /// screen already shows, displayed the same way ("N\" / M\"").
+  final double currentTime;
+  final double totalTime;
+
   final VoidCallback onPlayPause;
   final VoidCallback onStop;
   final VoidCallback onBack;
@@ -471,6 +481,30 @@ class _TopBar extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(width: 8),
+        Container(
+          width: 60,
+          height: 28,
+          decoration: BoxDecoration(
+            color: scheme.primary,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              '${currentTime.round()}" / ${totalTime.round()}"',
+              maxLines: 1,
+              style: TextStyle(
+                color: scheme.onPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
         _CircleIconButton(
           icon: Icons.arrow_back_ios_new,
           iconSize: 14,
