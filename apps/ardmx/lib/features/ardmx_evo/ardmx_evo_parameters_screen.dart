@@ -273,6 +273,7 @@ class _CompactTextField extends ConsumerStatefulWidget {
 
 class _CompactTextFieldState extends ConsumerState<_CompactTextField> {
   final _controller = TextEditingController();
+  final _focusNode = FocusNode();
   StreamSubscription<VirtuinoUpdate>? _subscription;
   int _length = 0;
 
@@ -289,6 +290,16 @@ class _CompactTextFieldState extends ConsumerState<_CompactTextField> {
         _controller.text = update.text;
       }
     });
+    // Commits on losing focus for ANY reason, not just onTapOutside below —
+    // jumping directly from "Nom del pessebre" straight into "Descripció"
+    // (its sibling field right below) does NOT fire onTapOutside: Flutter
+    // groups sibling TextFields into the same implicit TextFieldTapRegion,
+    // so a tap landing on one doesn't count as "outside" the other.
+    // Confirmed on real hardware for the per-channel name/value fields —
+    // same pattern, same fix.
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) _submit(_controller.text);
+    });
     ref.read(protocolProvider).requestT(widget.vIndex);
   }
 
@@ -296,6 +307,7 @@ class _CompactTextFieldState extends ConsumerState<_CompactTextField> {
   void dispose() {
     _subscription?.cancel();
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -345,6 +357,7 @@ class _CompactTextFieldState extends ConsumerState<_CompactTextField> {
           const SizedBox(height: 6),
           TextField(
             controller: _controller,
+            focusNode: _focusNode,
             textAlign: TextAlign.left,
             style: const TextStyle(fontSize: 16),
             minLines: widget.maxLength > 40 ? 4 : 1,

@@ -152,6 +152,7 @@ class _NumeroCanalsFieldState extends ConsumerState<_NumeroCanalsField> {
   static const _numeroCanalsVIndex = 8;
 
   final _controller = TextEditingController();
+  final _focusNode = FocusNode();
   StreamSubscription<VirtuinoUpdate>? _subscription;
   String? _error;
 
@@ -166,6 +167,14 @@ class _NumeroCanalsFieldState extends ConsumerState<_NumeroCanalsField> {
         });
       }
     });
+    // Commits on losing focus for ANY reason, not just onTapOutside below —
+    // jumping directly from "Descripció" (above) straight into this field
+    // does NOT fire either field's onTapOutside: Flutter groups sibling
+    // TextFields into the same implicit TextFieldTapRegion, so a tap
+    // landing on one doesn't count as "outside" the other.
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) _submit(_controller.text);
+    });
     ref.read(protocolProvider).requestV(_numeroCanalsVIndex);
   }
 
@@ -173,6 +182,7 @@ class _NumeroCanalsFieldState extends ConsumerState<_NumeroCanalsField> {
   void dispose() {
     _subscription?.cancel();
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -218,6 +228,7 @@ class _NumeroCanalsFieldState extends ConsumerState<_NumeroCanalsField> {
               Flexible(
                 child: TextField(
                   controller: _controller,
+                  focusNode: _focusNode,
                   textAlign: TextAlign.center,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -290,6 +301,7 @@ class _CompactTextField extends ConsumerStatefulWidget {
 
 class _CompactTextFieldState extends ConsumerState<_CompactTextField> {
   final _controller = TextEditingController();
+  final _focusNode = FocusNode();
   StreamSubscription<VirtuinoUpdate>? _subscription;
   int _length = 0;
 
@@ -306,6 +318,14 @@ class _CompactTextFieldState extends ConsumerState<_CompactTextField> {
         _controller.text = update.text;
       }
     });
+    // Commits on losing focus for ANY reason, not just onTapOutside below —
+    // jumping directly to a sibling field (Descripció, or Canals
+    // gestionables below) does NOT fire onTapOutside: Flutter groups
+    // sibling TextFields into the same implicit TextFieldTapRegion, so a
+    // tap landing on one doesn't count as "outside" the other.
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) _submit(_controller.text);
+    });
     ref.read(protocolProvider).requestT(widget.vIndex);
   }
 
@@ -313,6 +333,7 @@ class _CompactTextFieldState extends ConsumerState<_CompactTextField> {
   void dispose() {
     _subscription?.cancel();
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -357,6 +378,7 @@ class _CompactTextFieldState extends ConsumerState<_CompactTextField> {
           const SizedBox(height: 6),
           TextField(
             controller: _controller,
+            focusNode: _focusNode,
             textAlign: TextAlign.left,
             style: const TextStyle(fontSize: 16),
             minLines: widget.maxLength > 40 ? 4 : 1,

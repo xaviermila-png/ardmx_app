@@ -39,6 +39,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
   static const _descriptionVIndex = 69;
 
   final _numeroCanalsController = TextEditingController();
+  final _numeroCanalsFocusNode = FocusNode();
   StreamSubscription<VirtuinoUpdate>? _subscription;
   String? _numeroCanalsError;
 
@@ -53,6 +54,17 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
         });
       }
     });
+    // Commits on losing focus for ANY reason, not just onTapOutside below —
+    // jumping directly from the sibling "Nom del pessebre"/"Descripció"
+    // fields above straight into this one does NOT fire onTapOutside:
+    // Flutter groups sibling TextFields into the same implicit
+    // TextFieldTapRegion, so a tap landing on one doesn't count as
+    // "outside" the other.
+    _numeroCanalsFocusNode.addListener(() {
+      if (!_numeroCanalsFocusNode.hasFocus) {
+        _submit(_numeroCanalsController.text);
+      }
+    });
     ref.read(protocolProvider).requestV(_numeroCanalsVIndex);
   }
 
@@ -60,6 +72,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
   void dispose() {
     _subscription?.cancel();
     _numeroCanalsController.dispose();
+    _numeroCanalsFocusNode.dispose();
     super.dispose();
   }
 
@@ -203,6 +216,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                                   Flexible(
                                     child: TextField(
                                       controller: _numeroCanalsController,
+                                      focusNode: _numeroCanalsFocusNode,
                                       textAlign: TextAlign.center,
                                       keyboardType: TextInputType.number,
                                       inputFormatters: [
@@ -366,6 +380,7 @@ class _EditableTextSection extends ConsumerStatefulWidget {
 
 class _EditableTextSectionState extends ConsumerState<_EditableTextSection> {
   final _controller = TextEditingController();
+  final _focusNode = FocusNode();
   StreamSubscription<VirtuinoUpdate>? _subscription;
 
   @override
@@ -376,6 +391,15 @@ class _EditableTextSectionState extends ConsumerState<_EditableTextSection> {
         _controller.text = update.text;
       }
     });
+    // Commits on losing focus for ANY reason, not just onTapOutside below —
+    // jumping directly from this field to a sibling one (Descripció, or
+    // the "Nombre de canals" field further down) does NOT fire
+    // onTapOutside: Flutter groups sibling TextFields into the same
+    // implicit TextFieldTapRegion, so a tap landing on one doesn't count
+    // as "outside" the other.
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) _submit(_controller.text);
+    });
     ref.read(protocolProvider).requestT(widget.vIndex);
   }
 
@@ -383,6 +407,7 @@ class _EditableTextSectionState extends ConsumerState<_EditableTextSection> {
   void dispose() {
     _subscription?.cancel();
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -395,6 +420,7 @@ class _EditableTextSectionState extends ConsumerState<_EditableTextSection> {
       title: widget.title,
       child: TextField(
         controller: _controller,
+        focusNode: _focusNode,
         textAlign: TextAlign.left,
         // The long field (description) gets a fixed 3-line box — same
         // height whether empty or full, so the layout doesn't jump around
