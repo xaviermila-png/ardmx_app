@@ -36,6 +36,13 @@ Bluetooth.
   actius (i, a l'EVO, la cançó a reproduir).
 - Configuració — nom Bluetooth, PIN de connexió opcional, exportació/
   importació de la configuració, reset de fàbrica.
+- Simulació — visualitzador gràfic de les corbes del cicle (fins a 12
+  canals alhora, eix X proporcional a la durada real de cada escena/
+  transició), amb controls de Play/Pausa/Stop i un marcador de posició en
+  directe mentre el dispositiu reprodueix. Primer botó del submenú de
+  Configuració (Simulació / Escenes / Cicle / Paràmetres). Força
+  horitzontal en obrir-se. No accessible des de l'ARDMX One v1 (no té
+  model d'escenes/transicions). `lib/features/simulacio/`.
 
 ## Format d'exportació/importació de la configuració
 
