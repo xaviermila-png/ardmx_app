@@ -462,25 +462,6 @@ class _TopBar extends StatelessWidget {
           backgroundColor: scheme.errorContainer,
           foregroundColor: scheme.onErrorContainer,
         ),
-        Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Simulació — $_statusText',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-              if (loading) ...[
-                const SizedBox(width: 8),
-                const SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ],
-            ],
-          ),
-        ),
         const SizedBox(width: 8),
         Container(
           width: 60,
@@ -504,7 +485,25 @@ class _TopBar extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 4),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Simulació — $_statusText',
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              if (loading) ...[
+                const SizedBox(width: 8),
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ],
+            ],
+          ),
+        ),
         _CircleIconButton(
           icon: Icons.arrow_back_ios_new,
           iconSize: 14,
