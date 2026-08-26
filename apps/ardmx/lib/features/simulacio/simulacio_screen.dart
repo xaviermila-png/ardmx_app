@@ -359,7 +359,10 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
                 ),
                 const SizedBox(height: 4),
                 SizedBox(
-                  height: 90,
+                  // 2 rows now (6 columns, see ChannelLegend), not 3 —
+                  // shorter box both fixes the clipped 3rd row and frees
+                  // more vertical space for the chart above.
+                  height: 56,
                   child: ChannelLegend(
                     entries: [
                       for (var slot = 0; slot < _pageSize; slot++)
@@ -423,6 +426,7 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final showPlay = !isPlaying || isPaused;
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         IconButton(
@@ -431,17 +435,20 @@ class _TopBar extends StatelessWidget {
           tooltip: 'Enrere',
           visualDensity: VisualDensity.compact,
         ),
-        IconButton(
-          icon: Icon(showPlay ? Icons.play_arrow : Icons.pause),
+        _CircleIconButton(
+          icon: showPlay ? Icons.play_arrow : Icons.pause,
           onPressed: onPlayPause,
           tooltip: showPlay ? 'Play' : 'Pausa',
-          visualDensity: VisualDensity.compact,
+          backgroundColor: scheme.primaryContainer,
+          foregroundColor: scheme.onPrimaryContainer,
         ),
-        IconButton(
-          icon: const Icon(Icons.stop),
+        const SizedBox(width: 6),
+        _CircleIconButton(
+          icon: Icons.stop,
           onPressed: onStop,
           tooltip: 'Stop',
-          visualDensity: VisualDensity.compact,
+          backgroundColor: scheme.errorContainer,
+          foregroundColor: scheme.onErrorContainer,
         ),
         Expanded(
           child: Row(
@@ -462,11 +469,13 @@ class _TopBar extends StatelessWidget {
             ],
           ),
         ),
-        IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 16),
+        _CircleIconButton(
+          icon: Icons.arrow_back_ios_new,
+          iconSize: 14,
           onPressed: canGoBack ? onPrevPage : null,
           tooltip: 'Grup de canals anterior',
-          visualDensity: VisualDensity.compact,
+          backgroundColor: scheme.secondaryContainer,
+          foregroundColor: scheme.onSecondaryContainer,
         ),
         SizedBox(
           width: 56,
@@ -476,13 +485,57 @@ class _TopBar extends StatelessWidget {
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           ),
         ),
-        IconButton(
-          icon: const Icon(Icons.arrow_forward_ios, size: 16),
+        _CircleIconButton(
+          icon: Icons.arrow_forward_ios,
+          iconSize: 14,
           onPressed: canGoForward ? onNextPage : null,
           tooltip: 'Grup de canals següent',
-          visualDensity: VisualDensity.compact,
+          backgroundColor: scheme.secondaryContainer,
+          foregroundColor: scheme.onSecondaryContainer,
         ),
       ],
+    );
+  }
+}
+
+/// A circular-background icon button — Play/Pausa, Stop and the page
+/// arrows all get this treatment so they stand out against the plain back
+/// arrow, which stays a bare [IconButton] (it's not a chart control).
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({
+    required this.icon,
+    required this.onPressed,
+    required this.tooltip,
+    required this.backgroundColor,
+    required this.foregroundColor,
+    this.iconSize,
+  });
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final String tooltip;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final double? iconSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: Icon(icon, size: iconSize),
+      onPressed: onPressed,
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      style: IconButton.styleFrom(
+        shape: const CircleBorder(),
+        backgroundColor: backgroundColor,
+        foregroundColor: foregroundColor,
+        // Flat colors don't dim themselves when onPressed is null (the
+        // page-nav arrows at the first/last group) — needs explicit
+        // disabled colors or a disabled button would look identical to an
+        // enabled one, just unresponsive.
+        disabledBackgroundColor: backgroundColor.withValues(alpha: 0.3),
+        disabledForegroundColor: foregroundColor.withValues(alpha: 0.38),
+      ),
     );
   }
 }
