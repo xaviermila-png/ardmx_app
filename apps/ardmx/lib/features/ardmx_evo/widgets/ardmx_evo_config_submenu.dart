@@ -20,6 +20,7 @@ class ArdmxEvoConfigSubmenu extends ConsumerWidget {
   final double spacing;
 
   static const _items = [
+    ('Simulació', AppRoutes.ardmxEvoSimulacio),
     ('Escenes', AppRoutes.ardmxEvoSceneChannels),
     ('Cicle', AppRoutes.ardmxEvoCycleProgramming),
     ('Paràmetres', AppRoutes.ardmxEvoParameters),

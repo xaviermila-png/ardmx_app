@@ -18,6 +18,7 @@ import '../features/ardmx_one_v2/ardmx_one_v2_system_config_screen.dart';
 import '../features/credits/credits_screen.dart';
 import '../features/debug/debug_screen.dart';
 import '../features/rgb_wheel/rgb_wheel_screen.dart';
+import '../features/simulacio/simulacio_screen.dart';
 import '../features/splash/splash_screen.dart';
 import '../state/providers.dart';
 
@@ -34,11 +35,13 @@ class AppRoutes {
   static const ardmxEvoCycleProgramming = '/ardmx-evo-cycle-programming';
   static const ardmxEvoParameters = '/ardmx-evo-parameters';
   static const ardmxEvoSystemConfig = '/ardmx-evo-system-config';
+  static const ardmxEvoSimulacio = '/ardmx-evo-simulacio';
   static const ardmxOneV2MainMenu = '/ardmx-one-v2-main-menu';
   static const ardmxOneV2SceneChannels = '/ardmx-one-v2-scenes';
   static const ardmxOneV2CycleProgramming = '/ardmx-one-v2-cycle-programming';
   static const ardmxOneV2Parameters = '/ardmx-one-v2-parameters';
   static const ardmxOneV2SystemConfig = '/ardmx-one-v2-system-config';
+  static const ardmxOneV2Simulacio = '/ardmx-one-v2-simulacio';
   static const credits = '/credits';
 
   /// Offline navigation shortcut into a product's screen tree, reached via
@@ -66,6 +69,11 @@ class AppRoutes {
     // implicit was fragile. See confirmReset()'s doc for the actual reset
     // race this screen's testing uncovered.
     ardmxEvoSystemConfig: AppScreen.parameters,
+    // Reuses Cicle's own V50 value — SimulacioScreen needs exactly the
+    // same firmware-side gate Cicle() already runs under (Play/Pausa,
+    // V12/V13, only get processed while V50==cycleProgramming) and has no
+    // reactive behaviour of its own that would need a dedicated value.
+    ardmxEvoSimulacio: AppScreen.cycleProgramming,
     ardmxOneV2MainMenu: AppScreen.mainMenu,
     ardmxOneV2SceneChannels: AppScreen.sceneChannels,
     ardmxOneV2CycleProgramming: AppScreen.cycleProgramming,
@@ -75,6 +83,8 @@ class AppRoutes {
     // reactive polling keeps running (V41/V42 reset, Nom Bluetooth) while
     // this screen is open.
     ardmxOneV2SystemConfig: AppScreen.parameters,
+    // Same reasoning as ardmxEvoSimulacio above.
+    ardmxOneV2Simulacio: AppScreen.cycleProgramming,
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -96,6 +106,11 @@ class AppRoutes {
         (BuildContext context) => const ArdmxEvoParametersScreen(),
       ardmxEvoSystemConfig =>
         (BuildContext context) => const ArdmxEvoSystemConfigScreen(),
+      // V08 (One v2) vs VIndex.activeChannelsCount (EVO) — same distinction
+      // ExportImportSection makes for the same reason (the One v2's own
+      // channel-count index, unrelated to the EVO's V39/V40).
+      ardmxEvoSimulacio => (BuildContext context) =>
+          const SimulacioScreen(channelCountVIndex: VIndex.activeChannelsCount),
       ardmxOneV2MainMenu =>
         (BuildContext context) => const ArdmxOneV2MainMenuScreen(),
       ardmxOneV2SceneChannels =>
@@ -106,6 +121,8 @@ class AppRoutes {
         (BuildContext context) => const ArdmxOneV2ParametersScreen(),
       ardmxOneV2SystemConfig =>
         (BuildContext context) => const ArdmxOneV2SystemConfigScreen(),
+      ardmxOneV2Simulacio => (BuildContext context) =>
+          const SimulacioScreen(channelCountVIndex: 8),
       _ => (BuildContext context) => const SplashScreen(),
     };
     return MaterialPageRoute(builder: builder, settings: settings);

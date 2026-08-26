@@ -20,6 +20,7 @@ class ArdmxOneV2ConfigSubmenu extends ConsumerWidget {
   final double spacing;
 
   static const _items = [
+    ('Simulació', AppRoutes.ardmxOneV2Simulacio),
     ('Escenes', AppRoutes.ardmxOneV2SceneChannels),
     ('Cicle', AppRoutes.ardmxOneV2CycleProgramming),
     ('Paràmetres', AppRoutes.ardmxOneV2Parameters),
