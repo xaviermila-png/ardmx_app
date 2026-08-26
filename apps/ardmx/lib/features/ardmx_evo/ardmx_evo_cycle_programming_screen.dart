@@ -66,6 +66,15 @@ class _ArdmxEvoCycleProgrammingScreenState
 
   Future<void> _editPeriod(int periodOffset, double current) async {
     final controller = TextEditingController(text: '${current.round()}');
+    // Selected up front (not via a focus listener) so it's already
+    // selected by the time autofocus below actually grants focus — typing
+    // straight away overwrites the whole number instead of the user
+    // having to clear it first, same as every other numeric field in the
+    // app.
+    controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: controller.text.length,
+    );
     String? error;
 
     final result = await showDialog<int>(
