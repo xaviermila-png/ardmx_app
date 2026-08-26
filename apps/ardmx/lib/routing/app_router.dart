@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants/v_map.dart';
 import '../features/ardmx_evo/ardmx_evo_cycle_programming_screen.dart';
+import '../features/ardmx_evo/ardmx_evo_events_screen.dart';
 import '../features/ardmx_evo/ardmx_evo_main_menu_screen.dart';
 import '../features/ardmx_evo/ardmx_evo_parameters_screen.dart';
 import '../features/ardmx_evo/ardmx_evo_scene_channels_screen.dart';
@@ -36,6 +37,7 @@ class AppRoutes {
   static const ardmxEvoParameters = '/ardmx-evo-parameters';
   static const ardmxEvoSystemConfig = '/ardmx-evo-system-config';
   static const ardmxEvoSimulacio = '/ardmx-evo-simulacio';
+  static const ardmxEvoEvents = '/ardmx-evo-events';
   static const ardmxOneV2MainMenu = '/ardmx-one-v2-main-menu';
   static const ardmxOneV2SceneChannels = '/ardmx-one-v2-scenes';
   static const ardmxOneV2CycleProgramming = '/ardmx-one-v2-cycle-programming';
@@ -74,6 +76,11 @@ class AppRoutes {
     // V12/V13, only get processed while V50==cycleProgramming) and has no
     // reactive behaviour of its own that would need a dedicated value.
     ardmxEvoSimulacio: AppScreen.cycleProgramming,
+    // Same reasoning as ardmxEvoSystemConfig above — V77 (events) is
+    // handled unconditionally in processFrame(), not gated by V50, so any
+    // value that keeps some background tick alive is fine; reuses
+    // Paràmetres' for consistency with the other "no dedicated V50" screens.
+    ardmxEvoEvents: AppScreen.parameters,
     ardmxOneV2MainMenu: AppScreen.mainMenu,
     ardmxOneV2SceneChannels: AppScreen.sceneChannels,
     ardmxOneV2CycleProgramming: AppScreen.cycleProgramming,
@@ -111,6 +118,7 @@ class AppRoutes {
       // channel-count index, unrelated to the EVO's V39/V40).
       ardmxEvoSimulacio => (BuildContext context) =>
           const SimulacioScreen(channelCountVIndex: VIndex.activeChannelsCount),
+      ardmxEvoEvents => (BuildContext context) => const ArdmxEvoEventsScreen(),
       ardmxOneV2MainMenu =>
         (BuildContext context) => const ArdmxOneV2MainMenuScreen(),
       ardmxOneV2SceneChannels =>
