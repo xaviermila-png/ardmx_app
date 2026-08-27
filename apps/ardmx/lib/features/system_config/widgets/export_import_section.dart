@@ -15,8 +15,9 @@ import '../config_json.dart';
 /// Exports the whole device configuration (scene count, active channel
 /// count, the 8 cycle period durations, pessebre name, descripció, every
 /// active channel's 4 per-scene values + own 4 transitions + name, and —
-/// only when [hasAudio] — the song/volume) as a JSON file, or imports one
-/// back. Shared by the ARDMX One v2 and ARDMX EVO trees (was two
+/// only when [hasAudio] — the song/volume; only when [hasEvents] — the
+/// defined events) as a JSON file, or imports one back. Shared by the ARDMX
+/// One v2 and ARDMX EVO trees (was two
 /// near-identical copies, `_ExportImportSection` in each product's own
 /// `..._system_config_screen.dart`) — unified so a file exported from
 /// either device can be imported into the other (see
@@ -31,6 +32,7 @@ class ExportImportSection extends ConsumerStatefulWidget {
     required this.origen,
     required this.channelCountVIndex,
     required this.hasAudio,
+    required this.hasEvents,
     required this.fileNamePrefix,
   });
 
@@ -50,6 +52,12 @@ class ExportImportSection extends ConsumerStatefulWidget {
   /// doesn't match.
   final bool hasAudio;
 
+  /// Whether this device has programmed events (V77, EVO only) — decides
+  /// whether the 10 event slots are read/written at all, and the
+  /// cross-import warning when the file's [ArdmxConfigData.events] presence
+  /// doesn't match. Same reasoning/shape as [hasAudio].
+  final bool hasEvents;
+
   /// `"ardmx_one"` / `"ardmx_evo"` — prefix of the suggested export filename.
   final String fileNamePrefix;
 
@@ -63,6 +71,8 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
   static const _pessebreVIndex = 68;
   static const _descripcioVIndex = 69;
   static const _channelBulkVIndex = 71;
+  static const _eventBulkVIndex = 77;
+  static const _eventCount = 10;
   static const _roundTripTimeout = Duration(milliseconds: 800);
 
   // The Baixades/Downloads document tree on Android's default (primary)
@@ -219,6 +229,65 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
     return true;
   }
 
+  Future<String?> _eventRoundTripOnce(String payload) async {
+    final protocol = ref.read(protocolProvider);
+    final completer = Completer<String?>();
+    late final StreamSubscription<VirtuinoUpdate> sub;
+    sub = protocol.updates.listen((update) {
+      if (update is VirtuinoTUpdate &&
+          update.index == _eventBulkVIndex &&
+          !completer.isCompleted) {
+        completer.complete(update.text);
+      }
+    });
+    protocol.writeText(_eventBulkVIndex, payload);
+    final reply = await completer.future.timeout(
+      _roundTripTimeout,
+      onTimeout: () => null,
+    );
+    await sub.cancel();
+    return reply;
+  }
+
+  Future<String?> _eventRoundTrip(String payload) async {
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final reply = await _eventRoundTripOnce(payload);
+      if (reply != null) return reply;
+    }
+    return null;
+  }
+
+  /// V77's reply: `"moment|durada|pista|canal"` — see handleEventBulk() in
+  /// ardmx4-evo-firmware's main.cpp.
+  (int, int, int, int)? _parseEventReply(String? reply) {
+    if (reply == null) return null;
+    final parts = reply.split('|');
+    if (parts.length < 4) return null;
+    return (
+      int.tryParse(parts[0]) ?? 0,
+      int.tryParse(parts[1]) ?? 0,
+      int.tryParse(parts[2]) ?? 0,
+      int.tryParse(parts[3]) ?? 0,
+    );
+  }
+
+  Future<bool> _assignEventVerified(EventConfigEntry entry) async {
+    final payload =
+        '${entry.index}|${entry.moment}|${entry.durada}|${entry.pista}|${entry.canal}';
+    for (var attempt = 0; attempt < 6; attempt++) {
+      final parsed = _parseEventReply(await _eventRoundTripOnce(payload));
+      if (parsed != null &&
+          parsed.$1 == entry.moment &&
+          parsed.$2 == entry.durada &&
+          parsed.$3 == entry.pista &&
+          parsed.$4 == entry.canal) {
+        return true;
+      }
+      await Future.delayed(const Duration(milliseconds: 400));
+    }
+    return false;
+  }
+
   void _showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -269,6 +338,31 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
         periodes.add(await _readValue(VIndex.periodDuration(i)) ?? 0);
       }
 
+      List<EventConfigEntry>? events;
+      if (widget.hasEvents) {
+        setState(() => _statusText = 'Llegint events…');
+        events = [];
+        for (var i = 0; i < _eventCount; i++) {
+          final parsed = _parseEventReply(await _eventRoundTrip('$i'));
+          if (parsed == null) continue;
+          final (moment, durada, pista, canal) = parsed;
+          // Only exports the DEFINED events (same "so or canal" test the
+          // Events screen uses) — matches that screen only showing defined
+          // events, and keeps the file free of 10 near-empty entries.
+          if (pista > 0 || canal > 0) {
+            events.add(
+              EventConfigEntry(
+                index: i,
+                moment: moment,
+                durada: durada,
+                pista: pista,
+                canal: canal,
+              ),
+            );
+          }
+        }
+      }
+
       final canalsCount = numeroCanals.round();
       final canals = <ChannelConfigEntry>[];
       setState(() {
@@ -297,6 +391,7 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
         pessebre: pessebre,
         descripcio: descripcio,
         canals: canals,
+        events: events,
         audioManual: audioManual,
         firmwareVersio: firmwareVersio,
         exportatEl: DateTime.now(),
@@ -314,21 +409,38 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
     }
   }
 
-  /// `null` when the file's audio presence matches this device (nothing
-  /// unusual to call out); otherwise the exact wording from the cross-import
-  /// spec — shown as an extra line inside the same confirm dialog rather
-  /// than a separate blocking one, since it's informational, not a decision
-  /// point (the import proceeds either way once confirmed).
-  String? _crossImportNotice(ArdmxConfigData config) {
+  /// Empty when the file's audio/events presence matches this device
+  /// (nothing unusual to call out); otherwise one line per mismatch — shown
+  /// as extra lines inside the same confirm dialog rather than a separate
+  /// blocking one, since it's informational, not a decision point (the
+  /// import proceeds either way once confirmed).
+  List<String> _crossImportNotices(ArdmxConfigData config) {
+    final notices = <String>[];
     if (widget.hasAudio && config.audioManual == null) {
-      return 'Aquesta configuració no inclou àudio ni mode manual — es '
-          'desactivaran en importar-la.';
+      notices.add(
+        'Aquesta configuració no inclou àudio ni mode manual — es '
+        'desactivaran en importar-la.',
+      );
     }
     if (!widget.hasAudio && config.audioManual != null) {
-      return 'Aquesta configuració inclou àudio i mode manual, que aquest '
-          'dispositiu no té — s\'ignoraran aquests camps.';
+      notices.add(
+        'Aquesta configuració inclou àudio i mode manual, que aquest '
+        'dispositiu no té — s\'ignoraran aquests camps.',
+      );
     }
-    return null;
+    if (widget.hasEvents && config.events == null) {
+      notices.add(
+        'Aquesta configuració no inclou events — s\'esborraran els que '
+        'hi hagi configurats en aquest dispositiu.',
+      );
+    }
+    if (!widget.hasEvents && config.events != null) {
+      notices.add(
+        'Aquesta configuració inclou events, que aquest dispositiu no té '
+        '— s\'ignoraran.',
+      );
+    }
+    return notices;
   }
 
   Future<bool> _confirmImport(ArdmxConfigData config) async {
@@ -342,7 +454,7 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
             '${exportatEl.hour.toString().padLeft(2, '0')}:'
             '${exportatEl.minute.toString().padLeft(2, '0')}',
     ].join(', ');
-    final notice = _crossImportNotice(config);
+    final notices = _crossImportNotices(config);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -354,12 +466,13 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
             Text(
               "Es sobreescriuran el nombre d'escenes, el nombre de canals, "
               'els temps de transició, el pessebre, la descripció'
-              '${widget.hasAudio ? ', la cançó, el volum' : ''} i els '
+              '${widget.hasAudio ? ', la cançó, el volum' : ''}'
+              '${widget.hasEvents ? ', els events' : ''} i els '
               'valors/transicions/noms de ${config.canals.length} canals '
               'amb el contingut del fitxer.'
               '${origen.isNotEmpty ? '\n\nFitxer: $origen' : ''}',
             ),
-            if (notice != null) ...[
+            for (final notice in notices) ...[
               const SizedBox(height: 12),
               Text(
                 notice,
@@ -413,7 +526,8 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
 
     if (!await _confirmImport(config)) return;
 
-    final paramStepCount = 12 + (widget.hasAudio ? 2 : 0);
+    final paramStepCount =
+        12 + (widget.hasAudio ? 2 : 0) + (widget.hasEvents ? _eventCount : 0);
     setState(() {
       _running = true;
       _statusText = 'Aplicant configuració…';
@@ -478,12 +592,40 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
         setState(() => _progress++);
       }
 
+      final failedEvents = <int>[];
+      if (widget.hasEvents) {
+        // config.events is only non-null when the file itself came from a
+        // device with events (an EVO export) — a One v2 file has none, so
+        // every one of THIS device's 10 slots gets explicitly cleared
+        // rather than left as-is, same "force off, don't just leave it"
+        // reasoning as the audio fields above (see _crossImportNotices()).
+        // On an EVO->EVO import, any of the 10 slots NOT present in the
+        // file is cleared the same way, so the import fully replaces the
+        // event configuration instead of only overlaying what the file
+        // happens to mention.
+        final byIndex = <int, EventConfigEntry>{
+          for (final e in config.events ?? const <EventConfigEntry>[])
+            e.index: e,
+        };
+        for (var i = 0; i < _eventCount; i++) {
+          final entry =
+              byIndex[i] ??
+              EventConfigEntry(index: i, moment: 0, durada: 0, pista: 0, canal: 0);
+          final ok = await _assignEventVerified(entry);
+          if (!ok) failedEvents.add(i + 1);
+          if (mounted) setState(() => _progress++);
+        }
+      }
+
       final problems = [
         if (paramFailures.isNotEmpty)
           'paràmetres no confirmats: ${paramFailures.join(', ')}',
         if (failedChannels.isNotEmpty)
           '${failedChannels.length} canal(s) no confirmats: '
               '${failedChannels.join(', ')}',
+        if (failedEvents.isNotEmpty)
+          '${failedEvents.length} event(s) no confirmats: '
+              '${failedEvents.join(', ')}',
       ];
       _showMessage(
         problems.isEmpty

@@ -64,6 +64,7 @@ class ArdmxEvoSystemConfigScreen extends ConsumerWidget {
                   origen: ArdmxConfigData.origenEvo,
                   channelCountVIndex: VIndex.activeChannelsCount,
                   hasAudio: true,
+                  hasEvents: true,
                   fileNamePrefix: 'ardmx_evo',
                 ),
               ),

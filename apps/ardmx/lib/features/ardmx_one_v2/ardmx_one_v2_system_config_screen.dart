@@ -58,6 +58,7 @@ class ArdmxOneV2SystemConfigScreen extends ConsumerWidget {
                   origen: ArdmxConfigData.origenOne,
                   channelCountVIndex: 8,
                   hasAudio: false,
+                  hasEvents: false,
                   fileNamePrefix: 'ardmx_one',
                 ),
               ),

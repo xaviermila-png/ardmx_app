@@ -120,6 +120,47 @@ class AudioManualConfig {
       );
 }
 
+/// One programmed event (V77) — a one-shot sound and/or a channel forced to
+/// 255 at a given moment of the cycle, for a given duration. EVO-only (see
+/// [ArdmxConfigData.events]) — matches `EventData`/`handleEventBulk()` in
+/// ardmx4-evo-firmware's main.cpp. [index] (0-9) is the event's slot, kept
+/// explicit here (unlike [ChannelConfigEntry], where the channel number
+/// already IS the array position) because only the DEFINED events get
+/// exported — see `ExportImportSection._export()` — so the list can have
+/// gaps.
+class EventConfigEntry {
+  const EventConfigEntry({
+    required this.index,
+    required this.moment,
+    required this.durada,
+    required this.pista,
+    required this.canal,
+  });
+
+  final int index;
+  final int moment;
+  final int durada;
+  final int pista;
+  final int canal;
+
+  Map<String, dynamic> toJson() => {
+    'index': index,
+    'moment': moment,
+    'durada': durada,
+    'pista': pista,
+    'canal': canal,
+  };
+
+  factory EventConfigEntry.fromJson(Map<String, dynamic> json) =>
+      EventConfigEntry(
+        index: ((json['index'] as num?) ?? 0).toInt().clamp(0, 9),
+        moment: ((json['moment'] as num?) ?? 0).toInt(),
+        durada: ((json['durada'] as num?) ?? 0).toInt(),
+        pista: ((json['pista'] as num?) ?? 0).toInt(),
+        canal: ((json['canal'] as num?) ?? 0).toInt(),
+      );
+}
+
 /// Unified export/import format for ARDMX One v2 and ARDMX EVO — a
 /// configuration exported from either device can be imported into the
 /// other. Replaces the old per-product `ArdmxOneV2ConfigData`/
@@ -148,6 +189,7 @@ class ArdmxConfigData {
     required this.canals,
     this.versioEsquema = currentSchemaVersion,
     this.audioManual,
+    this.events,
     this.firmwareVersio = '',
     this.exportatEl,
   });
@@ -168,6 +210,11 @@ class ArdmxConfigData {
   /// EVO-only fields — see [AudioManualConfig]. `null` on a One v2 export.
   final AudioManualConfig? audioManual;
 
+  /// EVO-only: the DEFINED events (see [EventConfigEntry]) — `null` on a
+  /// One v2 export (that firmware has no V77 at all), same "absent, not an
+  /// empty list" convention as [audioManual].
+  final List<EventConfigEntry>? events;
+
   final String firmwareVersio;
   final DateTime? exportatEl;
 
@@ -182,6 +229,7 @@ class ArdmxConfigData {
     'pessebre': pessebre,
     'descripcio': descripcio,
     if (audioManual != null) 'audio_manual': audioManual!.toJson(),
+    if (events != null) 'events': [for (final e in events!) e.toJson()],
     'canals': [for (final c in canals) c.toJson()],
   };
 
@@ -191,6 +239,7 @@ class ArdmxConfigData {
     final rawCanals = json['canals'] as List? ?? const [];
     final rawPeriodes = json['periodes'] as List? ?? const [];
     final rawAudio = json['audio_manual'] as Map<String, dynamic>?;
+    final rawEvents = json['events'] as List?;
     return ArdmxConfigData(
       origen: json['origen'] as String? ?? '',
       versioEsquema: ((json['versio_esquema'] as num?) ?? 1).toInt(),
@@ -208,6 +257,12 @@ class ArdmxConfigData {
       descripcio: json['descripcio'] as String? ?? '',
       audioManual: rawAudio != null
           ? AudioManualConfig.fromJson(rawAudio)
+          : null,
+      events: rawEvents != null
+          ? [
+              for (final e in rawEvents)
+                EventConfigEntry.fromJson(e as Map<String, dynamic>),
+            ]
           : null,
       canals: [
         for (var i = 0; i < rawCanals.length; i++)

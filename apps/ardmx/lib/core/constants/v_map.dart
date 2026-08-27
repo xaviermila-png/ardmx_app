@@ -57,6 +57,11 @@ class VIndex {
   /// atomic-write shape as [channelBulk4Scene].
   static const int eventBulk = 77;
 
+  /// Fires event N (0-9) immediately, ignoring its configured "moment" —
+  /// the "Provar" button on the Events screen. Write-only, no query; reply
+  /// is always `"OK"`.
+  static const int eventTestTrigger = 78;
+
   /// V-index this array position corresponds to, for the 8 period durations.
   static int periodDuration(int periodOffset) =>
       periodDurationsStart + periodOffset;
