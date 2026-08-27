@@ -374,16 +374,33 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
     final lastAt = _lastFrameAt;
     _lastFrameAt = now;
 
-    if (!activelyAdvancing || last == null || lastAt == null) {
+    if (last == null) {
       _lastDisplayed = rawSeconds;
       return rawSeconds;
     }
 
-    // Genuine cycle restart (wrapped back near 0) — let the drop through
-    // immediately rather than treating it as noise.
-    if (rawSeconds < last - 2.0) {
+    // Genuine cycle restart/stop (V14 reset by NouCicle()/PararReproduccio()
+    // — always drops to ~0, not just "some lower number") — checked BEFORE
+    // the not-advancing branch below, since Stop reports isPlaying=false
+    // together with a reset raw value, and this still needs to visibly
+    // drop in that case.
+    if (rawSeconds < 1.5 && last > 3.0) {
       _lastDisplayed = rawSeconds;
       return rawSeconds;
+    }
+
+    if (!activelyAdvancing || lastAt == null) {
+      // Frozen (Pausa, or a genuine Stop that isn't a reset — e.g. mid-
+      // scene). Tracks raw but never dips BELOW what's already on screen:
+      // isPlaying/isPaused are two separate V-indices (V12/V13) that can
+      // land a frame apart, and without this a one-frame flicker snapped
+      // the line down to whatever (possibly a whole second behind) raw
+      // happened to read at that exact instant — confirmed on real
+      // hardware as the residual smaller backward jumps after the previous
+      // fix.
+      final frozen = rawSeconds > last ? rawSeconds : last;
+      _lastDisplayed = frozen;
+      return frozen;
     }
 
     final dt = now.difference(lastAt).inMilliseconds / 1000.0;
