@@ -74,17 +74,14 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
   // makes the NUMBER itself change any sooner — only the live position line
   // moving smoothly between the once-a-second updates instead of visibly
   // jumping. _smoothTimer just forces a repaint every 100ms while playing;
-  // the actual estimated time comes from extrapolating wall-clock time
-  // since the last REAL V14 change (see _interpolatedCurrentTime()), reset
-  // to the true value every time a fresh one arrives so drift never
-  // accumulates across more than ~1s.
+  // see _interpolatedCurrentTime() for how the displayed value itself
+  // advances.
   static const _smoothInterval = Duration(milliseconds: 100);
 
   Timer? _pollTimer;
   Timer? _smoothTimer;
-  double? _lastKnownCurrentTime;
-  DateTime? _lastKnownAt;
   double? _lastDisplayed;
+  DateTime? _lastFrameAt;
   int _page = 0;
   int? _totalChannels;
   bool _loadingPage = false;
@@ -349,48 +346,54 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
     return points;
   }
 
-  /// Wall-clock extrapolation from the last REAL V14 value — see
-  /// `_smoothTimer`'s doc for why this exists. Frozen (returns [rawSeconds]
-  /// as-is) whenever not actively playing, so Pausa/Stop don't keep
-  /// creeping the line forward on their own.
+  /// Advances the DISPLAYED value at real (wall-clock) speed each frame,
+  /// gently catching up toward the latest raw V14 — rather than
+  /// re-anchoring to "known value + elapsed since it arrived" (an earlier
+  /// version of this did that; confirmed on real hardware it visibly
+  /// rewound every ~1s, because our own extrapolation and the moment a
+  /// fresh V14 actually arrives drift apart by however long the BLE round
+  /// trip + the rest of that poll's ~13 other V-index requests take —
+  /// often enough that the "known" value was already stale-in-the-past
+  /// relative to wall-clock by the time we anchored to it).
   ///
-  /// Confirmed on real hardware: without the monotonic guard below, the
-  /// line visibly trembled back and forth. Cause: our own extrapolation
-  /// and the device's real clock drift apart by however long the BLE round
-  /// trip + a batch of ~13 other V-index requests in the same poll takes to
-  /// come back — often enough that by the time a fresh V14 arrives, we'd
-  /// already extrapolated PAST that value, so anchoring to it snapped the
-  /// line backward, immediately followed by forward extrapolation again
-  /// until the next snap. [_lastDisplayed] makes the displayed value
-  /// monotonic: a small backward correction (< 2s, i.e. normal jitter) is
-  /// suppressed by keeping the higher value already on screen; a large
-  /// drop (a real cycle restart wrapping back near 0) is still let through.
+  /// Advancing from [_lastDisplayed] itself instead means every frame is
+  /// continuous with the previous one — nothing here can ever produce a
+  /// value lower than what was already on screen, short of the explicit
+  /// large-drop check below for a genuine cycle restart. The `+ 1.0`
+  /// ceiling stops the line running away indefinitely if polls stall: it
+  /// can coast at most ~1s ahead of the best confirmed data (firmware
+  /// ticks once a second, so a fresh update should always be at most ~1s
+  /// away under normal conditions).
   double _interpolatedCurrentTime(
     double rawSeconds,
     double totalSeconds,
     bool activelyAdvancing,
   ) {
-    final knownAt = _lastKnownAt;
-    final known = _lastKnownCurrentTime;
-    double result;
-    if (!activelyAdvancing || knownAt == null || known == null) {
-      result = rawSeconds;
-    } else {
-      final elapsed =
-          DateTime.now().difference(knownAt).inMilliseconds / 1000.0;
-      final estimate = known + elapsed;
-      result = totalSeconds > 0 ? estimate.clamp(0.0, totalSeconds) : estimate;
+    final now = DateTime.now();
+    final last = _lastDisplayed;
+    final lastAt = _lastFrameAt;
+    _lastFrameAt = now;
+
+    if (!activelyAdvancing || last == null || lastAt == null) {
+      _lastDisplayed = rawSeconds;
+      return rawSeconds;
     }
 
-    final last = _lastDisplayed;
-    if (activelyAdvancing &&
-        last != null &&
-        result < last &&
-        (last - result) < 2.0) {
-      result = last;
+    // Genuine cycle restart (wrapped back near 0) — let the drop through
+    // immediately rather than treating it as noise.
+    if (rawSeconds < last - 2.0) {
+      _lastDisplayed = rawSeconds;
+      return rawSeconds;
     }
-    _lastDisplayed = result;
-    return result;
+
+    final dt = now.difference(lastAt).inMilliseconds / 1000.0;
+    var next = last + dt;
+    final ceiling = (rawSeconds > last ? rawSeconds : last) + 1.0;
+    if (next > ceiling) next = ceiling;
+    if (totalSeconds > 0 && next > totalSeconds) next = totalSeconds;
+
+    _lastDisplayed = next;
+    return next;
   }
 
   @override
@@ -400,20 +403,6 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
     final isPaused = ref.watch(appStateProvider.select((s) => s.isPaused));
     final rawCurrentTime =
         ref.watch(appStateProvider.select((s) => s.currentTime)) ?? 0;
-    // Anchors the interpolation to wall-clock time whenever the REAL
-    // (whole-second) value actually changes — resets any drift at least
-    // once a second, and the anchor only moves forward on a genuine
-    // firmware update, never on a poll that just re-confirms the same
-    // second.
-    ref.listen<double?>(appStateProvider.select((s) => s.currentTime), (
-      previous,
-      next,
-    ) {
-      if (next != null) {
-        _lastKnownCurrentTime = next;
-        _lastKnownAt = DateTime.now();
-      }
-    });
     final totalTime =
         ref.watch(appStateProvider.select((s) => s.totalTime)) ?? 0;
     final currentTime = _interpolatedCurrentTime(
