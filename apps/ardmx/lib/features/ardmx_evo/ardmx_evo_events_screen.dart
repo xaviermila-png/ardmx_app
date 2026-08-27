@@ -35,6 +35,12 @@ class _ArdmxEvoEventsScreenState extends ConsumerState<ArdmxEvoEventsScreen> {
   Timer? _pollTimer;
   StreamSubscription<VirtuinoUpdate>? _repliesSubscription;
 
+  // Slots added via "Afegir event" that aren't defined on the device yet
+  // (nothing saved, so they wouldn't otherwise show up in [_visibleIndices]
+  // — a freshly added row needs to stay visible while the user fills it
+  // in, even though it's still all-zero on the wire).
+  final Set<int> _pendingNewSlots = {};
+
   // Mateix patró de correlació FIFO que ChannelTransitionEditor per V71:
   // una sola característica BLE entrega les trames en ordre, i
   // processFrame() al firmware respon una trama abans de llegir la
@@ -125,7 +131,58 @@ class _ArdmxEvoEventsScreenState extends ConsumerState<ArdmxEvoEventsScreen> {
     }
   }
 
+  bool _isDefined(int index) {
+    final e = _events[index];
+    return e != null && (e.pista > 0 || e.canal > 0);
+  }
+
+  /// Slots to actually render: every defined event, plus any empty slot the
+  /// user just added via "Afegir event" that hasn't been filled in (or
+  /// abandoned) yet — in index order, so a newly added slot doesn't jump
+  /// around as other rows get edited.
+  List<int> get _visibleIndices {
+    final visible = <int>{
+      for (var i = 0; i < _eventCount; i++)
+        if (_isDefined(i)) i,
+      ..._pendingNewSlots,
+    }.toList()..sort();
+    return visible;
+  }
+
+  /// Reveals the lowest-numbered unused slot as a new empty row to fill in
+  /// — up to [_eventCount], enforced by disabling the button once every
+  /// slot is either defined or already pending (see the button's
+  /// `onPressed` in build()).
+  void _addEvent() {
+    for (var i = 0; i < _eventCount; i++) {
+      if (!_isDefined(i) && !_pendingNewSlots.contains(i)) {
+        setState(() => _pendingNewSlots.add(i));
+        return;
+      }
+    }
+  }
+
+  /// Clears a row: if it was actually defined on the device, writes all-
+  /// zero to V77 first (that's what "not configured" means on the wire —
+  /// see handleEventBulk()); a still-empty just-added row has nothing to
+  /// write, so this only drops it from [_pendingNewSlots].
+  Future<void> _removeEvent(int index) async {
+    if (_isDefined(index)) await _saveEvent(index, _emptyEvent);
+    if (mounted) setState(() => _pendingNewSlots.remove(index));
+  }
+
   Future<void> _saveEvent(int index, _EventData data) async {
+    // Sets the local cache to what was just committed BEFORE awaiting the
+    // round trip — same fix (and same reason) as ChannelTransitionEditor's
+    // own _updateSlot() for V71: this row just lost focus (that's what
+    // triggered the commit), so its build() now redraws from `widget.data`
+    // on every rebuild. Without this, any unrelated rebuild that lands
+    // during the round trip (e.g. the context poll timer) would still see
+    // the OLD `_events[index]` and snap the fields back to it — confirmed
+    // on real hardware: typed values kept reverting before the write even
+    // finished.
+    setState(() => _events[index] = data);
+
     final payload =
         '$index|${data.moment}|${data.durada}|${data.pista}|${data.canal}';
     final parsed = _parse(await _roundTrip(payload));
@@ -137,38 +194,79 @@ class _ArdmxEvoEventsScreenState extends ConsumerState<ArdmxEvoEventsScreen> {
     final numeroCanals =
         ref.watch(appStateProvider.select((s) => s.activeChannelsCount)) ?? 0;
     final totalTime = ref.watch(appStateProvider.select((s) => s.totalTime));
+    final stillLoading = _events.any((e) => e == null);
+    final visible = _visibleIndices;
+    final canAddMore = visible.length < _eventCount;
 
     return AppScaffold(
       title: 'Events',
       onBack: () => Navigator.of(context).pop(),
-      body: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: _eventCount,
-        separatorBuilder: (context, index) => const SizedBox(height: 8),
-        itemBuilder: (context, index) => _EventRow(
-          key: ValueKey(index),
-          index: index,
-          data: _events[index],
-          numeroCanals: numeroCanals,
-          totalTimeSeconds: totalTime?.round(),
-          onSave: (data) => _saveEvent(index, data),
-        ),
-      ),
+      body: stillLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Expanded(
+                  child: visible.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Text(
+                              'Encara no hi ha cap event configurat.',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          itemCount: visible.length,
+                          separatorBuilder: (context, i) =>
+                              const SizedBox(height: 8),
+                          itemBuilder: (context, i) {
+                            final index = visible[i];
+                            return _EventRow(
+                              key: ValueKey(index),
+                              index: index,
+                              data: _events[index],
+                              numeroCanals: numeroCanals,
+                              totalTimeSeconds: totalTime?.round(),
+                              onSave: (data) => _saveEvent(index, data),
+                              onTest: () => ref
+                                  .read(protocolProvider)
+                                  .writeV(VIndex.eventTestTrigger, index),
+                              onDelete: () => _removeEvent(index),
+                            );
+                          },
+                        ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: canAddMore ? _addEvent : null,
+                      icon: const Icon(Icons.add),
+                      label: Text(
+                        canAddMore
+                            ? 'Afegir event'
+                            : 'Màxim de $_eventCount events',
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }
 
 /// One event's 4 fields (so/canal/moment/durada), read-modify-write as a
-/// single V77 blob. Commits on losing focus for ANY reason (not just
-/// `onTapOutside`) on EACH of its 4 fields — same fix as every other
-/// multi-sibling-field editor in this app this session: Flutter groups
-/// sibling `TextField`s into one `TextFieldTapRegion`, so jumping directly
-/// between them never fires `onTapOutside`. Committing on every field's own
-/// blur (not just once when the whole row loses focus) is simplest and
-/// still correct: the payload always carries all 4 CURRENT controller
-/// values regardless of which field triggered it, so tabbing across the
-/// row just resends the same converging snapshot a few extra (harmless,
-/// idempotent) times.
+/// single V77 blob, plus a "Provar" button (V78) that fires it immediately
+/// on the device regardless of the cycle's position. Commits to V77 once
+/// focus leaves the WHOLE row (all 4 fields), not on each field's own blur
+/// — see `_wireFocus()`'s doc for why per-field commit broke typing.
 class _EventRow extends StatefulWidget {
   const _EventRow({
     super.key,
@@ -177,6 +275,8 @@ class _EventRow extends StatefulWidget {
     required this.numeroCanals,
     required this.totalTimeSeconds,
     required this.onSave,
+    required this.onTest,
+    required this.onDelete,
   });
 
   final int index;
@@ -184,6 +284,8 @@ class _EventRow extends StatefulWidget {
   final int numeroCanals;
   final int? totalTimeSeconds;
   final ValueChanged<_EventData> onSave;
+  final VoidCallback onTest;
+  final VoidCallback onDelete;
 
   @override
   State<_EventRow> createState() => _EventRowState();
@@ -209,6 +311,20 @@ class _EventRowState extends State<_EventRow> {
     _wireFocus(_duradaFocus, _duradaController);
   }
 
+  // Committing (and, in build(), re-syncing the fields from the device) on
+  // EVERY individual field's blur was wrong: tabbing So -> Canal -> Moment
+  // -> Durada blurs each field in turn while the OTHERS are still 0, so the
+  // very first blur already ran validation against an incomplete row (e.g.
+  // "durada ha de ser > 0" right after typing only "So") and, worse, the
+  // next rebuild then reverted that field back to the stale device value —
+  // confirmed on real hardware: typing into a field never stuck. Instead,
+  // only commit once focus leaves the WHOLE row (all 4 nodes unfocused),
+  // deferred one frame so a same-row Tab (old field loses focus, sibling
+  // gains it) has time to register before this checks "is anything in this
+  // row still focused" — same "commit on losing focus for any reason"
+  // family of fix as every other multi-field editor this session, just
+  // applied at the row level instead of per-field since these 4 fields are
+  // one logical unit (one V77 write).
   void _wireFocus(FocusNode focus, TextEditingController controller) {
     focus.addListener(() {
       if (focus.hasFocus) {
@@ -217,10 +333,18 @@ class _EventRowState extends State<_EventRow> {
           extentOffset: controller.text.length,
         );
       } else {
-        _commit();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_anyFocused()) _commit();
+        });
       }
     });
   }
+
+  bool _anyFocused() =>
+      _pistaFocus.hasFocus ||
+      _canalFocus.hasFocus ||
+      _momentFocus.hasFocus ||
+      _duradaFocus.hasFocus;
 
   @override
   void dispose() {
@@ -324,14 +448,14 @@ class _EventRowState extends State<_EventRow> {
       );
     }
 
-    if (!_pistaFocus.hasFocus) {
+    // Only re-syncs from the device while NO field in this row has focus —
+    // checking the whole row, not each field individually, so tabbing
+    // So -> Canal -> Moment -> Durada doesn't stomp a sibling field that's
+    // mid-edit (see _wireFocus()'s doc for the bug this avoids).
+    if (!_anyFocused()) {
       _pistaController.text = data.pista == 0 ? '' : '${data.pista}';
-    }
-    if (!_canalFocus.hasFocus) {
       _canalController.text = data.canal == 0 ? '' : '${data.canal}';
-    }
-    if (!_momentFocus.hasFocus) _momentController.text = '${data.moment}';
-    if (!_duradaFocus.hasFocus) {
+      _momentController.text = '${data.moment}';
       _duradaController.text = data.durada == 0 ? '' : '${data.durada}';
     }
 
@@ -344,9 +468,52 @@ class _EventRowState extends State<_EventRow> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Event ${widget.index + 1}',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Event ${widget.index + 1}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              // Fires this event on the device right now (V78), ignoring
+              // its configured "moment" — lets the user hear/see it
+              // without waiting for the cycle to reach that point.
+              // Disabled while the row has nothing configured yet (same
+              // "so or canal" test _commit() already uses to decide
+              // whether there's anything to save).
+              SizedBox(
+                height: 28,
+                child: OutlinedButton(
+                  onPressed: (data.pista > 0 || data.canal > 0)
+                      ? widget.onTest
+                      : null,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: const TextStyle(fontSize: 12),
+                  ),
+                  child: const Text('Provar'),
+                ),
+              ),
+              const SizedBox(width: 4),
+              // Clears this row: writes all-zero to the device if it was
+              // actually defined (handleEventBulk() treats pista==0 &&
+              // canal==0 as "not configured"), or just drops it back out of
+              // view if it was still an empty just-added row.
+              IconButton(
+                onPressed: widget.onDelete,
+                icon: const Icon(Icons.delete_outline),
+                tooltip: 'Eliminar event',
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(4),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           Row(
