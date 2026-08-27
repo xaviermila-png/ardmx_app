@@ -405,7 +405,17 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
 
     final dt = now.difference(lastAt).inMilliseconds / 1000.0;
     var next = last + dt;
-    final ceiling = (rawSeconds > last ? rawSeconds : last) + 1.0;
+    // The ceiling MUST be anchored to rawSeconds, not to last itself —
+    // using `max(rawSeconds, last) + 1.0` (an earlier version of this)
+    // self-referenced last once it got even slightly ahead of raw, so the
+    // ceiling just chased along with it and never actually bounded the
+    // drift. Confirmed on real hardware: raw stuck at 0.0 for a whole
+    // second while last climbed unchecked past 3.0, which then blew past
+    // the restart-detection threshold above and triggered a visible
+    // backward snap. Anchoring purely to rawSeconds keeps last within
+    // [rawSeconds, rawSeconds + 1.0] at all times, self-correcting instead
+    // of drifting.
+    final ceiling = rawSeconds + 1.0;
     if (next > ceiling) next = ceiling;
     if (totalSeconds > 0 && next > totalSeconds) next = totalSeconds;
 
