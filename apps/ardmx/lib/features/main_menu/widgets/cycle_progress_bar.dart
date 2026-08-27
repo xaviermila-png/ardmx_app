@@ -13,9 +13,11 @@ import '../../../state/providers.dart';
 /// progresses toward V15.
 ///
 /// The Virtuino wire protocol is pure request/response — the Arduino never
-/// pushes V10/V14/V15 on its own, so this widget polls for them every
-/// second while visible (matching how the original Virtuino app must have
-/// kept its own cycle display live).
+/// pushes V10/V14/V15 on its own, so this widget polls for them while
+/// visible (matching how the original Virtuino app must have kept its own
+/// cycle display live). 500ms, not a full second, so the bar/elapsed time
+/// catch up to a state change sooner — same cadence most of the other
+/// polled screens already use during playback (Cicle, Simulació).
 ///
 /// Space for this widget is always reserved (via [Visibility]'s
 /// `maintainSize`), even when hidden (Escena fixa / Configuració modes) —
@@ -29,7 +31,7 @@ class CycleProgressBar extends ConsumerStatefulWidget {
 }
 
 class _CycleProgressBarState extends ConsumerState<CycleProgressBar> {
-  static const _pollInterval = Duration(seconds: 1);
+  static const _pollInterval = Duration(milliseconds: 500);
 
   /// V[10] (cycle state, 1-8) -> label, matching the Arduino sketch's own
   /// EstatActual comments (0-indexed there, V10 = EstatActual + 1).
