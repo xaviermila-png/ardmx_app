@@ -84,6 +84,7 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
   Timer? _smoothTimer;
   double? _lastKnownCurrentTime;
   DateTime? _lastKnownAt;
+  double? _lastDisplayed;
   int _page = 0;
   int? _totalChannels;
   bool _loadingPage = false;
@@ -352,6 +353,18 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
   /// `_smoothTimer`'s doc for why this exists. Frozen (returns [rawSeconds]
   /// as-is) whenever not actively playing, so Pausa/Stop don't keep
   /// creeping the line forward on their own.
+  ///
+  /// Confirmed on real hardware: without the monotonic guard below, the
+  /// line visibly trembled back and forth. Cause: our own extrapolation
+  /// and the device's real clock drift apart by however long the BLE round
+  /// trip + a batch of ~13 other V-index requests in the same poll takes to
+  /// come back — often enough that by the time a fresh V14 arrives, we'd
+  /// already extrapolated PAST that value, so anchoring to it snapped the
+  /// line backward, immediately followed by forward extrapolation again
+  /// until the next snap. [_lastDisplayed] makes the displayed value
+  /// monotonic: a small backward correction (< 2s, i.e. normal jitter) is
+  /// suppressed by keeping the higher value already on screen; a large
+  /// drop (a real cycle restart wrapping back near 0) is still let through.
   double _interpolatedCurrentTime(
     double rawSeconds,
     double totalSeconds,
@@ -359,12 +372,25 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
   ) {
     final knownAt = _lastKnownAt;
     final known = _lastKnownCurrentTime;
+    double result;
     if (!activelyAdvancing || knownAt == null || known == null) {
-      return rawSeconds;
+      result = rawSeconds;
+    } else {
+      final elapsed =
+          DateTime.now().difference(knownAt).inMilliseconds / 1000.0;
+      final estimate = known + elapsed;
+      result = totalSeconds > 0 ? estimate.clamp(0.0, totalSeconds) : estimate;
     }
-    final elapsed = DateTime.now().difference(knownAt).inMilliseconds / 1000.0;
-    final estimate = known + elapsed;
-    return totalSeconds > 0 ? estimate.clamp(0.0, totalSeconds) : estimate;
+
+    final last = _lastDisplayed;
+    if (activelyAdvancing &&
+        last != null &&
+        result < last &&
+        (last - result) < 2.0) {
+      result = last;
+    }
+    _lastDisplayed = result;
+    return result;
   }
 
   @override
