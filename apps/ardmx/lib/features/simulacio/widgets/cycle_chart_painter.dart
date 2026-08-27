@@ -202,36 +202,53 @@ class CycleChartPainter extends CustomPainter {
     final linePaint = Paint()
       ..color = _eventMarkerColor.withValues(alpha: 0.85)
       ..strokeWidth = 1.5;
+
+    // Groups markers that land on the same pixel column (e.g. two events at
+    // the same "moment") — confirmed on real hardware: drawing them at the
+    // exact same x meant each tag fully covered the previous one, so only
+    // the last event ever showed a label. Stack the tags vertically instead
+    // (E1's tag, then E2's just below it, ...); the line itself only needs
+    // drawing once per column since they're all identical there.
+    final groups = <int, List<EventMarker>>{};
     for (final marker in eventMarkers) {
-      final x = xOf(marker.position.clamp(0.0, 1.0));
+      final x = xOf(marker.position.clamp(0.0, 1.0)).round();
+      groups.putIfAbsent(x, () => []).add(marker);
+    }
+
+    for (final group in groups.entries) {
+      final x = group.key.toDouble();
       canvas.drawLine(Offset(x, plotRect.top), Offset(x, plotRect.bottom), linePaint);
 
-      final tp = TextPainter(
-        text: TextSpan(
-          text: marker.label,
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
+      var tagTop = plotRect.top;
+      for (final marker in group.value) {
+        final tp = TextPainter(
+          text: TextSpan(
+            text: marker.label,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      final tagLeft = (x - tp.width / 2 - 2).clamp(
-        plotRect.left,
-        plotRect.right - tp.width - 4,
-      );
-      final tagRect = Rect.fromLTWH(
-        tagLeft,
-        plotRect.top,
-        tp.width + 4,
-        tp.height + 2,
-      );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(tagRect, const Radius.circular(3)),
-        Paint()..color = _eventMarkerColor,
-      );
-      tp.paint(canvas, Offset(tagLeft + 2, plotRect.top + 1));
+          textDirection: TextDirection.ltr,
+        )..layout();
+        final tagLeft = (x - tp.width / 2 - 2).clamp(
+          plotRect.left,
+          plotRect.right - tp.width - 4,
+        );
+        final tagRect = Rect.fromLTWH(
+          tagLeft,
+          tagTop,
+          tp.width + 4,
+          tp.height + 2,
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(tagRect, const Radius.circular(3)),
+          Paint()..color = _eventMarkerColor,
+        );
+        tp.paint(canvas, Offset(tagLeft + 2, tagTop + 1));
+        tagTop += tp.height + 3;
+      }
     }
   }
 
