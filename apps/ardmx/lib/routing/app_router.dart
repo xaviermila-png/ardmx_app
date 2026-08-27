@@ -116,8 +116,10 @@ class AppRoutes {
       // V08 (One v2) vs VIndex.activeChannelsCount (EVO) — same distinction
       // ExportImportSection makes for the same reason (the One v2's own
       // channel-count index, unrelated to the EVO's V39/V40).
-      ardmxEvoSimulacio => (BuildContext context) =>
-          const SimulacioScreen(channelCountVIndex: VIndex.activeChannelsCount),
+      ardmxEvoSimulacio => (BuildContext context) => const SimulacioScreen(
+        channelCountVIndex: VIndex.activeChannelsCount,
+        hasEvents: true,
+      ),
       ardmxEvoEvents => (BuildContext context) => const ArdmxEvoEventsScreen(),
       ardmxOneV2MainMenu =>
         (BuildContext context) => const ArdmxOneV2MainMenuScreen(),
@@ -130,7 +132,7 @@ class AppRoutes {
       ardmxOneV2SystemConfig =>
         (BuildContext context) => const ArdmxOneV2SystemConfigScreen(),
       ardmxOneV2Simulacio => (BuildContext context) =>
-          const SimulacioScreen(channelCountVIndex: 8),
+          const SimulacioScreen(channelCountVIndex: 8, hasEvents: false),
       _ => (BuildContext context) => const SplashScreen(),
     };
     return MaterialPageRoute(builder: builder, settings: settings);

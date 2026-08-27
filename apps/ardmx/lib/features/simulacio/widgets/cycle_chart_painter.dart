@@ -17,11 +17,24 @@ class ChannelCurve {
   final bool visible;
 }
 
+/// One programmed event's (V77, ARDMX EVO only) marker on the chart —
+/// [position] is normalized (0-1) the same way as [ChannelCurve.points]'
+/// dx, computed from the event's "moment" (seconds) over the cycle's total
+/// duration. [label] is `"E<n+1>"` (the event's 1-based slot number, not
+/// its wire index) — see `SimulacioScreen._loadEvents()`.
+class EventMarker {
+  const EventMarker({required this.position, required this.label});
+
+  final double position;
+  final String label;
+}
+
 /// Draws the DMX cycle chart: up to 12 channel curves over a timeline whose
 /// segments are width-proportional to their real duration, alternating
 /// scene (flat background)/transition (slightly shaded background)
-/// segments, a phase-boundary time scale, and — while the device is
-/// playing — a live position marker.
+/// segments, a phase-boundary time scale, vertical markers for any
+/// programmed events, and — while the device is playing — a live position
+/// marker.
 class CycleChartPainter extends CustomPainter {
   const CycleChartPainter({
     required this.curves,
@@ -30,6 +43,7 @@ class CycleChartPainter extends CustomPainter {
     required this.livePosition,
     required this.onSurfaceColor,
     required this.gridColor,
+    this.eventMarkers = const [],
   });
 
   /// Normalized (0-1) x position of each phase boundary, including 0 and 1
@@ -49,6 +63,12 @@ class CycleChartPainter extends CustomPainter {
 
   final Color onSurfaceColor;
   final Color gridColor;
+
+  /// Programmed events (EVO only) — empty for the ARDMX One v2 (which has
+  /// no V77) or while a device with events genuinely has none configured.
+  final List<EventMarker> eventMarkers;
+
+  static const _eventMarkerColor = Colors.amber;
 
   static const _leftMargin = 32.0;
   static const _bottomMargin = 16.0;
@@ -74,6 +94,7 @@ class CycleChartPainter extends CustomPainter {
     _paintYAxis(canvas, plotRect, yOf);
     _paintPhaseBoundaries(canvas, plotRect, xOf);
     _paintCurves(canvas, plotRect, xOf, yOf);
+    _paintEventMarkers(canvas, plotRect, xOf);
     if (livePosition != null) _paintLivePosition(canvas, plotRect, xOf(livePosition!));
   }
 
@@ -165,6 +186,55 @@ class CycleChartPainter extends CustomPainter {
     }
   }
 
+  /// Full-height vertical line per event, in a color distinct from both the
+  /// phase-boundary grid (gridColor) and the dashed live marker
+  /// (onSurfaceColor), plus a small filled `"E<n>"` tag pinned to the top
+  /// of the line — same x-mapping ([xOf]) as everything else on this chart, so
+  /// a marker always lines up with the exact channel-curve sample at that
+  /// moment regardless of the (non-uniform) scene/transition segment
+  /// widths.
+  void _paintEventMarkers(
+    Canvas canvas,
+    Rect plotRect,
+    double Function(double) xOf,
+  ) {
+    if (eventMarkers.isEmpty) return;
+    final linePaint = Paint()
+      ..color = _eventMarkerColor.withValues(alpha: 0.85)
+      ..strokeWidth = 1.5;
+    for (final marker in eventMarkers) {
+      final x = xOf(marker.position.clamp(0.0, 1.0));
+      canvas.drawLine(Offset(x, plotRect.top), Offset(x, plotRect.bottom), linePaint);
+
+      final tp = TextPainter(
+        text: TextSpan(
+          text: marker.label,
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final tagLeft = (x - tp.width / 2 - 2).clamp(
+        plotRect.left,
+        plotRect.right - tp.width - 4,
+      );
+      final tagRect = Rect.fromLTWH(
+        tagLeft,
+        plotRect.top,
+        tp.width + 4,
+        tp.height + 2,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(tagRect, const Radius.circular(3)),
+        Paint()..color = _eventMarkerColor,
+      );
+      tp.paint(canvas, Offset(tagLeft + 2, plotRect.top + 1));
+    }
+  }
+
   void _paintLivePosition(Canvas canvas, Rect plotRect, double x) {
     final paint = Paint()
       ..color = onSurfaceColor
@@ -190,6 +260,7 @@ class CycleChartPainter extends CustomPainter {
   bool shouldRepaint(covariant CycleChartPainter oldDelegate) {
     return oldDelegate.curves != curves ||
         oldDelegate.periodBoundaries != periodBoundaries ||
-        oldDelegate.livePosition != livePosition;
+        oldDelegate.livePosition != livePosition ||
+        oldDelegate.eventMarkers != eventMarkers;
   }
 }

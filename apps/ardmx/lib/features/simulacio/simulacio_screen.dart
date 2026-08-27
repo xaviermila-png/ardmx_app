@@ -48,9 +48,18 @@ const _channelColors = [
 /// Pausa (V12/V13) only get processed while it's open — no new firmware
 /// screen id needed for playback control to work from here too.
 class SimulacioScreen extends ConsumerStatefulWidget {
-  const SimulacioScreen({super.key, required this.channelCountVIndex});
+  const SimulacioScreen({
+    super.key,
+    required this.channelCountVIndex,
+    required this.hasEvents,
+  });
 
   final int channelCountVIndex;
+
+  /// Whether to fetch and draw event markers (V77, EVO only) — `false` for
+  /// the ARDMX One v2 (no V77 on that firmware at all), same reasoning/shape
+  /// as `ExportImportSection.hasEvents`.
+  final bool hasEvents;
 
   @override
   ConsumerState<SimulacioScreen> createState() => _SimulacioScreenState();
@@ -67,6 +76,14 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
   List<ChannelConfigEntry?> _pageChannels = List.filled(_pageSize, null);
   List<bool> _visible = List.filled(_pageSize, true);
 
+  // Fetched once on open (events rarely change while watching the
+  // simulation, and this screen is freshly mounted every time it's
+  // reached) — moment is kept raw (seconds) and turned into a normalized
+  // chart position in build(), using the live totalTime, so a marker
+  // repositions correctly if the cycle's total duration changes without
+  // needing to re-fetch.
+  List<({int index, int moment})> _definedEvents = [];
+
   @override
   void initState() {
     super.initState();
@@ -77,6 +94,7 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _poll());
     _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
     _loadPage();
+    if (widget.hasEvents) unawaited(_loadEvents());
   }
 
   @override
@@ -174,6 +192,47 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
       ],
       name: parts.sublist(12).join('|'),
     );
+  }
+
+  Future<String?> _eventRoundTrip(String payload) async {
+    final protocol = ref.read(protocolProvider);
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final completer = Completer<String?>();
+      late final StreamSubscription<VirtuinoUpdate> sub;
+      sub = protocol.updates.listen((update) {
+        if (update is VirtuinoTUpdate &&
+            update.index == VIndex.eventBulk &&
+            !completer.isCompleted) {
+          completer.complete(update.text);
+        }
+      });
+      protocol.writeText(VIndex.eventBulk, payload);
+      final reply = await completer.future.timeout(
+        _roundTripTimeout,
+        onTimeout: () => null,
+      );
+      await sub.cancel();
+      if (reply != null) return reply;
+    }
+    return null;
+  }
+
+  /// Fetches all 10 event slots once (V77) and keeps only the DEFINED ones
+  /// (so or canal set) — same "so or canal" test the Events screen itself
+  /// uses to decide what counts as configured.
+  Future<void> _loadEvents() async {
+    final defined = <({int index, int moment})>[];
+    for (var i = 0; i < 10; i++) {
+      final reply = await _eventRoundTrip('$i');
+      if (reply == null) continue;
+      final parts = reply.split('|');
+      if (parts.length < 4) continue;
+      final moment = int.tryParse(parts[0]) ?? 0;
+      final pista = int.tryParse(parts[2]) ?? 0;
+      final canal = int.tryParse(parts[3]) ?? 0;
+      if (pista > 0 || canal > 0) defined.add((index: i, moment: moment));
+    }
+    if (mounted) setState(() => _definedEvents = defined);
   }
 
   /// Fetches this page's up to 12 channels' full V71 state, sequentially
@@ -295,6 +354,19 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
       for (var i = 0; i < periodCount; i++) '${periodes[i].round()}s',
     ];
 
+    // Position recomputed from the live totalTime (not cached at fetch
+    // time, see _loadEvents()'s doc) — label uses the event's 1-based slot
+    // number ("E1".."E10"), not its raw 0-based wire index.
+    final eventMarkers = totalTime > 0
+        ? [
+            for (final e in _definedEvents)
+              EventMarker(
+                position: (e.moment / totalTime).clamp(0.0, 1.0),
+                label: 'E${e.index + 1}',
+              ),
+          ]
+        : const <EventMarker>[];
+
     final curves = [
       for (var slot = 0; slot < _pageSize; slot++)
         if (_pageChannels[slot] != null)
@@ -371,6 +443,7 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
                       livePosition: livePosition,
                       onSurfaceColor: scheme.onSurface,
                       gridColor: scheme.onSurfaceVariant,
+                      eventMarkers: eventMarkers,
                     ),
                     child: const SizedBox.expand(),
                   ),
