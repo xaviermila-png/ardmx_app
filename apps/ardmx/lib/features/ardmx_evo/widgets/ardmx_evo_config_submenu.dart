@@ -82,18 +82,17 @@ class ArdmxEvoConfigSubmenu extends ConsumerWidget {
     );
 
     // Same square grid as DialSelector's own rows (4 columns, wrapping row-
-    // major) — a 5th item ("Events") lands on its own second row, under the
-    // 1st column ("Simulació"), left-aligned (not `end` like the single
-    // full row used to be: with only 4 items that row exactly filled the
-    // width either way, but a shorter wrapped row needs `start` to land
-    // under the first column instead of the last).
+    // major) — "Simulació" lands alone on its own 2nd row, right-aligned
+    // (under the last column, "Paràmetres") — with only 4 items the 1st row
+    // exactly fills the width either way, so this only visibly affects the
+    // shorter wrapped row.
     final rows = <Widget>[];
     for (var start = 0; start < _items.length; start += _columns) {
       final end = (start + _columns).clamp(0, _items.length);
       if (rows.isNotEmpty) rows.add(SizedBox(height: spacing));
       rows.add(
         Row(
-          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
             for (var i = start; i < end; i++) ...[
               if (i > start) SizedBox(width: spacing),
