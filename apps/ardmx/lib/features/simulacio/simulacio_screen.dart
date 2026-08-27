@@ -69,7 +69,21 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
   static const _pollInterval = Duration(milliseconds: 400);
   static const _roundTripTimeout = Duration(milliseconds: 800);
 
+  // The firmware truncates V14 (elapsed cycle time) to whole seconds
+  // (`V[14] = tempsActualCicle / 1000000`), so polling faster than 1s never
+  // makes the NUMBER itself change any sooner — only the live position line
+  // moving smoothly between the once-a-second updates instead of visibly
+  // jumping. _smoothTimer just forces a repaint every 100ms while playing;
+  // the actual estimated time comes from extrapolating wall-clock time
+  // since the last REAL V14 change (see _interpolatedCurrentTime()), reset
+  // to the true value every time a fresh one arrives so drift never
+  // accumulates across more than ~1s.
+  static const _smoothInterval = Duration(milliseconds: 100);
+
   Timer? _pollTimer;
+  Timer? _smoothTimer;
+  double? _lastKnownCurrentTime;
+  DateTime? _lastKnownAt;
   int _page = 0;
   int? _totalChannels;
   bool _loadingPage = false;
@@ -93,6 +107,9 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
     ]);
     WidgetsBinding.instance.addPostFrameCallback((_) => _poll());
     _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
+    _smoothTimer = Timer.periodic(_smoothInterval, (_) {
+      if (mounted && (ref.read(appStateProvider).isPlaying)) setState(() {});
+    });
     _loadPage();
     if (widget.hasEvents) unawaited(_loadEvents());
   }
@@ -100,6 +117,7 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
   @override
   void dispose() {
     _pollTimer?.cancel();
+    _smoothTimer?.cancel();
     // Safety net only — the real fix for the "screen briefly flashes with
     // portrait-sized layout while still physically landscape" glitch is
     // _goBack() awaiting this *before* popping (below). dispose() itself
@@ -330,15 +348,53 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
     return points;
   }
 
+  /// Wall-clock extrapolation from the last REAL V14 value — see
+  /// `_smoothTimer`'s doc for why this exists. Frozen (returns [rawSeconds]
+  /// as-is) whenever not actively playing, so Pausa/Stop don't keep
+  /// creeping the line forward on their own.
+  double _interpolatedCurrentTime(
+    double rawSeconds,
+    double totalSeconds,
+    bool activelyAdvancing,
+  ) {
+    final knownAt = _lastKnownAt;
+    final known = _lastKnownCurrentTime;
+    if (!activelyAdvancing || knownAt == null || known == null) {
+      return rawSeconds;
+    }
+    final elapsed = DateTime.now().difference(knownAt).inMilliseconds / 1000.0;
+    final estimate = known + elapsed;
+    return totalSeconds > 0 ? estimate.clamp(0.0, totalSeconds) : estimate;
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isPlaying = ref.watch(appStateProvider.select((s) => s.isPlaying));
     final isPaused = ref.watch(appStateProvider.select((s) => s.isPaused));
-    final currentTime =
+    final rawCurrentTime =
         ref.watch(appStateProvider.select((s) => s.currentTime)) ?? 0;
+    // Anchors the interpolation to wall-clock time whenever the REAL
+    // (whole-second) value actually changes — resets any drift at least
+    // once a second, and the anchor only moves forward on a genuine
+    // firmware update, never on a poll that just re-confirms the same
+    // second.
+    ref.listen<double?>(appStateProvider.select((s) => s.currentTime), (
+      previous,
+      next,
+    ) {
+      if (next != null) {
+        _lastKnownCurrentTime = next;
+        _lastKnownAt = DateTime.now();
+      }
+    });
     final totalTime =
         ref.watch(appStateProvider.select((s) => s.totalTime)) ?? 0;
+    final currentTime = _interpolatedCurrentTime(
+      rawCurrentTime,
+      totalTime,
+      isPlaying && !isPaused,
+    );
     final sceneCount =
         (ref.watch(appStateProvider.select((s) => s.activeScenesCount)) ?? 4)
             .clamp(1, 4);
