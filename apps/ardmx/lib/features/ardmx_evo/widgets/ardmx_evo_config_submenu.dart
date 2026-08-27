@@ -19,12 +19,15 @@ class ArdmxEvoConfigSubmenu extends ConsumerWidget {
   final double squareSize;
   final double spacing;
 
+  // Row-major over _columns: 1st row is Escenes/Cicle/Events/Paràmetres,
+  // Simulació lands alone on the 2nd row (left-aligned — see build()'s
+  // `mainAxisAlignment: start`).
   static const _items = [
-    ('Simulació', AppRoutes.ardmxEvoSimulacio),
     ('Escenes', AppRoutes.ardmxEvoSceneChannels),
     ('Cicle', AppRoutes.ardmxEvoCycleProgramming),
-    ('Paràmetres', AppRoutes.ardmxEvoParameters),
     ('Events', AppRoutes.ardmxEvoEvents),
+    ('Paràmetres', AppRoutes.ardmxEvoParameters),
+    ('Simulació', AppRoutes.ardmxEvoSimulacio),
   ];
 
   static const _columns = 4;
