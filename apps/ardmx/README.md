@@ -1,6 +1,6 @@
 # ardmx
 
-Versió actual: **V1.03** (`lib/core/constants/app_version.dart`, mostrada a
+Versió actual: **V2.0** (`lib/core/constants/app_version.dart`, mostrada a
 les pantalles de connexió i Crèdits).
 
 App Flutter (Android) de control per **Bluetooth Low Energy (BLE)** dels
@@ -42,10 +42,20 @@ Bluetooth.
 - Simulació — visualitzador gràfic de les corbes del cicle (fins a 12
   canals alhora, eix X proporcional a la durada real de cada escena/
   transició), amb controls de Play/Pausa/Stop i un marcador de posició en
-  directe mentre el dispositiu reprodueix. Primer botó del submenú de
-  Configuració (Simulació / Escenes / Cicle / Paràmetres). Força
-  horitzontal en obrir-se. No accessible des de l'ARDMX One v1 (no té
-  model d'escenes/transicions). `lib/features/simulacio/`.
+  directe mentre el dispositiu reprodueix — el temps entre actualitzacions
+  reals del dispositiu (V14, arrodonit a segons pel firmware) s'interpola
+  localment perquè la línia avanci de forma contínua enlloc de saltar
+  segon a segon. Als EVO, també marca amb línies verticals ambar
+  ("E1", "E2"...) el moment de cada event definit. Força horitzontal en
+  obrir-se. No accessible des de l'ARDMX One v1 (no té model d'escenes/
+  transicions). `lib/features/simulacio/`.
+- Events (només ARDMX EVO) — fins a 10 accions programades en un moment
+  concret del cicle: un so puntual (`ADVERT/` del DFPlayer) i/o un canal
+  forçat al màxim, cadascun amb la seva pròpia durada. Botó "Provar" per
+  disparar-lo immediatament des de l'app (amb el cicle actiu o aturat).
+  Botó "Events" a Configuració, sota Escenes/Cicle/Paràmetres — no visible
+  a l'ARDMX One (v1 ni v2), que no té aquest protocol.
+  `lib/features/ardmx_evo/ardmx_evo_events_screen.dart`.
 
 ## Format d'exportació/importació de la configuració
 
@@ -72,6 +82,9 @@ llegeix JSON directament.
     "numero_musica": 1,
     "nivell_volum": 20
   },
+  "events": [                       // NOMÉS present en exportacions de l'EVO
+    { "index": 0, "moment": 5, "durada": 3, "pista": 1, "canal": 12 }
+  ],
   "canals": [
     {
       "canal": 1,
@@ -88,16 +101,16 @@ llegeix JSON directament.
 }
 ```
 
-**Importació creuada**: `audio_manual` és l'únic camp que distingeix els dos
-productes (l'EVO té DFPlayer/volum; el One v2 no té cap maquinari
-equivalent — tampoc hi ha cap configuració pròpia de Mode Manual/Trigger més
-enllà de seleccionar-lo com a mode actiu, que no és una dada exportable).
-En important:
-- Fitxer d'EVO → One v2: `audio_manual` s'ignora silenciosament (avís no
-  bloquejant a la pantalla).
-- Fitxer de One v2 → EVO: no hi ha `audio_manual` al fitxer, així que la
-  cançó i el volum del dispositiu es **forcen a 0/Off** en lloc de deixar
-  el que ja hi hagués (avís no bloquejant a la pantalla).
+**Importació creuada**: `audio_manual` i `events` són els únics camps que
+distingeixen els dos productes (l'EVO té DFPlayer/volum i el protocol V77
+d'events; el One v2 no té cap maquinari ni protocol equivalent — tampoc hi
+ha cap configuració pròpia de Mode Manual/Trigger més enllà de seleccionar-lo
+com a mode actiu, que no és una dada exportable). En importar:
+- Fitxer d'EVO → One v2: `audio_manual` i `events` s'ignoren silenciosament
+  (avís no bloquejant a la pantalla).
+- Fitxer de One v2 → EVO: no hi ha `audio_manual`/`events` al fitxer, així
+  que la cançó/volum es **forcen a 0/Off** i els 10 events es **netegen**
+  en lloc de deixar el que ja hi hagués (avís no bloquejant a la pantalla).
 - Ja NO es rebutja cap importació per l'`origen` no coincidir amb el
   dispositiu connectat (abans del format unificat, `model` sí que ho feia).
 
