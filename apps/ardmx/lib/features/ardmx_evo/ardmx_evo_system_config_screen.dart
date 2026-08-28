@@ -100,6 +100,7 @@ class _PinSectionState extends ConsumerState<_PinSection> {
 
   final _controller = TextEditingController();
   StreamSubscription<VirtuinoUpdate>? _subscription;
+  Timer? _retryTimer;
   bool _busy = false;
   bool _obscure = true;
 
@@ -112,10 +113,26 @@ class _PinSectionState extends ConsumerState<_PinSection> {
       }
     });
     ref.read(protocolProvider).requestT(_pinReadVIndex);
+    // Retries a few times a second apart — see _BluetoothNameSectionState's
+    // doc for why a single request here isn't reliable enough (confirmed
+    // on real hardware: silently lost on at least one Android phone right
+    // after connecting, while working every time on another in the same
+    // session). Harmless to repeat: a duplicate reply just re-sets the
+    // same value.
+    var retriesLeft = 4;
+    _retryTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (retriesLeft <= 0) {
+        _retryTimer?.cancel();
+        return;
+      }
+      retriesLeft--;
+      ref.read(protocolProvider).requestT(_pinReadVIndex);
+    });
   }
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
     _subscription?.cancel();
     _controller.dispose();
     super.dispose();
@@ -224,6 +241,7 @@ class _BluetoothNameSectionState extends ConsumerState<_BluetoothNameSection> {
 
   final _controller = TextEditingController();
   StreamSubscription<VirtuinoUpdate>? _subscription;
+  Timer? _retryTimer;
 
   @override
   void initState() {
@@ -234,10 +252,26 @@ class _BluetoothNameSectionState extends ConsumerState<_BluetoothNameSection> {
       }
     });
     ref.read(protocolProvider).requestT(_btNameVIndex);
+    // A single request can silently get lost — confirmed on real hardware:
+    // this field stayed permanently blank on one Android phone right after
+    // connecting (BLE notify subscription timing varies enough across
+    // devices/Android versions), while a debug phone in the same session
+    // showed it correctly every time. Retries a few times a second apart;
+    // harmless to repeat, a duplicate reply just re-sets the same value.
+    var retriesLeft = 4;
+    _retryTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (retriesLeft <= 0) {
+        _retryTimer?.cancel();
+        return;
+      }
+      retriesLeft--;
+      ref.read(protocolProvider).requestT(_btNameVIndex);
+    });
   }
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
     _subscription?.cancel();
     _controller.dispose();
     super.dispose();
