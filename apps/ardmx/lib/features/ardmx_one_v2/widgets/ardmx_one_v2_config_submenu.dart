@@ -19,11 +19,18 @@ class ArdmxOneV2ConfigSubmenu extends ConsumerWidget {
   final double squareSize;
   final double spacing;
 
-  static const _items = [
-    ('Simulació', AppRoutes.ardmxOneV2Simulacio),
-    ('Escenes', AppRoutes.ardmxOneV2SceneChannels),
-    ('Cicle', AppRoutes.ardmxOneV2CycleProgramming),
-    ('Paràmetres', AppRoutes.ardmxOneV2Parameters),
+  // Explicit rows (not a generic "wrap every N columns", unlike the EVO's
+  // own submenu): 3 items on row 1 (right-aligned within the same 4-column
+  // width as DialSelector's scene squares above, deliberately leaving the
+  // 1st column empty rather than spreading them out), "Paràmetres" alone
+  // on row 2, also right-aligned.
+  static const _rows = [
+    [
+      ('Simulació', AppRoutes.ardmxOneV2Simulacio),
+      ('Escenes', AppRoutes.ardmxOneV2SceneChannels),
+      ('Cicle', AppRoutes.ardmxOneV2CycleProgramming),
+    ],
+    [('Paràmetres', AppRoutes.ardmxOneV2Parameters)],
   ];
 
   @override
@@ -40,44 +47,54 @@ class ArdmxOneV2ConfigSubmenu extends ConsumerWidget {
     );
     final cicleDisabled = activeScenesCount == 1;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+    Widget button((String, String) item) => SizedBox(
+      width: squareSize,
+      height: squareSize,
+      child: FilledButton(
+        onPressed: (item.$1 == 'Cicle' && cicleDisabled)
+            ? null
+            : () => Navigator.of(context).pushNamed(item.$2),
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          backgroundColor: scheme.primaryContainer,
+          foregroundColor: scheme.onPrimaryContainer,
+          // A flat backgroundColor/foregroundColor doesn't dim
+          // itself when onPressed is null — needs explicit disabled
+          // colors or the button would look identical, just
+          // silently unresponsive.
+          disabledBackgroundColor: scheme.primaryContainer.withValues(
+            alpha: 0.4,
+          ),
+          disabledForegroundColor: scheme.onPrimaryContainer.withValues(
+            alpha: 0.38,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        child: Text(
+          item.$1,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 12),
+        ),
+      ),
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        for (var i = 0; i < _items.length; i++) ...[
-          if (i > 0) SizedBox(width: spacing),
-          SizedBox(
-            width: squareSize,
-            height: squareSize,
-            child: FilledButton(
-              onPressed: (_items[i].$1 == 'Cicle' && cicleDisabled)
-                  ? null
-                  : () => Navigator.of(context).pushNamed(_items[i].$2),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                backgroundColor: scheme.primaryContainer,
-                foregroundColor: scheme.onPrimaryContainer,
-                // A flat backgroundColor/foregroundColor doesn't dim
-                // itself when onPressed is null — needs explicit disabled
-                // colors or the button would look identical, just
-                // silently unresponsive.
-                disabledBackgroundColor: scheme.primaryContainer.withValues(
-                  alpha: 0.4,
-                ),
-                disabledForegroundColor: scheme.onPrimaryContainer.withValues(
-                  alpha: 0.38,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: Text(
-                _items[i].$1,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12),
-              ),
-            ),
+        for (var r = 0; r < _rows.length; r++) ...[
+          if (r > 0) SizedBox(height: spacing),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              for (var i = 0; i < _rows[r].length; i++) ...[
+                if (i > 0) SizedBox(width: spacing),
+                button(_rows[r][i]),
+              ],
+            ],
           ),
         ],
       ],

@@ -19,15 +19,15 @@ class ArdmxEvoConfigSubmenu extends ConsumerWidget {
   final double squareSize;
   final double spacing;
 
-  // Row-major over _columns: 1st row is Escenes/Cicle/Events/Paràmetres,
-  // Simulació lands alone on the 2nd row (left-aligned — see build()'s
-  // `mainAxisAlignment: start`).
+  // Row-major over _columns: 1st row is Simulació/Escenes/Cicle/Events,
+  // Paràmetres lands alone on the 2nd row (right-aligned — see build()'s
+  // `mainAxisAlignment: end`).
   static const _items = [
+    ('Simulació', AppRoutes.ardmxEvoSimulacio),
     ('Escenes', AppRoutes.ardmxEvoSceneChannels),
     ('Cicle', AppRoutes.ardmxEvoCycleProgramming),
     ('Events', AppRoutes.ardmxEvoEvents),
     ('Paràmetres', AppRoutes.ardmxEvoParameters),
-    ('Simulació', AppRoutes.ardmxEvoSimulacio),
   ];
 
   static const _columns = 4;
@@ -82,10 +82,9 @@ class ArdmxEvoConfigSubmenu extends ConsumerWidget {
     );
 
     // Same square grid as DialSelector's own rows (4 columns, wrapping row-
-    // major) — "Simulació" lands alone on its own 2nd row, right-aligned
-    // (under the last column, "Paràmetres") — with only 4 items the 1st row
-    // exactly fills the width either way, so this only visibly affects the
-    // shorter wrapped row.
+    // major) — "Paràmetres" lands alone on its own 2nd row, right-aligned
+    // — with the 1st row's 4 items exactly filling the width either way,
+    // so this only visibly affects the shorter wrapped row.
     final rows = <Widget>[];
     for (var start = 0; start < _items.length; start += _columns) {
       final end = (start + _columns).clamp(0, _items.length);
