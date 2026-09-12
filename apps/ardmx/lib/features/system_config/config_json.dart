@@ -121,13 +121,13 @@ class AudioManualConfig {
 }
 
 /// One programmed event (V77) — a one-shot sound and/or a channel forced to
-/// 255 at a given moment of the cycle, for a given duration. EVO-only (see
-/// [ArdmxConfigData.events]) — matches `EventData`/`handleEventBulk()` in
-/// ardmx4-evo-firmware's main.cpp. [index] (0-9) is the event's slot, kept
-/// explicit here (unlike [ChannelConfigEntry], where the channel number
-/// already IS the array position) because only the DEFINED events get
-/// exported — see `ExportImportSection._export()` — so the list can have
-/// gaps.
+/// a configurable value at a given moment of the cycle, for a given
+/// duration. EVO-only (see [ArdmxConfigData.events]) — matches
+/// `EventData`/`handleEventBulk()` in ardmx4-evo-firmware's main.cpp.
+/// [index] (0-9) is the event's slot, kept explicit here (unlike
+/// [ChannelConfigEntry], where the channel number already IS the array
+/// position) because only the DEFINED events get exported — see
+/// `ExportImportSection._export()` — so the list can have gaps.
 class EventConfigEntry {
   const EventConfigEntry({
     required this.index,
@@ -135,6 +135,7 @@ class EventConfigEntry {
     required this.durada,
     required this.pista,
     required this.canal,
+    this.valor = 0,
   });
 
   final int index;
@@ -142,6 +143,7 @@ class EventConfigEntry {
   final int durada;
   final int pista;
   final int canal;
+  final int valor;
 
   Map<String, dynamic> toJson() => {
     'index': index,
@@ -149,6 +151,7 @@ class EventConfigEntry {
     'durada': durada,
     'pista': pista,
     'canal': canal,
+    'valor': valor,
   };
 
   factory EventConfigEntry.fromJson(Map<String, dynamic> json) =>
@@ -158,6 +161,7 @@ class EventConfigEntry {
         durada: ((json['durada'] as num?) ?? 0).toInt(),
         pista: ((json['pista'] as num?) ?? 0).toInt(),
         canal: ((json['canal'] as num?) ?? 0).toInt(),
+        valor: ((json['valor'] as num?) ?? 0).toInt().clamp(0, 255),
       );
 }
 

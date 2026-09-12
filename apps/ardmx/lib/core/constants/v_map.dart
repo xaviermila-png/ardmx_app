@@ -48,13 +48,14 @@ class VIndex {
   static const int channelBulk4Scene = 71;
 
   /// Bulk query/assign of ONE event's complete state (0-9) — a one-shot
-  /// sound (advertise) and/or a channel forced to 255 at a given moment of
-  /// the cycle, for a given duration — ARDMX EVO only (see
+  /// sound (advertise) and/or a channel forced to a configurable value at a
+  /// given moment of the cycle, for a given duration — ARDMX EVO only (see
   /// `handleEventBulk()`/`GestioEvents()` in ardmx4-evo-firmware's
-  /// main.cpp). Query `"N"`; assign `"N|moment|durada|pista|canal"`
-  /// (moment/durada in seconds, pista=0 or canal=0 meaning "not set");
-  /// reply (both) the same `"moment|durada|pista|canal"` format. Same
-  /// atomic-write shape as [channelBulk4Scene].
+  /// main.cpp). Query `"N"`; assign `"N|moment|durada|pista|canal|valor"`
+  /// (moment/durada in seconds, pista=0 or canal=0 meaning "not set",
+  /// valor=0-255); reply (both) the same
+  /// `"moment|durada|pista|canal|valor"` format. Same atomic-write shape as
+  /// [channelBulk4Scene].
   static const int eventBulk = 77;
 
   /// Fires event N (0-9) immediately, ignoring its configured "moment" —

@@ -257,30 +257,33 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
     return null;
   }
 
-  /// V77's reply: `"moment|durada|pista|canal"` — see handleEventBulk() in
-  /// ardmx4-evo-firmware's main.cpp.
-  (int, int, int, int)? _parseEventReply(String? reply) {
+  /// V77's reply: `"moment|durada|pista|canal|valor"` — see
+  /// handleEventBulk() in ardmx4-evo-firmware's main.cpp.
+  (int, int, int, int, int)? _parseEventReply(String? reply) {
     if (reply == null) return null;
     final parts = reply.split('|');
-    if (parts.length < 4) return null;
+    if (parts.length < 5) return null;
     return (
       int.tryParse(parts[0]) ?? 0,
       int.tryParse(parts[1]) ?? 0,
       int.tryParse(parts[2]) ?? 0,
       int.tryParse(parts[3]) ?? 0,
+      int.tryParse(parts[4]) ?? 0,
     );
   }
 
   Future<bool> _assignEventVerified(EventConfigEntry entry) async {
     final payload =
-        '${entry.index}|${entry.moment}|${entry.durada}|${entry.pista}|${entry.canal}';
+        '${entry.index}|${entry.moment}|${entry.durada}|${entry.pista}|'
+        '${entry.canal}|${entry.valor}';
     for (var attempt = 0; attempt < 6; attempt++) {
       final parsed = _parseEventReply(await _eventRoundTripOnce(payload));
       if (parsed != null &&
           parsed.$1 == entry.moment &&
           parsed.$2 == entry.durada &&
           parsed.$3 == entry.pista &&
-          parsed.$4 == entry.canal) {
+          parsed.$4 == entry.canal &&
+          parsed.$5 == entry.valor) {
         return true;
       }
       await Future.delayed(const Duration(milliseconds: 400));
@@ -345,7 +348,7 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
         for (var i = 0; i < _eventCount; i++) {
           final parsed = _parseEventReply(await _eventRoundTrip('$i'));
           if (parsed == null) continue;
-          final (moment, durada, pista, canal) = parsed;
+          final (moment, durada, pista, canal, valor) = parsed;
           // Only exports the DEFINED events (same "so or canal" test the
           // Events screen uses) — matches that screen only showing defined
           // events, and keeps the file free of 10 near-empty entries.
@@ -357,6 +360,7 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
                 durada: durada,
                 pista: pista,
                 canal: canal,
+                valor: valor,
               ),
             );
           }
@@ -610,7 +614,14 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
         for (var i = 0; i < _eventCount; i++) {
           final entry =
               byIndex[i] ??
-              EventConfigEntry(index: i, moment: 0, durada: 0, pista: 0, canal: 0);
+              EventConfigEntry(
+                index: i,
+                moment: 0,
+                durada: 0,
+                pista: 0,
+                canal: 0,
+                valor: 0,
+              );
           final ok = await _assignEventVerified(entry);
           if (!ok) failedEvents.add(i + 1);
           if (mounted) setState(() => _progress++);

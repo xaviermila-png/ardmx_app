@@ -10,14 +10,20 @@ import '../../core/protocol/virtuino_update.dart';
 import '../../state/providers.dart';
 import '../../widgets/app_scaffold.dart';
 
-typedef _EventData = ({int moment, int durada, int pista, int canal});
+typedef _EventData = ({
+  int moment,
+  int durada,
+  int pista,
+  int canal,
+  int valor,
+});
 
-const _emptyEvent = (moment: 0, durada: 0, pista: 0, canal: 0);
+const _emptyEvent = (moment: 0, durada: 0, pista: 0, canal: 0, valor: 0);
 const _eventCount = 10;
 
 /// "Events" screen (V77, ARDMX EVO only): up to 10 programmed actions — a
-/// one-shot sound (`advertise()`) and/or a channel forced to 255, at a
-/// given moment of the cycle for a given duration. See
+/// one-shot sound (`advertise()`) and/or a channel forced to a configurable
+/// value, at a given moment of the cycle for a given duration. See
 /// `handleEventBulk()`/`GestioEvents()` in ardmx4-evo-firmware's main.cpp.
 class ArdmxEvoEventsScreen extends ConsumerStatefulWidget {
   const ArdmxEvoEventsScreen({super.key});
@@ -114,12 +120,13 @@ class _ArdmxEvoEventsScreenState extends ConsumerState<ArdmxEvoEventsScreen> {
   _EventData? _parse(String? reply) {
     if (reply == null) return null;
     final parts = reply.split('|');
-    if (parts.length < 4) return null;
+    if (parts.length < 5) return null;
     return (
       moment: int.tryParse(parts[0]) ?? 0,
       durada: int.tryParse(parts[1]) ?? 0,
       pista: int.tryParse(parts[2]) ?? 0,
       canal: int.tryParse(parts[3]) ?? 0,
+      valor: int.tryParse(parts[4]) ?? 0,
     );
   }
 
@@ -184,7 +191,8 @@ class _ArdmxEvoEventsScreenState extends ConsumerState<ArdmxEvoEventsScreen> {
     setState(() => _events[index] = data);
 
     final payload =
-        '$index|${data.moment}|${data.durada}|${data.pista}|${data.canal}';
+        '$index|${data.moment}|${data.durada}|${data.pista}|${data.canal}|'
+        '${data.valor}';
     final parsed = _parse(await _roundTrip(payload));
     if (mounted && parsed != null) setState(() => _events[index] = parsed);
   }
@@ -262,11 +270,14 @@ class _ArdmxEvoEventsScreenState extends ConsumerState<ArdmxEvoEventsScreen> {
   }
 }
 
-/// One event's 4 fields (so/canal/moment/durada), read-modify-write as a
-/// single V77 blob, plus a "Provar" button (V78) that fires it immediately
-/// on the device regardless of the cycle's position. Commits to V77 once
-/// focus leaves the WHOLE row (all 4 fields), not on each field's own blur
-/// — see `_wireFocus()`'s doc for why per-field commit broke typing.
+/// One event's 5 fields (so/canal/nivell/moment/durada), always shown
+/// inline in that order — "nivell" (0-255) is the value forced on the
+/// channel, only meaningful once a channel is set (ignored, saved as 0, if
+/// canal==0) — read-modify-write as a single V77 blob, plus a "Provar"
+/// button (V78) that fires it immediately on the device regardless of the
+/// cycle's position. Commits to V77 once focus leaves the WHOLE row (all
+/// fields), not on each field's own blur — see `_wireFocus()`'s doc for
+/// why per-field commit broke typing.
 class _EventRow extends StatefulWidget {
   const _EventRow({
     super.key,
@@ -296,10 +307,12 @@ class _EventRowState extends State<_EventRow> {
   final _canalController = TextEditingController();
   final _momentController = TextEditingController();
   final _duradaController = TextEditingController();
+  final _valorController = TextEditingController();
   final _pistaFocus = FocusNode();
   final _canalFocus = FocusNode();
   final _momentFocus = FocusNode();
   final _duradaFocus = FocusNode();
+  final _valorFocus = FocusNode();
   String? _error;
 
   @override
@@ -309,6 +322,7 @@ class _EventRowState extends State<_EventRow> {
     _wireFocus(_canalFocus, _canalController);
     _wireFocus(_momentFocus, _momentController);
     _wireFocus(_duradaFocus, _duradaController);
+    _wireFocus(_valorFocus, _valorController);
   }
 
   // Committing (and, in build(), re-syncing the fields from the device) on
@@ -344,7 +358,8 @@ class _EventRowState extends State<_EventRow> {
       _pistaFocus.hasFocus ||
       _canalFocus.hasFocus ||
       _momentFocus.hasFocus ||
-      _duradaFocus.hasFocus;
+      _duradaFocus.hasFocus ||
+      _valorFocus.hasFocus;
 
   @override
   void dispose() {
@@ -352,10 +367,12 @@ class _EventRowState extends State<_EventRow> {
     _canalController.dispose();
     _momentController.dispose();
     _duradaController.dispose();
+    _valorController.dispose();
     _pistaFocus.dispose();
     _canalFocus.dispose();
     _momentFocus.dispose();
     _duradaFocus.dispose();
+    _valorFocus.dispose();
     super.dispose();
   }
 
@@ -364,10 +381,17 @@ class _EventRowState extends State<_EventRow> {
     final canal = int.tryParse(_canalController.text) ?? 0;
     final moment = int.tryParse(_momentController.text) ?? 0;
     final durada = int.tryParse(_duradaController.text) ?? 0;
+    // Sense canal seleccionat, "nivell" no vol dir res — es guarda a 0.
+    // Amb canal però sense escriure nivell, 255 (a fons) és el que feia
+    // sempre el firmware abans que aquest camp fos configurable, així que
+    // es manté com a valor per defecte perquè no calgui escriure'l sempre.
+    final valor = canal == 0
+        ? 0
+        : (int.tryParse(_valorController.text) ?? 255);
 
-    // Fila encara sense configurar (els 4 camps buits/0): res a validar ni
-    // a desar — evita que totes les files buides mostrin un error just en
-    // obrir la pantalla.
+    // Fila encara sense configurar (tots els camps buits/0): res a validar
+    // ni a desar — evita que totes les files buides mostrin un error just
+    // en obrir la pantalla.
     if (pista == 0 && canal == 0 && moment == 0 && durada == 0) {
       setState(() => _error = null);
       return;
@@ -383,6 +407,10 @@ class _EventRowState extends State<_EventRow> {
       );
       return;
     }
+    if (canal != 0 && (valor < 0 || valor > 255)) {
+      setState(() => _error = 'Nivell fora de rang (0-255)');
+      return;
+    }
     final total = widget.totalTimeSeconds;
     if (moment < 0 || (total != null && moment > total)) {
       setState(() => _error = 'Moment fora de la durada del cicle');
@@ -394,7 +422,13 @@ class _EventRowState extends State<_EventRow> {
     }
 
     setState(() => _error = null);
-    widget.onSave((moment: moment, durada: durada, pista: pista, canal: canal));
+    widget.onSave((
+      moment: moment,
+      durada: durada,
+      pista: pista,
+      canal: canal,
+      valor: valor,
+    ));
   }
 
   Widget _numberField({
@@ -457,6 +491,7 @@ class _EventRowState extends State<_EventRow> {
       _canalController.text = data.canal == 0 ? '' : '${data.canal}';
       _momentController.text = '${data.moment}';
       _duradaController.text = data.durada == 0 ? '' : '${data.durada}';
+      _valorController.text = data.valor == 0 ? '' : '${data.valor}';
     }
 
     return Container(
@@ -531,6 +566,14 @@ class _EventRowState extends State<_EventRow> {
                   label: 'Canal',
                   controller: _canalController,
                   focus: _canalFocus,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _numberField(
+                  label: 'Nivell',
+                  controller: _valorController,
+                  focus: _valorFocus,
                 ),
               ),
               const SizedBox(width: 6),
