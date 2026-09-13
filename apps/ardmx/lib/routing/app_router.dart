@@ -21,6 +21,8 @@ import '../features/debug/debug_screen.dart';
 import '../features/rgb_wheel/rgb_wheel_screen.dart';
 import '../features/simulacio/simulacio_screen.dart';
 import '../features/splash/splash_screen.dart';
+import '../features/system_config/config_json.dart';
+import '../features/tools/tools_screen.dart';
 import '../state/providers.dart';
 
 class AppRoutes {
@@ -38,12 +40,14 @@ class AppRoutes {
   static const ardmxEvoSystemConfig = '/ardmx-evo-system-config';
   static const ardmxEvoSimulacio = '/ardmx-evo-simulacio';
   static const ardmxEvoEvents = '/ardmx-evo-events';
+  static const ardmxEvoTools = '/ardmx-evo-tools';
   static const ardmxOneV2MainMenu = '/ardmx-one-v2-main-menu';
   static const ardmxOneV2SceneChannels = '/ardmx-one-v2-scenes';
   static const ardmxOneV2CycleProgramming = '/ardmx-one-v2-cycle-programming';
   static const ardmxOneV2Parameters = '/ardmx-one-v2-parameters';
   static const ardmxOneV2SystemConfig = '/ardmx-one-v2-system-config';
   static const ardmxOneV2Simulacio = '/ardmx-one-v2-simulacio';
+  static const ardmxOneV2Tools = '/ardmx-one-v2-tools';
   static const credits = '/credits';
 
   /// Offline navigation shortcut into a product's screen tree, reached via
@@ -81,6 +85,10 @@ class AppRoutes {
     // value that keeps some background tick alive is fine; reuses
     // Paràmetres' for consistency with the other "no dedicated V50" screens.
     ardmxEvoEvents: AppScreen.parameters,
+    // Same reasoning as ardmxEvoSystemConfig above — no dedicated V50 value
+    // of its own (copying scenes and export/import are both app-side V71/
+    // T-pin round trips, not gated by V50 on the firmware side).
+    ardmxEvoTools: AppScreen.parameters,
     ardmxOneV2MainMenu: AppScreen.mainMenu,
     ardmxOneV2SceneChannels: AppScreen.sceneChannels,
     ardmxOneV2CycleProgramming: AppScreen.cycleProgramming,
@@ -92,6 +100,8 @@ class AppRoutes {
     ardmxOneV2SystemConfig: AppScreen.parameters,
     // Same reasoning as ardmxEvoSimulacio above.
     ardmxOneV2Simulacio: AppScreen.cycleProgramming,
+    // Same reasoning as ardmxEvoTools above.
+    ardmxOneV2Tools: AppScreen.parameters,
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -121,6 +131,13 @@ class AppRoutes {
         hasEvents: true,
       ),
       ardmxEvoEvents => (BuildContext context) => const ArdmxEvoEventsScreen(),
+      ardmxEvoTools => (BuildContext context) => const ToolsScreen(
+        origen: ArdmxConfigData.origenEvo,
+        channelCountVIndex: VIndex.activeChannelsCount,
+        hasAudio: true,
+        hasEvents: true,
+        fileNamePrefix: 'ardmx_evo',
+      ),
       ardmxOneV2MainMenu =>
         (BuildContext context) => const ArdmxOneV2MainMenuScreen(),
       ardmxOneV2SceneChannels =>
@@ -133,6 +150,13 @@ class AppRoutes {
         (BuildContext context) => const ArdmxOneV2SystemConfigScreen(),
       ardmxOneV2Simulacio => (BuildContext context) =>
           const SimulacioScreen(channelCountVIndex: 8, hasEvents: false),
+      ardmxOneV2Tools => (BuildContext context) => const ToolsScreen(
+        origen: ArdmxConfigData.origenOne,
+        channelCountVIndex: 8,
+        hasAudio: false,
+        hasEvents: false,
+        fileNamePrefix: 'ardmx_one',
+      ),
       _ => (BuildContext context) => const SplashScreen(),
     };
     return MaterialPageRoute(builder: builder, settings: settings);

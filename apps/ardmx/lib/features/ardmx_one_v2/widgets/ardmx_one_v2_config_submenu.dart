@@ -22,7 +22,7 @@ class ArdmxOneV2ConfigSubmenu extends ConsumerWidget {
   // Explicit rows (not a generic "wrap every N columns", unlike the EVO's
   // own submenu): 3 items on row 1 (right-aligned within the same 4-column
   // width as DialSelector's scene squares above, deliberately leaving the
-  // 1st column empty rather than spreading them out), "Paràmetres" alone
+  // 1st column empty rather than spreading them out), "Eines"/"Paràmetres"
   // on row 2, also right-aligned.
   static const _rows = [
     [
@@ -30,7 +30,10 @@ class ArdmxOneV2ConfigSubmenu extends ConsumerWidget {
       ('Escenes', AppRoutes.ardmxOneV2SceneChannels),
       ('Cicle', AppRoutes.ardmxOneV2CycleProgramming),
     ],
-    [('Paràmetres', AppRoutes.ardmxOneV2Parameters)],
+    [
+      ('Eines', AppRoutes.ardmxOneV2Tools),
+      ('Paràmetres', AppRoutes.ardmxOneV2Parameters),
+    ],
   ];
 
   @override

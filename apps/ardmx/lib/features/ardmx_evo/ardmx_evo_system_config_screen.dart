@@ -9,15 +9,15 @@ import '../../core/constants/v_map.dart';
 import '../../core/protocol/virtuino_update.dart';
 import '../../state/providers.dart';
 import '../../widgets/app_scaffold.dart';
-import '../system_config/config_json.dart';
-import '../system_config/widgets/export_import_section.dart';
 
 /// ARDMX EVO's "Configuració del sistema" screen — one level below
 /// "Paràmetres" (reached via its own button, not the back arrow), same
 /// reasoning as ARDMX4's and ARDMX One's own split: everything here
-/// (Bluetooth rename, factory reset, full-config export/import) requires a
-/// real recovery step or is destructive, so it shouldn't be as casually
-/// reachable as the day-to-day controls on Paràmetres.
+/// (Bluetooth rename, factory reset) requires a real recovery step or is
+/// destructive, so it shouldn't be as casually reachable as the day-to-day
+/// controls on Paràmetres. Full-config export/import lives on the "Eines"
+/// screen instead (see `ToolsScreen`) — it's a config-management action,
+/// not a device-identity/recovery one.
 class ArdmxEvoSystemConfigScreen extends ConsumerWidget {
   const ArdmxEvoSystemConfigScreen({super.key});
 
@@ -56,17 +56,6 @@ class ArdmxEvoSystemConfigScreen extends ConsumerWidget {
               _Section(
                 title: 'PIN de connexió',
                 child: const _PinSection(),
-              ),
-              const SizedBox(height: 8),
-              _Section(
-                title: 'Exportació/Importació de la configuració',
-                child: const ExportImportSection(
-                  origen: ArdmxConfigData.origenEvo,
-                  channelCountVIndex: VIndex.activeChannelsCount,
-                  hasAudio: true,
-                  hasEvents: true,
-                  fileNamePrefix: 'ardmx_evo',
-                ),
               ),
               const SizedBox(height: 8),
               const _ResetSection(),
