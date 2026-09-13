@@ -251,9 +251,7 @@ class _CopySceneSectionState extends ConsumerState<CopySceneSection> {
           ),
           const SizedBox(height: 4),
           Text(
-            _progressTotal > 0
-                ? '${(100 * _progress / _progressTotal).round()} %'
-                : '',
+            _progressTotal > 0 ? 'Canal $_progress de $_progressTotal' : '',
             style: const TextStyle(fontSize: 12),
           ),
         ],
