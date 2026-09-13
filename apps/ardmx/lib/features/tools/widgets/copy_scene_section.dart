@@ -271,21 +271,30 @@ class _CopySceneSectionState extends ConsumerState<CopySceneSection> {
     final origen = _origen.clamp(1, numeroEscenes);
     final desti = _desti.clamp(1, numeroEscenes);
 
+    // Llista desplegable, no un selector de segments: amb 4 escenes actives
+    // (el màxim), dos SegmentedButton costat a costat més la fletxa no
+    // càpiga a l'amplada d'un mòbil normal i es tallaven — confirmat en
+    // maquinari real. Un dropdown sempre ocupa el mateix amplat tancat,
+    // sigui quantes escenes hi hagi.
     Widget picker(String label, int value, ValueChanged<int> onChanged) {
-      return Column(
-        children: [
-          Text(label, style: const TextStyle(fontSize: 13)),
-          const SizedBox(height: 6),
-          SegmentedButton<int>(
-            segments: [
-              for (var s = 1; s <= numeroEscenes; s++)
-                ButtonSegment(value: s, label: Text('$s')),
-            ],
-            selected: {value},
-            showSelectedIcon: false,
-            onSelectionChanged: (set) => onChanged(set.first),
-          ),
-        ],
+      return Expanded(
+        child: Column(
+          children: [
+            Text(label, style: const TextStyle(fontSize: 13)),
+            const SizedBox(height: 6),
+            DropdownButton<int>(
+              value: value,
+              isExpanded: true,
+              items: [
+                for (var s = 1; s <= numeroEscenes; s++)
+                  DropdownMenuItem(value: s, child: Text('Escena $s')),
+              ],
+              onChanged: (v) {
+                if (v != null) onChanged(v);
+              },
+            ),
+          ],
+        ),
       );
     }
 
@@ -299,14 +308,14 @@ class _CopySceneSectionState extends ConsumerState<CopySceneSection> {
         ),
         const SizedBox(height: 10),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            picker('Escena origen', origen, (v) => setState(() => _origen = v)),
+            picker('Origen', origen, (v) => setState(() => _origen = v)),
             const Padding(
-              padding: EdgeInsets.only(top: 20),
+              padding: EdgeInsets.only(bottom: 12, left: 4, right: 4),
               child: Icon(Icons.arrow_forward),
             ),
-            picker('Escena destí', desti, (v) => setState(() => _desti = v)),
+            picker('Destí', desti, (v) => setState(() => _desti = v)),
           ],
         ),
         const SizedBox(height: 12),
