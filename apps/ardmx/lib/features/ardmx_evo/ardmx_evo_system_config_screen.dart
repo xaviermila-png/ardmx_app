@@ -41,7 +41,7 @@ class ArdmxEvoSystemConfigScreen extends ConsumerWidget {
         if (!didPop) _attemptBack(ref, context);
       },
       child: AppScaffold(
-        title: 'Configuració',
+        title: 'Sistema',
         onBack: () => _attemptBack(ref, context),
         body: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

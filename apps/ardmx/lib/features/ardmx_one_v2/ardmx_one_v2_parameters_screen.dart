@@ -125,7 +125,7 @@ class _ArdmxOneV2ParametersScreenState
                   onPressed: () => Navigator.of(
                     context,
                   ).pushNamed(AppRoutes.ardmxOneV2SystemConfig),
-                  tooltip: 'Configuració del sistema',
+                  tooltip: 'Sistema',
                   child: const Icon(Icons.build),
                 ),
               ],

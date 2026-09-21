@@ -239,7 +239,7 @@ class _ArdmxEvoParametersScreenState
                   onPressed: () => Navigator.of(
                     context,
                   ).pushNamed(AppRoutes.ardmxEvoSystemConfig),
-                  tooltip: 'Configuració del sistema',
+                  tooltip: 'Sistema',
                   child: const Icon(Icons.build),
                 ),
               ],

@@ -303,7 +303,7 @@ class _ArdmxOneConfigScreenState extends ConsumerState<ArdmxOneConfigScreen> {
                         context,
                       ).pushNamed(AppRoutes.ardmxOneSystemConfig);
                     },
-                    tooltip: 'Configuració del sistema',
+                    tooltip: 'Sistema',
                     child: const Icon(Icons.build),
                   ),
                 ],
