@@ -197,6 +197,15 @@ class _ArdmxEvoEventsScreenState extends ConsumerState<ArdmxEvoEventsScreen> {
     if (mounted && parsed != null) setState(() => _events[index] = parsed);
   }
 
+  // Un camp encara amb focus es desa només en perdre'l (vegeu
+  // _EventRowState._wireFocus): sense treure'l abans de tancar la pantalla,
+  // la fila es destrueix sense desar-lo.
+  Future<void> _leave() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await WidgetsBinding.instance.endOfFrame;
+    if (mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final numeroCanals =
@@ -206,66 +215,72 @@ class _ArdmxEvoEventsScreenState extends ConsumerState<ArdmxEvoEventsScreen> {
     final visible = _visibleIndices;
     final canAddMore = visible.length < _eventCount;
 
-    return AppScaffold(
-      title: 'Events',
-      onBack: () => Navigator.of(context).pop(),
-      body: stillLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Expanded(
-                  child: visible.isEmpty
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(24),
-                            child: Text(
-                              'Encara no hi ha cap event configurat.',
-                              textAlign: TextAlign.center,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _leave();
+      },
+      child: AppScaffold(
+        title: 'Events',
+        onBack: _leave,
+        body: stillLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  Expanded(
+                    child: visible.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(24),
+                              child: Text(
+                                'Encara no hi ha cap event configurat.',
+                                textAlign: TextAlign.center,
+                              ),
                             ),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            itemCount: visible.length,
+                            separatorBuilder: (context, i) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (context, i) {
+                              final index = visible[i];
+                              return _EventRow(
+                                key: ValueKey(index),
+                                index: index,
+                                data: _events[index],
+                                numeroCanals: numeroCanals,
+                                totalTimeSeconds: totalTime?.round(),
+                                onSave: (data) => _saveEvent(index, data),
+                                onTest: () => ref
+                                    .read(protocolProvider)
+                                    .writeV(VIndex.eventTestTrigger, index),
+                                onDelete: () => _removeEvent(index),
+                              );
+                            },
                           ),
-                        )
-                      : ListView.separated(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          itemCount: visible.length,
-                          separatorBuilder: (context, i) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (context, i) {
-                            final index = visible[i];
-                            return _EventRow(
-                              key: ValueKey(index),
-                              index: index,
-                              data: _events[index],
-                              numeroCanals: numeroCanals,
-                              totalTimeSeconds: totalTime?.round(),
-                              onSave: (data) => _saveEvent(index, data),
-                              onTest: () => ref
-                                  .read(protocolProvider)
-                                  .writeV(VIndex.eventTestTrigger, index),
-                              onDelete: () => _removeEvent(index),
-                            );
-                          },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: canAddMore ? _addEvent : null,
+                        icon: const Icon(Icons.add),
+                        label: Text(
+                          canAddMore
+                              ? 'Afegir event'
+                              : 'Màxim de $_eventCount events',
                         ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: canAddMore ? _addEvent : null,
-                      icon: const Icon(Icons.add),
-                      label: Text(
-                        canAddMore
-                            ? 'Afegir event'
-                            : 'Màxim de $_eventCount events',
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+      ),
     );
   }
 }
@@ -385,9 +400,7 @@ class _EventRowState extends State<_EventRow> {
     // Amb canal però sense escriure nivell, 255 (a fons) és el que feia
     // sempre el firmware abans que aquest camp fos configurable, així que
     // es manté com a valor per defecte perquè no calgui escriure'l sempre.
-    final valor = canal == 0
-        ? 0
-        : (int.tryParse(_valorController.text) ?? 255);
+    final valor = canal == 0 ? 0 : (int.tryParse(_valorController.text) ?? 255);
 
     // Fila encara sense configurar (tots els camps buits/0): res a validar
     // ni a desar — evita que totes les files buides mostrin un error just
@@ -402,9 +415,7 @@ class _EventRowState extends State<_EventRow> {
       return;
     }
     if (canal != 0 && (canal < 1 || canal > widget.numeroCanals)) {
-      setState(
-        () => _error = 'Canal fora de rang (1-${widget.numeroCanals})',
-      );
+      setState(() => _error = 'Canal fora de rang (1-${widget.numeroCanals})');
       return;
     }
     if (canal != 0 && (valor < 0 || valor > 255)) {
@@ -446,10 +457,7 @@ class _EventRowState extends State<_EventRow> {
       decoration: InputDecoration(
         labelText: label,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 6,
-          vertical: 8,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         border: const OutlineInputBorder(),
       ),
       onSubmitted: (_) => _commit(),
@@ -596,10 +604,7 @@ class _EventRowState extends State<_EventRow> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 4),
-            Text(
-              _error!,
-              style: TextStyle(color: scheme.error, fontSize: 12),
-            ),
+            Text(_error!, style: TextStyle(color: scheme.error, fontSize: 12)),
           ],
         ],
       ),
