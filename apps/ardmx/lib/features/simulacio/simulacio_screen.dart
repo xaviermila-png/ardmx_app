@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/v_map.dart';
 import '../../core/protocol/virtuino_update.dart';
 import '../../state/providers.dart';
+import '../../widgets/circle_icon_button.dart';
 import '../system_config/config_json.dart';
 import 'curve_math.dart';
 import 'widgets/channel_legend.dart';
@@ -634,7 +635,7 @@ class _TopBar extends StatelessWidget {
           visualDensity: VisualDensity.compact,
         ),
         const SizedBox(width: 16),
-        _CircleIconButton(
+        CircleIconButton(
           icon: showPlay ? Icons.play_arrow : Icons.pause,
           onPressed: onPlayPause,
           tooltip: showPlay ? 'Play' : 'Pausa',
@@ -642,7 +643,7 @@ class _TopBar extends StatelessWidget {
           foregroundColor: scheme.onPrimaryContainer,
         ),
         const SizedBox(width: 6),
-        _CircleIconButton(
+        CircleIconButton(
           icon: Icons.stop,
           onPressed: onStop,
           tooltip: 'Stop',
@@ -691,7 +692,7 @@ class _TopBar extends StatelessWidget {
             ],
           ),
         ),
-        _CircleIconButton(
+        CircleIconButton(
           icon: Icons.arrow_back_ios_new,
           iconSize: 14,
           onPressed: canGoBack ? onPrevPage : null,
@@ -707,7 +708,7 @@ class _TopBar extends StatelessWidget {
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           ),
         ),
-        _CircleIconButton(
+        CircleIconButton(
           icon: Icons.arrow_forward_ios,
           iconSize: 14,
           onPressed: canGoForward ? onNextPage : null,
@@ -720,44 +721,3 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-/// A circular-background icon button — Play/Pausa, Stop and the page
-/// arrows all get this treatment so they stand out against the plain back
-/// arrow, which stays a bare [IconButton] (it's not a chart control).
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({
-    required this.icon,
-    required this.onPressed,
-    required this.tooltip,
-    required this.backgroundColor,
-    required this.foregroundColor,
-    this.iconSize,
-  });
-
-  final IconData icon;
-  final VoidCallback? onPressed;
-  final String tooltip;
-  final Color backgroundColor;
-  final Color foregroundColor;
-  final double? iconSize;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: Icon(icon, size: iconSize),
-      onPressed: onPressed,
-      tooltip: tooltip,
-      visualDensity: VisualDensity.compact,
-      style: IconButton.styleFrom(
-        shape: const CircleBorder(),
-        backgroundColor: backgroundColor,
-        foregroundColor: foregroundColor,
-        // Flat colors don't dim themselves when onPressed is null (the
-        // page-nav arrows at the first/last group) — needs explicit
-        // disabled colors or a disabled button would look identical to an
-        // enabled one, just unresponsive.
-        disabledBackgroundColor: backgroundColor.withValues(alpha: 0.3),
-        disabledForegroundColor: foregroundColor.withValues(alpha: 0.38),
-      ),
-    );
-  }
-}

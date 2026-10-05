@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/v_map.dart';
 import '../../state/providers.dart';
 import '../../widgets/app_scaffold.dart';
+import '../../widgets/circle_icon_button.dart';
 import '../../widgets/editable_value_chip.dart';
 
 /// Cycle Programming screen for the ARDMX One v2 tree — same V10-V28/V50
@@ -159,71 +160,33 @@ class _ArdmxOneV2CycleProgrammingScreenState
           children: [
             Row(
               children: [
-                GestureDetector(
-                  onTap: () =>
-                      ref.read(appStateProvider.notifier).setPlaying(!isPlaying),
-                  child: Container(
-                    width: 64,
-                    height: 40,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: isPlaying
-                          ? Colors.green.shade600
-                          : Colors.red.shade600,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Text(
-                      isPlaying ? 'ON' : 'OFF',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                CircleIconButton(
+                  icon: isPlaying && !isPaused ? Icons.pause : Icons.play_arrow,
+                  onPressed: () {
+                    final notifier = ref.read(appStateProvider.notifier);
+                    if (!isPlaying) {
+                      notifier.setPlaying(true);
+                    } else {
+                      notifier.setPaused(!isPaused);
+                    }
+                  },
+                  tooltip: isPlaying && !isPaused ? 'Pausa' : 'Play',
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
                 ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Play',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                const SizedBox(width: 6),
+                CircleIconButton(
+                  icon: Icons.stop,
+                  onPressed: () => ref.read(appStateProvider.notifier).setPlaying(false),
+                  tooltip: 'Stop',
+                  backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                  foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
                 ),
-                const Spacer(),
-                if (isPlaying)
-                  GestureDetector(
-                    onTap: () =>
-                        ref.read(appStateProvider.notifier).setPaused(!isPaused),
-                    child: Container(
-                      width: 96,
-                      height: 40,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: isPaused
-                            ? Colors.red.shade700
-                            : Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isPaused
-                              ? Colors.red.shade900
-                              : Theme.of(context).colorScheme.outline,
-                        ),
-                      ),
-                      child: Text(
-                        'Pausa',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: isPaused
-                              ? Colors.white
-                              : Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ),
+                const SizedBox(width: 12),
+                Text(
+                  !isPlaying ? 'Aturat' : (isPaused ? 'Pausa' : 'Reproduint'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             const SizedBox(height: 8),
