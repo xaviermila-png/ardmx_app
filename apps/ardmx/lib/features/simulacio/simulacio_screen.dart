@@ -15,6 +15,15 @@ import 'widgets/cycle_chart_painter.dart';
 
 const _pageSize = 12;
 
+typedef _DefinedEvent = ({
+  int index,
+  int moment,
+  int durada,
+  int pista,
+  int canal,
+  int valor,
+});
+
 const _channelColors = [
   Colors.red,
   Colors.green,
@@ -95,7 +104,7 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
   // chart position in build(), using the live totalTime, so a marker
   // repositions correctly if the cycle's total duration changes without
   // needing to re-fetch.
-  List<({int index, int moment})> _definedEvents = [];
+  List<_DefinedEvent> _definedEvents = [];
 
   @override
   void initState() {
@@ -238,16 +247,24 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
   /// (so or canal set) — same "so or canal" test the Events screen itself
   /// uses to decide what counts as configured.
   Future<void> _loadEvents() async {
-    final defined = <({int index, int moment})>[];
+    final defined = <_DefinedEvent>[];
     for (var i = 0; i < 10; i++) {
       final reply = await _eventRoundTrip('$i');
       if (reply == null) continue;
       final parts = reply.split('|');
-      if (parts.length < 4) continue;
-      final moment = int.tryParse(parts[0]) ?? 0;
+      if (parts.length < 5) continue;
       final pista = int.tryParse(parts[2]) ?? 0;
       final canal = int.tryParse(parts[3]) ?? 0;
-      if (pista > 0 || canal > 0) defined.add((index: i, moment: moment));
+      if (pista > 0 || canal > 0) {
+        defined.add((
+          index: i,
+          moment: int.tryParse(parts[0]) ?? 0,
+          durada: int.tryParse(parts[1]) ?? 0,
+          pista: pista,
+          canal: canal,
+          valor: int.tryParse(parts[4]) ?? 0,
+        ));
+      }
     }
     if (mounted) setState(() => _definedEvents = defined);
   }
@@ -461,7 +478,11 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
             for (final e in _definedEvents)
               EventMarker(
                 position: (e.moment / totalTime).clamp(0.0, 1.0),
+                endPosition: ((e.moment + e.durada) / totalTime).clamp(0.0, 1.0),
                 label: 'E${e.index + 1}',
+                canal: e.canal > 0 ? e.canal : null,
+                valor: e.canal > 0 ? e.valor : null,
+                pista: e.pista > 0 ? e.pista : null,
               ),
           ]
         : const <EventMarker>[];
@@ -470,6 +491,7 @@ class _SimulacioScreenState extends ConsumerState<SimulacioScreen> {
       for (var slot = 0; slot < _pageSize; slot++)
         if (_pageChannels[slot] != null)
           ChannelCurve(
+            number: _pageChannels[slot]!.number,
             color: _channelColors[slot],
             points: _buildChannelPoints(
               _pageChannels[slot]!,
