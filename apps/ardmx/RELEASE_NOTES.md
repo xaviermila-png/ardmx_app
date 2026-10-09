@@ -4,7 +4,11 @@ Historial de versions pujades a Google Play Console, amb els canvis
 funcionals reals de cada una (per documentar davant Google que cada
 versió respon a feedback de testers). Format: `versionName+versionCode`.
 
-## 2.3.0+5 — 2026-10-05
+## 2.3.0+5 — 2026-10-09
+
+**Primera publicació pública**, al canal de Producció de Google Play
+(Espanya i Itàlia) — fins ara només havia estat a Prova interna/Prova
+tancada.
 
 Respecte a la versió anterior pujada (1.1.0+2, 20 de setembre):
 
@@ -12,6 +16,11 @@ Respecte a la versió anterior pujada (1.1.0+2, 20 de setembre):
 - Pantalla **Programació Cicles** (ARDMX One v2 i EVO): controls de
   reproducció com a la Simulació — botó Play/Pausa i botó Stop, amb
   l'estat (Aturat / Reproduint / Pausa) al costat.
+- Pantalla **Events** (ARDMX EVO): un event ja no es perdia si es
+  sortia de la pantalla amb un camp encara en edició.
+- Pantalla **Simulació**: els events amb canal es dibuixen com un pols
+  al nivell forçat durant la seva durada, amb una icona de so i el
+  número de pista quan n'hi ha.
 
 ## 1.1.0+2 — 2026-09-20
 
