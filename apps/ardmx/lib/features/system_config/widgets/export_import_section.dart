@@ -562,13 +562,21 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
         // rather than left at whatever it happened to be before the import,
         // per the cross-import spec ("es desactivaran en importar-la").
         final audio = config.audioManual;
-        await writeParam(
-          'cançó',
-          VIndex.songNumber,
-          audio?.numeroMusica ?? 0,
-        );
+        await writeParam('cançó', VIndex.songNumber, audio?.numeroMusica ?? 0);
         await writeParam('volum', VIndex.volume, audio?.nivellVolum ?? 0);
       }
+      // El firmware només transfereix V21-28 (temps acumulats) al valor
+      // real que fa servir el cicle (TempsAcumulat) dins de Cicle(), que
+      // només es crida mentre V[50] val cycleProgramming (igual que a
+      // ArdmxOneV2CycleProgrammingScreen/ArdmxEvoCycleProgrammingScreen).
+      // Aquesta pantalla (Eines) hi té V[50]=parameters -- sense aquest
+      // canvi temporal, els 8 valors es queden al V[] en cru sense aplicar,
+      // i la primera vegada que s'obre Programació de Cicles arriben tots
+      // alhora, cosa que trenca l'algorisme de desplaçament (pensat per a
+      // una sola edició interactiva) i deixa els temps corruptes o
+      // reverteix a "Error seqüencia". Es restaura en acabar.
+      ref.read(appStateProvider.notifier).setScreen(AppScreen.cycleProgramming);
+      await Future.delayed(const Duration(milliseconds: 300));
       for (var i = 0; i < 8 && i < config.periodes.length; i++) {
         await writeParam(
           'temps de transició ${i + 1}',
@@ -576,6 +584,8 @@ class _ExportImportSectionState extends ConsumerState<ExportImportSection> {
           config.periodes[i],
         );
       }
+      await Future.delayed(const Duration(milliseconds: 300));
+      ref.read(appStateProvider.notifier).setScreen(AppScreen.parameters);
 
       final protocol = ref.read(protocolProvider);
       protocol.writeText(_pessebreVIndex, config.pessebre);
